@@ -1,2 +1,2 @@
-# arta-client-satisfaction-form
-This repository contains the ARTA Client Satisfaction Form for the City Government of Valenzuela. It is organized for efficient development and collaboration, with separate folders for frontend, backend, and documentation. Includes README and branch guidelines.
+# V-Serve-ARTA-Feedback-Analytics
+A centralized platform for collecting, analyzing, and reporting feedback on government service transactions through the ARTA Client Satisfaction Measurement (CSM) initiative. Enables efficient collaboration for frontend, backend, and documentation teams with version control, best practices, and clear branch guidelines.
