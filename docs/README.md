@@ -1,0 +1,1 @@
+All contributors should work in feature branches and open pull requests for review before merging to the main branch. Please follow semantic branch naming (e.g., feature/login, fix/auth-bug, docs/readme-update).
