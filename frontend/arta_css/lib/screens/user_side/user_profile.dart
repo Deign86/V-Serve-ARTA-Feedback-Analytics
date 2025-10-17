@@ -22,7 +22,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     super.initState();
     _scrollController = ScrollController();
   }
-
   @override
   void dispose() {
     _scrollController.dispose();
@@ -32,31 +31,34 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
+    final currentPage = 1; // change as users go through steps
+    final totalSteps = 4; // set to 4 for 4 bars
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           Positioned.fill(
-            child: Image.asset(
-              'assets/city_bg2.png',
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset('assets/city_bg2.png', fit: BoxFit.cover),
           ),
           SafeArea(
             child: Center(
               child: Container(
                 width: isMobile ? double.infinity : 1200,
-                height: MediaQuery.of(context).size.height - (MediaQuery.of(context).padding.top + MediaQuery.of(context).padding.bottom + 50),
-                padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 40, vertical: isMobile ? 16 : 24),
+                height: MediaQuery.of(context).size.height -
+                    (MediaQuery.of(context).padding.top +
+                        MediaQuery.of(context).padding.bottom +
+                        50),
+                padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 12 : 40,
+                    vertical: isMobile ? 16 : 24),
                 child: Column(
                   children: [
                     _buildHeader(isMobile),
                     SizedBox(height: isMobile ? 16 : 24),
-                    _buildProgressBar(isMobile, 1),
+                    _buildProgressBar(isMobile, currentPage, totalSteps),
                     SizedBox(height: isMobile ? 16 : 24),
-                    Expanded(
-                      child: _buildFormCard(isMobile),
-                    ),
+                    Expanded(child: _buildFormCard(isMobile)),
                   ],
                 ),
               ),
@@ -71,9 +73,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Column(
       children: [
         CircleAvatar(
-          radius: isMobile ? 16 : 22, // smaller logo
+          radius: isMobile ? 16 : 22,
           backgroundImage: AssetImage('assets/city_logo.png'),
-          onBackgroundImageError: (exception, stackTrace) {},
+          onBackgroundImageError: (e, s) {},
         ),
         SizedBox(height: isMobile ? 7 : 10),
         Text(
@@ -96,21 +98,22 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildProgressBar(bool isMobile, int currentPage) {
-    final totalPages = 3;
+  Widget _buildProgressBar(bool isMobile, int currentStep, int totalSteps) {
     return Row(
-      children: List.generate(totalPages, (index) {
-        final isCompleted = index < currentPage - 1;
-        final isActive = index == currentPage - 1;
+      children: List.generate(totalSteps, (index) {
+        final isCompleted = index < currentStep - 1;
+        final isActive = index == currentStep - 1;
         return Expanded(
           child: Container(
             height: isMobile ? 6 : 8,
             margin: EdgeInsets.symmetric(horizontal: isMobile ? 2 : 4),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(4),
-              color: isCompleted || isActive
+              color: isActive
                   ? const Color(0xFF0099FF)
-                  : Colors.grey.shade300,
+                  : isCompleted
+                      ? const Color(0xFF36A0E1)
+                      : Colors.grey.shade300,
             ),
           ),
         );
@@ -119,11 +122,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildFormCard(bool isMobile) {
+    // your form logic remains unchanged
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.98),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(blurRadius: 20, color: Colors.black12)],
       ),
       child: Column(
@@ -149,7 +153,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     onPressed: () => Navigator.of(context).maybePop(),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: Colors.grey.shade400),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24)),
                     ),
                     child: Text(
                       'PREVIOUS PAGE',
@@ -165,10 +170,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   width: isMobile ? 140 : 160,
                   height: isMobile ? 44 : 50,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pushNamed(context, '/citizenCharter'),
+                    onPressed: () =>
+                        Navigator.pushNamed(context, '/citizenCharter'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF003366),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24)),
                     ),
                     child: Text(
                       'NEXT PAGE',
@@ -187,6 +194,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       ),
     );
   }
+
+
 
   Widget _buildPart1(bool isMobile) {
     return Column(
@@ -255,7 +264,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           type,
                           style: GoogleFonts.poppins(
                               fontSize: isMobile ? 12 : 14,
-                              color: Color(0xFF003366)),
+                              color: const Color(0xFF003366)),
                         ),
                       ],
                     ),
@@ -290,7 +299,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             if (picked != null) setState(() => selectedDate = picked);
           },
           child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey.shade400),
               borderRadius: BorderRadius.circular(12),
@@ -337,7 +346,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         ),
                         Text(
                           s,
-                          style: GoogleFonts.poppins(fontSize: isMobile ? 12 : 13, color: Color(0xFF003366)),
+                          style: GoogleFonts.poppins(
+                              fontSize: isMobile ? 12 : 13,
+                              color: const Color(0xFF003366)),
                         ),
                       ],
                     ),
@@ -368,7 +379,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             hintText: 'Age',
             hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 12 : 14),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
         ),
       ],
@@ -394,7 +405,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             hintText: 'Enter your region',
             hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 12 : 14),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
         ),
       ],
@@ -420,7 +431,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             hintText: 'Enter the service availed',
             hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 12 : 14),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
         ),
       ],

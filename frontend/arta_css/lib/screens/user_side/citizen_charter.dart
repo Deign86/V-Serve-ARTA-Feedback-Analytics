@@ -104,7 +104,7 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
         Text(
           'CITY GOVERNMENT OF VALENZUELA',
           style: GoogleFonts.montserrat(
-            fontSize: isMobile ? 14 : 20,
+            fontSize: isMobile ? 14 : 16,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
@@ -113,7 +113,7 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
         Text(
           'HELP US SERVE YOU BETTER!',
           style: GoogleFonts.poppins(
-            fontSize: isMobile ? 10 : 14,
+            fontSize: isMobile ? 10 : 12,
             color: Colors.white70,
           ),
         ),
@@ -149,7 +149,7 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.98),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(blurRadius: 20, color: Colors.black12)],
       ),
       child: SingleChildScrollView(
