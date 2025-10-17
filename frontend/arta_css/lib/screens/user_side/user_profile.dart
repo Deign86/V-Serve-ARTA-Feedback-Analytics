@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({Key? key}) : super(key: key);
@@ -8,349 +9,53 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
-  String clientType = 'CITIZEN';
+  late ScrollController _scrollController;
+  String? clientType = 'CITIZEN';
   DateTime? selectedDate;
-  String sex = 'MALE';
+  String? sex = 'MALE';
+  String? age;
+  String? region;
+  String? serviceAvailed;
 
-  final ageController = TextEditingController();
-  final regionController = TextEditingController();
-  final serviceController = TextEditingController();
-
-  void _pickDate(BuildContext context) async {
-    DateTime? date = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime(2100),
-    );
-    if (date != null) {
-      setState(() {
-        selectedDate = date;
-      });
-    }
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
   }
 
-  Widget _progressBar(int activeStep) {
-    return Row(
-      children: List.generate(4, (i) {
-        return Expanded(
-          child: Container(
-            height: 8,
-            margin: EdgeInsets.symmetric(horizontal: 4),
-            decoration: BoxDecoration(
-              color: i < activeStep ? Color(0xFF009FE3) : Colors.grey[200],
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
-      }),
-    );
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isMobile = size.width < 900;
-
+    final isMobile = MediaQuery.of(context).size.width < 900;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // Background image
           Positioned.fill(
             child: Image.asset(
-              'assets/city_bg2.png', // Change to your background asset
+              'assets/city_bg2.png',
               fit: BoxFit.cover,
             ),
           ),
-          // Main layout
           SafeArea(
             child: Center(
-              child: SizedBox(
-                width: isMobile ? size.width : 1430,
-                height: isMobile ? size.height : 660,
+              child: Container(
+                width: isMobile ? double.infinity : 1200,
+                height: MediaQuery.of(context).size.height - (MediaQuery.of(context).padding.top + MediaQuery.of(context).padding.bottom + 50),
+                padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 40, vertical: isMobile ? 16 : 24),
                 child: Column(
                   children: [
-                    // Logo/header (small and at top)
-                    Padding(
-                      padding: EdgeInsets.only(top: 20.0, bottom: 6.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset(
-                            'assets/city_logo.png',
-                            height: isMobile ? 32 : 40,
-                            width: isMobile ? 32 : 40,
-                          ),
-                          SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                "CITY GOVERNMENT OF VALENZUELA",
-                                style: TextStyle(
-                                  fontSize: isMobile ? 15 : 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF003366),
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              Text(
-                                "HELP US SERVE YOU BETTER!",
-                                style: TextStyle(
-                                  fontSize: isMobile ? 10 : 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: isMobile ? 18 : 60, vertical: isMobile ? 10 : 18),
-                      child: _progressBar(1),
-                    ),
-                    // Main card content (never overflows)
+                    _buildHeader(isMobile),
+                    SizedBox(height: isMobile ? 16 : 24),
+                    _buildProgressBar(isMobile, 1),
+                    SizedBox(height: isMobile ? 16 : 24),
                     Expanded(
-                      child: Center(
-                        child: Container(
-                          width: isMobile ? size.width * 0.98 : 1050,
-                          height: isMobile ? size.height * 0.77 : 480,
-                          padding: EdgeInsets.all(isMobile ? 16 : 32),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.95),
-                            borderRadius: BorderRadius.circular(32),
-                            boxShadow: [
-                              BoxShadow(
-                                blurRadius: 16,
-                                color: Colors.black12,
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Main fields area - take up all extra space, scroll if needed
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Text(
-                                            "PART 1.",
-                                            style: TextStyle(
-                                              fontSize: isMobile ? 17 : 22,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF003366),
-                                            ),
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            "USER PROFILE",
-                                            style: TextStyle(
-                                              fontSize: isMobile ? 15 : 20,
-                                              color: Colors.grey[800],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: isMobile ? 10 : 20),
-                                      // CLIENT TYPE
-                                      Text("CLIENT TYPE:", style: TextStyle(fontWeight: FontWeight.w700, fontSize: isMobile ? 13 : 18, color: Color(0xFF003366))),
-                                      SizedBox(height: 4),
-                                      Wrap(
-                                        spacing: 20,
-                                        alignment: WrapAlignment.start,
-                                        children: [
-                                          _radioOption("CITIZEN", clientType),
-                                          _radioOption("BUSINESS", clientType),
-                                          _radioOption("GOVERNMENT", clientType, label: "GOVERNMENT (EMPLOYEE OR ANOTHER AGENCY)"),
-                                        ],
-                                      ),
-                                      SizedBox(height: isMobile ? 7 : 20),
-                                      // DATE, SEX, AGE
-                                      Row(
-                                        children: [
-                                          // DATE
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text("DATE:", style: TextStyle(fontWeight: FontWeight.w700, fontSize: isMobile ? 13 : 18, color: Color(0xFF003366))),
-                                                SizedBox(height: 2),
-                                                GestureDetector(
-                                                  onTap: () => _pickDate(context),
-                                                  child: AbsorbPointer(
-                                                    child: TextFormField(
-                                                      decoration: InputDecoration(
-                                                        hintText: selectedDate == null
-                                                            ? "Select date"
-                                                            : "${selectedDate!.month}/${selectedDate!.day}/${selectedDate!.year}",
-                                                        suffixIcon: Icon(Icons.calendar_today),
-                                                        filled: true,
-                                                        fillColor: Colors.grey[100],
-                                                        border: OutlineInputBorder(
-                                                          borderRadius: BorderRadius.circular(16),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          SizedBox(width: isMobile ? 6 : 20),
-                                          // SEX
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text("SEX:", style: TextStyle(fontWeight: FontWeight.w700, fontSize: isMobile ? 13 : 18, color: Color(0xFF003366))),
-                                                SizedBox(height: 2),
-                                                Wrap(
-                                                  spacing: 16,
-                                                  children: [
-                                                    _radioOption("MALE", sex, group: "sex"),
-                                                    _radioOption("FEMALE", sex, group: "sex"),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          SizedBox(width: isMobile ? 6 : 20),
-                                          // AGE
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text("AGE:", style: TextStyle(fontWeight: FontWeight.w700, fontSize: isMobile ? 13 : 18, color: Color(0xFF003366))),
-                                                SizedBox(height: 2),
-                                                TextFormField(
-                                                  controller: ageController,
-                                                  keyboardType: TextInputType.number,
-                                                  decoration: InputDecoration(
-                                                    hintText: "Age",
-                                                    filled: true,
-                                                    fillColor: Colors.grey[100],
-                                                    border: OutlineInputBorder(
-                                                      borderRadius: BorderRadius.circular(16),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: isMobile ? 7 : 20),
-                                      // REGION, SERVICE
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text("REGION OF RESIDENCE:", style: TextStyle(fontWeight: FontWeight.w700, fontSize: isMobile ? 13 : 18, color: Color(0xFF003366))),
-                                                SizedBox(height: 2),
-                                                TextFormField(
-                                                  controller: regionController,
-                                                  decoration: InputDecoration(
-                                                    hintText: "Enter your region",
-                                                    filled: true,
-                                                    fillColor: Colors.grey[100],
-                                                    border: OutlineInputBorder(
-                                                      borderRadius: BorderRadius.circular(16),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          SizedBox(width: isMobile ? 6 : 20),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text("SERVICE AVAILED:", style: TextStyle(fontWeight: FontWeight.w700, fontSize: isMobile ? 13 : 18, color: Color(0xFF003366))),
-                                                SizedBox(height: 2),
-                                                TextFormField(
-                                                  controller: serviceController,
-                                                  decoration: InputDecoration(
-                                                    hintText: "Enter the service availed",
-                                                    filled: true,
-                                                    fillColor: Colors.grey[100],
-                                                    border: OutlineInputBorder(
-                                                      borderRadius: BorderRadius.circular(16),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              // At the very end of your main card's Column:
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    OutlinedButton(
-                                      style: OutlinedButton.styleFrom(
-                                        side: BorderSide(color: Color(0xFF003366)),
-                                        minimumSize: Size(150, 50),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(28),
-                                        ),
-                                      ),
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                      },
-                                      child: Text(
-                                        "PREVIOUS PAGE",
-                                        style: TextStyle(
-                                          color: Color(0xFF003366),
-                                          fontSize: isMobile ? 13 : 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 14),
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Color(0xFF003366),
-                                        minimumSize: Size(150, 50),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(28),
-                                        ),
-                                      ),
-                                      onPressed: () {
-                                        Navigator.pushNamed(context, '/citizenCharter');
-                                      },
-                                      child: Text(
-                                        "NEXT PAGE",
-                                        style: TextStyle(
-                                          fontSize: isMobile ? 13 : 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                            ],
-                          ),
-                        ),
-                      ),
+                      child: _buildFormCard(isMobile),
                     ),
                   ],
                 ),
@@ -362,35 +67,363 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _radioOption(String value, String groupValue,
-      {String? label, String group = "clientType"}) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+  Widget _buildHeader(bool isMobile) {
+    return Column(
       children: [
-        Radio<String>(
-          value: value,
-          groupValue: (group == "clientType") ? clientType : sex,
-          activeColor: Color(0xFF009FE3),
-          onChanged: (v) {
-            setState(() {
-              if (group == "clientType") {
-                clientType = v!;
-              } else {
-                sex = v!;
-              }
-            });
-          },
+        CircleAvatar(
+          radius: isMobile ? 16 : 22, // smaller logo
+          backgroundImage: AssetImage('assets/city_logo.png'),
+          onBackgroundImageError: (exception, stackTrace) {},
         ),
-        Flexible(child: Text(label ?? value, overflow: TextOverflow.ellipsis)),
+        SizedBox(height: isMobile ? 7 : 10),
+        Text(
+          'CITY GOVERNMENT OF VALENZUELA',
+          style: GoogleFonts.montserrat(
+            fontSize: isMobile ? 14 : 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        Text(
+          'HELP US SERVE YOU BETTER!',
+          style: GoogleFonts.poppins(
+            fontSize: isMobile ? 10 : 14,
+            color: Colors.white70,
+          ),
+        ),
       ],
     );
   }
 
-  @override
-  void dispose() {
-    ageController.dispose();
-    regionController.dispose();
-    serviceController.dispose();
-    super.dispose();
+  Widget _buildProgressBar(bool isMobile, int currentPage) {
+    final totalPages = 3;
+    return Row(
+      children: List.generate(totalPages, (index) {
+        final isCompleted = index < currentPage - 1;
+        final isActive = index == currentPage - 1;
+        return Expanded(
+          child: Container(
+            height: isMobile ? 6 : 8,
+            margin: EdgeInsets.symmetric(horizontal: isMobile ? 2 : 4),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(4),
+              color: isCompleted || isActive
+                  ? const Color(0xFF0099FF)
+                  : Colors.grey.shade300,
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildFormCard(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.98),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(blurRadius: 20, color: Colors.black12)],
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              child: Padding(
+                padding: EdgeInsets.all(isMobile ? 20 : 40),
+                child: _buildPart1(isMobile),
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(isMobile ? 20 : 40),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                SizedBox(
+                  width: isMobile ? 140 : 180,
+                  height: isMobile ? 44 : 50,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.grey.shade400),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                    ),
+                    child: Text(
+                      'PREVIOUS PAGE',
+                      style: GoogleFonts.montserrat(
+                        fontSize: isMobile ? 12 : 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade400,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: isMobile ? 140 : 160,
+                  height: isMobile ? 44 : 50,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pushNamed(context, '/citizenCharter'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF003366),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                    ),
+                    child: Text(
+                      'NEXT PAGE',
+                      style: GoogleFonts.montserrat(
+                        fontSize: isMobile ? 12 : 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPart1(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'PART 1. USER PROFILE',
+          style: GoogleFonts.montserrat(
+            fontSize: isMobile ? 18 : 24,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF003366),
+          ),
+        ),
+        SizedBox(height: isMobile ? 16 : 24),
+        _buildClientTypeField(isMobile),
+        SizedBox(height: isMobile ? 16 : 20),
+        Row(
+          children: [
+            Expanded(child: _buildDateField(isMobile)),
+            SizedBox(width: 16),
+            Expanded(child: _buildSexField(isMobile)),
+            SizedBox(width: 16),
+            Expanded(child: _buildAgeField(isMobile)),
+          ],
+        ),
+        SizedBox(height: isMobile ? 16 : 20),
+        Row(
+          children: [
+            Expanded(child: _buildRegionField(isMobile)),
+            SizedBox(width: 16),
+            Expanded(child: _buildServiceAvailedField(isMobile)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildClientTypeField(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'CLIENT TYPE:',
+          style: GoogleFonts.montserrat(
+            fontSize: isMobile ? 13 : 15,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF003366),
+          ),
+        ),
+        SizedBox(height: isMobile ? 10 : 12),
+        Wrap(
+          spacing: isMobile ? 16 : 24,
+          runSpacing: 8,
+          children: ['CITIZEN', 'BUSINESS', 'GOVERNMENT (EMPLOYEE OR ANOTHER AGENCY)']
+              .map((type) => SizedBox(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Radio<String>(
+                          value: type,
+                          groupValue: clientType,
+                          activeColor: const Color(0xFF003366),
+                          onChanged: (value) => setState(() => clientType = value),
+                        ),
+                        Text(
+                          type,
+                          style: GoogleFonts.poppins(
+                              fontSize: isMobile ? 12 : 14,
+                              color: Color(0xFF003366)),
+                        ),
+                      ],
+                    ),
+                  ))
+              .toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDateField(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'DATE:',
+          style: GoogleFonts.montserrat(
+            fontSize: isMobile ? 13 : 15,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF003366),
+          ),
+        ),
+        SizedBox(height: 10),
+        GestureDetector(
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: DateTime.now(),
+              firstDate: DateTime(2000),
+              lastDate: DateTime.now(),
+            );
+            if (picked != null) setState(() => selectedDate = picked);
+          },
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade400),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  selectedDate?.toString().split(' ')[0] ?? 'Select date',
+                  style: GoogleFonts.poppins(fontSize: isMobile ? 12 : 14),
+                ),
+                Icon(Icons.calendar_today, size: 18, color: Colors.grey.shade600),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSexField(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'SEX:',
+          style: GoogleFonts.montserrat(
+            fontSize: isMobile ? 13 : 15,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF003366),
+          ),
+        ),
+        SizedBox(height: 10),
+        Row(
+          children: ['MALE', 'FEMALE']
+              .map((s) => Expanded(
+                    child: Row(
+                      children: [
+                        Radio<String>(
+                          value: s,
+                          groupValue: sex,
+                          activeColor: const Color(0xFF003366),
+                          onChanged: (value) => setState(() => sex = value),
+                        ),
+                        Text(
+                          s,
+                          style: GoogleFonts.poppins(fontSize: isMobile ? 12 : 13, color: Color(0xFF003366)),
+                        ),
+                      ],
+                    ),
+                  ))
+              .toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAgeField(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'AGE:',
+          style: GoogleFonts.montserrat(
+            fontSize: isMobile ? 13 : 15,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF003366),
+          ),
+        ),
+        SizedBox(height: 10),
+        TextField(
+          keyboardType: TextInputType.number,
+          onChanged: (value) => setState(() => age = value),
+          decoration: InputDecoration(
+            hintText: 'Age',
+            hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 12 : 14),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRegionField(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'REGION OF RESIDENCE:',
+          style: GoogleFonts.montserrat(
+            fontSize: isMobile ? 13 : 15,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF003366),
+          ),
+        ),
+        SizedBox(height: 10),
+        TextField(
+          onChanged: (value) => setState(() => region = value),
+          decoration: InputDecoration(
+            hintText: 'Enter your region',
+            hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 12 : 14),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildServiceAvailedField(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'SERVICE AVAILED:',
+          style: GoogleFonts.montserrat(
+            fontSize: isMobile ? 13 : 15,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF003366),
+          ),
+        ),
+        SizedBox(height: 10),
+        TextField(
+          onChanged: (value) => setState(() => serviceAvailed = value),
+          decoration: InputDecoration(
+            hintText: 'Enter the service availed',
+            hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 12 : 14),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+        ),
+      ],
+    );
   }
 }
