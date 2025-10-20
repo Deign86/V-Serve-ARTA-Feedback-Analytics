@@ -53,17 +53,32 @@ class _LandingScreenState extends State<LandingScreen> {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: isMobile ? 16 : 40,
-                vertical: isMobile ? 16 : 40,
-              ),
-              child: isMobile
-                  ? _buildMobileLayout(context)
-                  : _buildDesktopLayout(context),
-            ),
-          ),
+          child: isMobile
+              ? LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      padding: EdgeInsets.zero,
+                      physics: const ClampingScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: IntrinsicHeight(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: _buildMobileLayout(context),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                )
+              : SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
+                    child: _buildDesktopLayout(context),
+                  ),
+                ),
         ),
       ),
     );
@@ -72,11 +87,12 @@ class _LandingScreenState extends State<LandingScreen> {
   // ------------------ MOBILE LAYOUT ------------------
   Widget _buildMobileLayout(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _buildImageCarousel(true),
         const SizedBox(height: 20),
         _buildTextCard(context, true),
+        const SizedBox(height: 8), // minimal space, no more huge gap
       ],
     );
   }
@@ -86,14 +102,14 @@ class _LandingScreenState extends State<LandingScreen> {
     return Center(
       child: Container(
         width: 1430,
-        height: 660,
+        height: 660, // same as before (carousel height alignment)
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 36),
         child: Row(
           children: [
             // Left side (Text + Button)
             Expanded(
               child: Container(
-                height: 600, // match carousel height
+                height: 600, // same fixed height as carousel
                 child: _buildTextCard(context, false),
               ),
             ),
@@ -114,7 +130,6 @@ class _LandingScreenState extends State<LandingScreen> {
   Widget _buildTextCard(BuildContext context, bool isMobile) {
     return Container(
       width: double.infinity,
-      height: isMobile ? null : 400, // ensure same height in desktop
       padding: EdgeInsets.all(isMobile ? 16 : 40),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.97),
@@ -123,6 +138,8 @@ class _LandingScreenState extends State<LandingScreen> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: isMobile ? MainAxisAlignment.start : MainAxisAlignment.spaceBetween,
+        mainAxisSize: isMobile ? MainAxisSize.min : MainAxisSize.max,
         children: [
           // Header
           Row(
@@ -165,7 +182,7 @@ class _LandingScreenState extends State<LandingScreen> {
           Text(
             "ARTA",
             style: GoogleFonts.montserrat(
-              fontSize: isMobile ? 48 : 64,
+              fontSize: isMobile ? 48 : 100,
               fontWeight: FontWeight.bold,
               color: const Color(0xFF003366),
             ),
@@ -179,17 +196,15 @@ class _LandingScreenState extends State<LandingScreen> {
             ),
           ),
           SizedBox(height: isMobile ? 8 : 16),
-          Expanded(
-            child: Text(
-              "We want to hear about your recently concluded transaction with us. "
-              "Your feedback is valuable to improve our service.",
-              style: GoogleFonts.poppins(fontSize: isMobile ? 12 : 18),
-            ),
+          Text(
+            "We want to hear about your recently concluded transaction with us. "
+            "Your feedback is valuable to improve our service.",
+            style: GoogleFonts.poppins(fontSize: isMobile ? 12 : 18),
           ),
-          SizedBox(height: isMobile ? 10 : 20),
+          if (isMobile) const SizedBox(height: 16),
+          if (!isMobile) const Spacer(),
           Align(
-            alignment:
-                isMobile ? Alignment.center : Alignment.centerRight,
+            alignment: isMobile ? Alignment.center : Alignment.centerRight,
             child: SizedBox(
               width: isMobile ? double.infinity : 180,
               height: isMobile ? 44 : 50,
