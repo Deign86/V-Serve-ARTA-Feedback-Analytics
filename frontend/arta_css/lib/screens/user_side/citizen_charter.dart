@@ -16,25 +16,25 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
   String? cc3Answer;
 
   final cc1Options = [
-    '1. Easy to see',
-    '2. Somewhat easy to see',
-    '3. Difficult to see',
-    '4. Not visible at all',
-    '5. N/A',
-  ];
-
-  final cc2Options = [
-    '1. Helped very much',
-    '2. Somewhat helped',
-    '3. Did not help',
-    '4. N/A',
-  ];
-
-  final cc3Options = [
     '1. I know what a CC is and I saw this office\'s CC.',
     '2. I know what a CC is but I did NOT see this office\'s CC.',
     '3. I learned of the CC only when I saw this office\'s CC.',
     '4. I do not know what a CC is and I did not see one in this office. (Answer \'N/A\' on CC2 and CC3)',
+  ];
+
+  final cc2Options = [
+    '1. Easy to see',
+    '2. Somewhat easy to see',
+    '3. Difficult to see',
+    '4. Not visible at all',
+    '5. Not Applicable',
+  ];
+
+  final cc3Options = [
+    '1. Helped very much',
+    '2. Somewhat helped',
+    '3. Did not help',
+    '4. Not Applicable',
   ];
 
   @override
@@ -203,7 +203,7 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
               // CC1
               _ccCard(
                 code: 'CC1',
-                question: 'If aware of CC (answered 1-3 in CC1), would you say that the CC of this office was ...?',
+                question: 'Which of the following best describes your awareness of a CC?',
                 options: cc1Options,
                 selectedValue: cc1Answer,
                 onChanged: (val) => setState(() => cc1Answer = val),
@@ -213,7 +213,7 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
               // CC2
               _ccCard(
                 code: 'CC2',
-                question: 'If aware of CC (answered codes 1-3 in CC1), how much did the CC help you in your transaction?',
+                question: 'If aware of CC (answered 1-3 in CC1), would you say that the CC of this office was ...?',
                 options: cc2Options,
                 selectedValue: cc2Answer,
                 onChanged: (val) => setState(() => cc2Answer = val),
@@ -223,7 +223,7 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
               // CC3
               _ccCard(
                 code: 'CC3',
-                question: 'Which of the following best describes your awareness of a CC?',
+                question: 'If aware of CC (answered codes 1-3 in CC1), how much did the CC help you in your transaction?',
                 options: cc3Options,
                 selectedValue: cc3Answer,
                 onChanged: (val) => setState(() => cc3Answer = val),
