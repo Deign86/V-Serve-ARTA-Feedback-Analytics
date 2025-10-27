@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class LandingScreen extends StatefulWidget {
-  const LandingScreen({Key? key}) : super(key: key);
+  const LandingScreen({super.key});
 
   @override
   State<LandingScreen> createState() => _LandingScreenState();
@@ -12,10 +12,13 @@ class LandingScreen extends StatefulWidget {
 class _LandingScreenState extends State<LandingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  // Use only existing assets to avoid broken image references.
+  // nai_2.jpg and nai_3.png were not present in the repo; replace them with
+  // bundled background images so the carousel always has valid images.
   final List<String> _carouselImages = [
     'assets/nai_1.jpg',
-    'assets/nai_2.jpg',
-    'assets/nai_3.png',
+    'assets/city_bg1.png',
+    'assets/city_bg2.png',
   ];
 
   @override
@@ -108,14 +111,14 @@ class _LandingScreenState extends State<LandingScreen> {
           children: [
             // Left side (Text + Button)
             Expanded(
-              child: Container(
+              child: SizedBox(
                 height: 600, // same fixed height as carousel
                 child: _buildTextCard(context, false),
               ),
             ),
             const SizedBox(width: 24),
             // Right side (Carousel)
-            Container(
+            SizedBox(
               width: 400,
               height: 600,
               child: _buildImageCarousel(false),
@@ -132,7 +135,7 @@ class _LandingScreenState extends State<LandingScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 16 : 40),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.97),
+        color: Colors.white.withAlpha(247),
         borderRadius: BorderRadius.circular(32),
         boxShadow: const [BoxShadow(blurRadius: 18, color: Colors.black12)],
       ),

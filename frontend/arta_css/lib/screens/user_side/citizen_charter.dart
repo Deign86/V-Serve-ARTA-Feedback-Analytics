@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class CitizenCharterScreen extends StatefulWidget {
-  const CitizenCharterScreen({Key? key}) : super(key: key);
+  const CitizenCharterScreen({super.key});
 
   @override
   State<CitizenCharterScreen> createState() => _CitizenCharterScreenState();
@@ -174,7 +174,7 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.98),
+    color: Colors.white.withAlpha(250),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [BoxShadow(blurRadius: 14, color: Colors.black12)],
       ),
@@ -198,7 +198,7 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
               Container(
                 padding: EdgeInsets.all(isMobile ? 12 : 16),
                 decoration: BoxDecoration(
-                  color: Color(0xFF003368).withOpacity(0.1),
+                  color: Color(0xFF003368).withAlpha(26),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: RichText(

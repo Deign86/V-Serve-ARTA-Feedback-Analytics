@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class SuggestionsScreen extends StatefulWidget {
-  const SuggestionsScreen({Key? key}) : super(key: key);
+  const SuggestionsScreen({super.key});
 
   @override
   State<SuggestionsScreen> createState() => _SuggestionsScreenState();
@@ -119,7 +119,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.98),
+  color: Colors.white.withAlpha(250),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(blurRadius: 20, color: Colors.black12)],
       ),
@@ -176,7 +176,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.red.withOpacity(0.3),
+                color: Colors.red.withAlpha(76),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -241,7 +241,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.blue.withOpacity(0.3),
+                color: Colors.blue.withAlpha(76),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),

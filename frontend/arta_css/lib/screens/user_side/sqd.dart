@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class SQDScreen extends StatefulWidget {
-  const SQDScreen({Key? key}) : super(key: key);
+  const SQDScreen({super.key});
 
   @override
   State<SQDScreen> createState() => _SQDScreenState();
@@ -203,7 +203,7 @@ class _SQDScreenState extends State<SQDScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.98),
+        color: Colors.white.withAlpha(250),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(blurRadius: 20, color: Colors.black12)],
       ),
@@ -227,7 +227,7 @@ class _SQDScreenState extends State<SQDScreen> {
                 width: double.infinity,
                 padding: EdgeInsets.all(isMobile ? 12 : 16),
                 decoration: BoxDecoration(
-                  color: Color(0xFF003368).withOpacity(0.1),
+                  color: Color(0xFF003368).withAlpha(26),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: RichText(

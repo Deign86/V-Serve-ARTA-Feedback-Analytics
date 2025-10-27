@@ -1,0 +1,10 @@
+analyzer:
+  exclude:
+    # Exclude the checked-in Flutter engine/source tree to avoid spurious
+    # analyzer errors in the repo root. The app/project under `frontend/arta_css`
+    # will still be analyzed by IDEs when opened as a folder or workspace.
+    - flutter/**
+
+# Optionally, exclude other large generated dirs if needed
+#    - **/.dart_tool/**
+#    - **/build/**

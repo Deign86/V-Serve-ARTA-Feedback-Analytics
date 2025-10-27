@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class UserProfileScreen extends StatefulWidget {
-  const UserProfileScreen({Key? key}) : super(key: key);
+  const UserProfileScreen({super.key});
 
   @override
   State<UserProfileScreen> createState() => _UserProfileScreenState();
@@ -130,7 +130,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.98),
+    color: Colors.white.withAlpha(250),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [BoxShadow(blurRadius: 14, color: Colors.black12)],
       ),
@@ -335,7 +335,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ),
       ),
       SizedBox(height: isMobile ? 6 : 10),  // reduced vertical spacing
-      GestureDetector(
+          GestureDetector(
         onTap: () async {
           final picked = await showDatePicker(
             context: context,
@@ -343,8 +343,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             firstDate: DateTime(2000),
             lastDate: DateTime.now(),
           );
-          if (picked != null) setState(() => selectedDate = picked);
-          else {
+          if (!mounted) return;
+          if (picked != null) {
+            setState(() {
+              selectedDate = picked;
+            });
+          } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Please fill out all fields correctly.'),
@@ -352,7 +356,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             );
           }
-          return null;
         },
         child: Container(
           padding: EdgeInsets.symmetric(

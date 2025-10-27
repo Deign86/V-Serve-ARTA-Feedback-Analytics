@@ -32,6 +32,9 @@ dependencies:
     sdk: flutter
   google_fonts: ^6.1.0
 
+  # window_manager is used at runtime to control desktop window behavior.
+  window_manager: ^0.5.1
+
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -40,8 +43,6 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  window_manager: ^0.3.8
   
 
   # The "flutter_lints" package below contains a set of recommended lints to
