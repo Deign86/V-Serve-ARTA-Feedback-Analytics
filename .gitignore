@@ -11,3 +11,7 @@ flutter/
 pubspec.lock
 
 # End of .gitignore
+
+# Sensitive local service files (do not commit)
+**/google-services.json
+**/serviceAccountKey.json
