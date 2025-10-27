@@ -131,8 +131,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.98),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(blurRadius: 20, color: Colors.black12)],
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(blurRadius: 14, color: Colors.black12)],
       ),
       child: Form(
         key: _formKey,
@@ -153,7 +153,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   SizedBox(
-                    width: isMobile ? 140 : 180,
+                    width: isMobile ? 150 : 180,
                     height: isMobile ? 44 : 50,
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).maybePop(),
@@ -166,7 +166,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       child: Text(
                         'PREVIOUS PAGE',
                         style: GoogleFonts.montserrat(
-                          fontSize: isMobile ? 12 : 14,
+                          fontSize: isMobile ? 11 : 14,
                           fontWeight: FontWeight.bold,
                           color: Colors.grey.shade400,
                         ),
@@ -218,40 +218,62 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildPart1(bool isMobile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'PART 1. USER PROFILE',
-          style: GoogleFonts.montserrat(
-            fontSize: isMobile ? 18 : 24,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF003366),
-          ),
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'PART 1. USER PROFILE',
+        style: GoogleFonts.montserrat(
+          fontSize: isMobile ? 18 : 24,
+          fontWeight: FontWeight.bold,
+          color: const Color(0xFF003366),
         ),
-        SizedBox(height: isMobile ? 16 : 24),
-        _buildClientTypeField(isMobile),
-        SizedBox(height: isMobile ? 16 : 20),
-        Row(
-          children: [
-            Expanded(child: _buildDateField(isMobile)),
-            SizedBox(width: 16),
-            Expanded(child: _buildSexField(isMobile)),
-            SizedBox(width: 16),
-            Expanded(child: _buildAgeField(isMobile)),
-          ],
-        ),
-        SizedBox(height: isMobile ? 16 : 20),
-        Row(
-          children: [
-            Expanded(child: _buildRegionField(isMobile)),
-            SizedBox(width: 16),
-            Expanded(child: _buildServiceAvailedField(isMobile)),
-          ],
-        ),
-      ],
-    );
-  }
+      ),
+      SizedBox(height: isMobile ? 16 : 24),
+      _buildClientTypeField(isMobile),
+      SizedBox(height: isMobile ? 16 : 20),
+      // Wrap date, sex, and age fields
+      isMobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDateField(isMobile),
+                SizedBox(height: 12),
+                _buildSexField(isMobile),
+                SizedBox(height: 12),
+                _buildAgeField(isMobile),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(child: _buildDateField(isMobile)),
+                SizedBox(width: 16),
+                Expanded(child: _buildSexField(isMobile)),
+                SizedBox(width: 16),
+                Expanded(child: _buildAgeField(isMobile)),
+              ],
+            ),
+      SizedBox(height: isMobile ? 16 : 20),
+      // Wrap region and service fields
+      isMobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildRegionField(isMobile),
+                SizedBox(height: 12),
+                _buildServiceAvailedField(isMobile),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(child: _buildRegionField(isMobile)),
+                SizedBox(width: 16),
+                Expanded(child: _buildServiceAvailedField(isMobile)),
+              ],
+            ),
+    ],
+  );
+}
 
   Widget _buildClientTypeField(bool isMobile) {
     return Column(
@@ -267,7 +289,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ),
         SizedBox(height: isMobile ? 10 : 12),
         Wrap(
-          spacing: isMobile ? 16 : 24,
+          spacing: isMobile ? 14 : 24,
           runSpacing: 8,
           children:
               ['CITIZEN', 'BUSINESS', 'GOVERNMENT (EMPLOYEE OR ANOTHER AGENCY)']
@@ -286,7 +308,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           Text(
                             type,
                             style: GoogleFonts.poppins(
-                              fontSize: isMobile ? 12 : 14,
+                              fontSize: isMobile ? 11 : 14,
                               color: const Color(0xFF003366),
                             ),
                           ),
@@ -300,214 +322,220 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildDateField(bool isMobile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'DATE:',
-          style: GoogleFonts.montserrat(
-            fontSize: isMobile ? 13 : 15,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF003366),
-          ),
+ Widget _buildDateField(bool isMobile) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'DATE:',
+        style: GoogleFonts.montserrat(
+          fontSize: isMobile ? 12 : 15, // smaller font on mobile
+          fontWeight: FontWeight.bold,
+          color: const Color(0xFF003366),
         ),
-        SizedBox(height: 10),
-        GestureDetector(
-          onTap: () async {
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: DateTime.now(),
-              firstDate: DateTime(2000),
-              lastDate: DateTime.now(),
+      ),
+      SizedBox(height: isMobile ? 6 : 10),  // reduced vertical spacing
+      GestureDetector(
+        onTap: () async {
+          final picked = await showDatePicker(
+            context: context,
+            initialDate: DateTime.now(),
+            firstDate: DateTime(2000),
+            lastDate: DateTime.now(),
+          );
+          if (picked != null) setState(() => selectedDate = picked);
+          else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Please fill out all fields correctly.'),
+                backgroundColor: Colors.red,
+              ),
             );
-            if (picked != null) setState(() => selectedDate = picked);
-            else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Please fill out all fields correctly.',
-                              ),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-            return null;
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade400),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  selectedDate?.toString().split(' ')[0] ?? 'Select date',
-                  style: GoogleFonts.poppins(fontSize: isMobile ? 12 : 14),
+          }
+          return null;
+        },
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 12 : 16,  // reduced horizontal padding on mobile
+            vertical: isMobile ? 10 : 12,     // reduced vertical padding on mobile
+          ),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade400),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(  // Make text flexible to avoid overflow
+                child: Text(
+                  selectedDate == null
+                      ? 'Select date'
+                      : "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2,'0')}-${selectedDate!.day.toString().padLeft(2,'0')}",  // Short, formatted date
+                  style: GoogleFonts.poppins(fontSize: isMobile ? 8 : 14),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                Icon(
-                  Icons.calendar_today,
-                  size: 18,
-                  color: Colors.grey.shade600,
-                ),
-              ],
-            ),
+              ),
+              Icon(
+                Icons.calendar_today,
+                size: isMobile ? 12 : 18,
+                color: Colors.grey.shade600,
+              ),
+            ],
           ),
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 
   Widget _buildSexField(bool isMobile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'SEX:',
-          style: GoogleFonts.montserrat(
-            fontSize: isMobile ? 13 : 15,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF003366),
-          ),
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'SEX:',
+        style: GoogleFonts.montserrat(
+          fontSize: isMobile ? 12 : 15, // slightly smaller for mobile
+          fontWeight: FontWeight.bold,
+          color: const Color(0xFF003366),
         ),
-        SizedBox(height: 10),
-        Row(
-          children: ['MALE', 'FEMALE']
-              .map(
-                (s) => Expanded(
-                  child: Row(
-                    children: [
-                      Radio<String>(
-                        value: s,
-                        groupValue: sex,
-                        activeColor: const Color(0xFF003366),
-                        onChanged: (value) => setState(() => sex = value),
-                      ),
-                      Text(
+      ),
+      SizedBox(height: isMobile ? 4 : 10),  // reduced spacing here
+      Row(
+        children: ['MALE', 'FEMALE']
+            .map(
+              (s) => Expanded(
+                child: Row(
+                  children: [
+                    Radio<String>(
+                      value: s,
+                      groupValue: sex,
+                      activeColor: const Color(0xFF003366),
+                      onChanged: (value) => setState(() => sex = value),
+                    ),
+                    Flexible(  // Add Flexible here to prevent overflow
+                      child: Text(
                         s,
-                        style: GoogleFonts.poppins(
-                          fontSize: isMobile ? 12 : 13,
+                        style: GoogleFonts.ptSansNarrow(
+                          fontSize: isMobile ? 9 : 13,
                           color: const Color(0xFF003366),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              )
-              .toList(),
-        ),
-      ],
-    );
-  }
+              ),
+            )
+            .toList(),
+      ),
+    ],
+  );
+}
 
-  Widget _buildAgeField(bool isMobile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'AGE:',
-          style: GoogleFonts.montserrat(
-            fontSize: isMobile ? 13 : 15,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF003366),
+Widget _buildAgeField(bool isMobile) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'AGE:',
+        style: GoogleFonts.montserrat(
+          fontSize: isMobile ? 12 : 15,  // smaller font size for mobile
+          fontWeight: FontWeight.bold,
+          color: const Color(0xFF003366),
+        ),
+      ),
+      SizedBox(height: isMobile ? 4 : 8),  // less vertical spacing
+      TextFormField(
+        keyboardType: TextInputType.number,
+        onChanged: (value) => setState(() => age = value),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) return 'Age is required';
+          final intAge = int.tryParse(value);
+          if (intAge == null) return 'Must be a valid number';
+          if (intAge < 18) return 'Minimum age is 18';
+          if (intAge > 120) return 'Invalid age';
+          return null;
+        },
+        decoration: InputDecoration(
+          hintText: 'Age',
+          hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 11 : 14),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 12 : 16,  // reduce horizontal padding on mobile
+            vertical: isMobile ? 8 : 12,     // reduce vertical padding on mobile
           ),
         ),
-        SizedBox(height: 10),
-        TextFormField(
-          keyboardType: TextInputType.number,
-          onChanged: (value) => setState(() => age = value),
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) return 'Age is required';
-            final intAge = int.tryParse(value);
-            if (intAge == null) return 'Must be a valid number';
-            if (intAge < 18) return 'Minimum age is 18';
-            if (intAge > 120) return 'Invalid age';
-            return null;
-          },
-          decoration: InputDecoration(
-            hintText: 'Age',
-            hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 12 : 14),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 
-  Widget _buildRegionField(bool isMobile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'REGION OF RESIDENCE:',
-          style: GoogleFonts.montserrat(
-            fontSize: isMobile ? 13 : 15,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF003366),
-          ),
-        ),
-        SizedBox(height: 10),
-        TextFormField(
-          onChanged: (value) => setState(() => region = value),
-          validator: (value) {
-            if (value == null || value.trim().isEmpty)
-              return 'Region is required';
-            if (value.length < 3) return 'Region must be at least 3 characters';
-            return null;
-          },
-          decoration: InputDecoration(
-            hintText: 'Enter your region',
-            hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 12 : 14),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildServiceAvailedField(bool isMobile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'SERVICE AVAILED:',
-          style: GoogleFonts.montserrat(
-            fontSize: isMobile ? 13 : 15,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF003366),
+ Widget _buildRegionField(bool isMobile) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'REGION OF RESIDENCE:',
+        style: GoogleFonts.montserrat(
+          fontSize: isMobile ? 11 : 15, // smaller font on mobile
+          fontWeight: FontWeight.bold,
+          color: const Color(0xFF003366),
+        ),
+      ),
+      SizedBox(height: isMobile ? 4 : 8), // reduced spacing
+      TextFormField(
+        onChanged: (value) => setState(() => region = value),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) return 'Region is required';
+          if (value.length < 3) return 'Region must be at least 3 characters';
+          return null;
+        },
+        decoration: InputDecoration(
+          hintText: 'Enter your region',
+          hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 11 : 14),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 12 : 16, // less padding on mobile
+            vertical: isMobile ? 8 : 12,
           ),
         ),
-        SizedBox(height: 10),
-        TextFormField(
-          onChanged: (value) => setState(() => serviceAvailed = value),
-          validator: (value) {
-            if (value == null || value.trim().isEmpty)
-              return 'Service is required';
-            if (value.length < 3)
-              return 'Service must be at least 3 characters';
-            return null;
-          },
-          decoration: InputDecoration(
-            hintText: 'Enter the service availed',
-            hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 12 : 14),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
+      ),
+    ],
+  );
+}
+
+Widget _buildServiceAvailedField(bool isMobile) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'SERVICE AVAILED:',
+        style: GoogleFonts.montserrat(
+          fontSize: isMobile ? 10 : 15, // smaller font on mobile
+          fontWeight: FontWeight.bold,
+          color: const Color(0xFF003366),
+        ),
+      ),
+      SizedBox(height: isMobile ? 4 : 10), // reduced spacing
+      TextFormField(
+        onChanged: (value) => setState(() => serviceAvailed = value),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) return 'Service is required';
+          if (value.length < 3) return 'Service must be at least 3 characters';
+          return null;
+        },
+        decoration: InputDecoration(
+          hintText: 'Enter the service availed',
+          hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 11 : 14),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 12 : 16, // less padding on mobile
+            vertical: isMobile ? 8 : 12,
           ),
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 }
