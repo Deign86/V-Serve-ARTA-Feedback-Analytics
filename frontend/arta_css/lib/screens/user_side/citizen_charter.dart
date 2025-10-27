@@ -49,11 +49,37 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
     super.dispose();
   }
 
+  bool _isFormValid() {
+    if (cc1Answer == null) return false; // Always required
+
+    // If CC1 is "I do not know", others must be "Not Applicable"
+    if (cc1Answer == cc1Options[3]) {
+      return cc2Answer == cc2Options[4] && cc3Answer == cc3Options[3];
+    }
+    // Otherwise, must answer CC2 and CC3, and they must not be "Not Applicable"
+    if (cc2Answer == null || cc3Answer == null) return false;
+    if (cc2Answer == cc2Options[4] || cc3Answer == cc3Options[3]) return false;
+    return true;
+  }
+
+  void _onNextPressed() {
+    if (_isFormValid()) {
+      Navigator.pushNamed(context, '/sqd');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please answer all required questions.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
     final currentStep = 2; // Set this to 2 for Citizen's Charter
-    final totalSteps = 4;  // Full flow: Profile, Charter, SDQ, Thank You
+    final totalSteps = 4; // Full flow: Profile, Charter, SDQ, Thank You
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -135,8 +161,8 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
               color: isActive
                   ? Color(0xFF0099FF)
                   : isCompleted
-                    ? Color(0xFF36A0E1)
-                    : Colors.grey.shade300,
+                      ? Color(0xFF36A0E1)
+                      : Colors.grey.shade300,
             ),
           ),
         );
@@ -333,9 +359,7 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
           width: isMobile ? 140 : 160,
           height: isMobile ? 44 : 50,
           child: ElevatedButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/sqd');
-            },
+            onPressed: _onNextPressed,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF003366),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),

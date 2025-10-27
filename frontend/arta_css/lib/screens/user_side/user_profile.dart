@@ -17,11 +17,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String? region;
   String? serviceAvailed;
 
+  final _formKey = GlobalKey<FormState>();
+
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
   }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -31,8 +34,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
-    final currentPage = 1; // change as users go through steps
-    final totalSteps = 4; // set to 4 for 4 bars
+    final currentPage = 1;
+    final totalSteps = 4;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -45,13 +48,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             child: Center(
               child: Container(
                 width: isMobile ? double.infinity : 1200,
-                height: MediaQuery.of(context).size.height -
+                height:
+                    MediaQuery.of(context).size.height -
                     (MediaQuery.of(context).padding.top +
                         MediaQuery.of(context).padding.bottom +
                         50),
                 padding: EdgeInsets.symmetric(
-                    horizontal: isMobile ? 12 : 40,
-                    vertical: isMobile ? 16 : 24),
+                  horizontal: isMobile ? 12 : 40,
+                  vertical: isMobile ? 16 : 24,
+                ),
                 child: Column(
                   children: [
                     _buildHeader(isMobile),
@@ -112,8 +117,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               color: isActive
                   ? const Color(0xFF0099FF)
                   : isCompleted
-                      ? const Color(0xFF36A0E1)
-                      : Colors.grey.shade300,
+                  ? const Color(0xFF36A0E1)
+                  : Colors.grey.shade300,
             ),
           ),
         );
@@ -122,7 +127,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildFormCard(bool isMobile) {
-    // your form logic remains unchanged
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -130,72 +134,88 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(blurRadius: 20, color: Colors.black12)],
       ),
-      child: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              child: Padding(
-                padding: EdgeInsets.all(isMobile ? 20 : 40),
-                child: _buildPart1(isMobile),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                child: Padding(
+                  padding: EdgeInsets.all(isMobile ? 20 : 40),
+                  child: _buildPart1(isMobile),
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(isMobile ? 20 : 40),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                SizedBox(
-                  width: isMobile ? 140 : 180,
-                  height: isMobile ? 44 : 50,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.grey.shade400),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24)),
-                    ),
-                    child: Text(
-                      'PREVIOUS PAGE',
-                      style: GoogleFonts.montserrat(
-                        fontSize: isMobile ? 12 : 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade400,
+            Padding(
+              padding: EdgeInsets.all(isMobile ? 20 : 40),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SizedBox(
+                    width: isMobile ? 140 : 180,
+                    height: isMobile ? 44 : 50,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.grey.shade400),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                      ),
+                      child: Text(
+                        'PREVIOUS PAGE',
+                        style: GoogleFonts.montserrat(
+                          fontSize: isMobile ? 12 : 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade400,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                SizedBox(
-                  width: isMobile ? 140 : 160,
-                  height: isMobile ? 44 : 50,
-                  child: ElevatedButton(
-                    onPressed: () =>
-                        Navigator.pushNamed(context, '/citizenCharter'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF003366),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24)),
-                    ),
-                    child: Text(
-                      'NEXT PAGE',
-                      style: GoogleFonts.montserrat(
-                        fontSize: isMobile ? 12 : 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                  SizedBox(
+                    width: isMobile ? 140 : 160,
+                    height: isMobile ? 44 : 50,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (_formKey.currentState?.validate() ?? false) {
+                          Navigator.pushNamed(context, '/citizenCharter');
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Please fill out all fields correctly.',
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF003366),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                      ),
+                      child: Text(
+                        'NEXT PAGE',
+                        style: GoogleFonts.montserrat(
+                          fontSize: isMobile ? 12 : 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          )
-        ],
+          ],
+        ),
       ),
     );
   }
-
-
 
   Widget _buildPart1(bool isMobile) {
     return Column(
@@ -249,27 +269,32 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         Wrap(
           spacing: isMobile ? 16 : 24,
           runSpacing: 8,
-          children: ['CITIZEN', 'BUSINESS', 'GOVERNMENT (EMPLOYEE OR ANOTHER AGENCY)']
-              .map((type) => SizedBox(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Radio<String>(
-                          value: type,
-                          groupValue: clientType,
-                          activeColor: const Color(0xFF003366),
-                          onChanged: (value) => setState(() => clientType = value),
-                        ),
-                        Text(
-                          type,
-                          style: GoogleFonts.poppins(
+          children:
+              ['CITIZEN', 'BUSINESS', 'GOVERNMENT (EMPLOYEE OR ANOTHER AGENCY)']
+                  .map(
+                    (type) => SizedBox(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Radio<String>(
+                            value: type,
+                            groupValue: clientType,
+                            activeColor: const Color(0xFF003366),
+                            onChanged: (value) =>
+                                setState(() => clientType = value),
+                          ),
+                          Text(
+                            type,
+                            style: GoogleFonts.poppins(
                               fontSize: isMobile ? 12 : 14,
-                              color: const Color(0xFF003366)),
-                        ),
-                      ],
+                              color: const Color(0xFF003366),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ))
-              .toList(),
+                  )
+                  .toList(),
         ),
       ],
     );
@@ -297,6 +322,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               lastDate: DateTime.now(),
             );
             if (picked != null) setState(() => selectedDate = picked);
+            else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Please fill out all fields correctly.',
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+            return null;
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -311,7 +347,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   selectedDate?.toString().split(' ')[0] ?? 'Select date',
                   style: GoogleFonts.poppins(fontSize: isMobile ? 12 : 14),
                 ),
-                Icon(Icons.calendar_today, size: 18, color: Colors.grey.shade600),
+                Icon(
+                  Icons.calendar_today,
+                  size: 18,
+                  color: Colors.grey.shade600,
+                ),
               ],
             ),
           ),
@@ -335,24 +375,27 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         SizedBox(height: 10),
         Row(
           children: ['MALE', 'FEMALE']
-              .map((s) => Expanded(
-                    child: Row(
-                      children: [
-                        Radio<String>(
-                          value: s,
-                          groupValue: sex,
-                          activeColor: const Color(0xFF003366),
-                          onChanged: (value) => setState(() => sex = value),
+              .map(
+                (s) => Expanded(
+                  child: Row(
+                    children: [
+                      Radio<String>(
+                        value: s,
+                        groupValue: sex,
+                        activeColor: const Color(0xFF003366),
+                        onChanged: (value) => setState(() => sex = value),
+                      ),
+                      Text(
+                        s,
+                        style: GoogleFonts.poppins(
+                          fontSize: isMobile ? 12 : 13,
+                          color: const Color(0xFF003366),
                         ),
-                        Text(
-                          s,
-                          style: GoogleFonts.poppins(
-                              fontSize: isMobile ? 12 : 13,
-                              color: const Color(0xFF003366)),
-                        ),
-                      ],
-                    ),
-                  ))
+                      ),
+                    ],
+                  ),
+                ),
+              )
               .toList(),
         ),
       ],
@@ -372,14 +415,25 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ),
         ),
         SizedBox(height: 10),
-        TextField(
+        TextFormField(
           keyboardType: TextInputType.number,
           onChanged: (value) => setState(() => age = value),
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) return 'Age is required';
+            final intAge = int.tryParse(value);
+            if (intAge == null) return 'Must be a valid number';
+            if (intAge < 18) return 'Minimum age is 18';
+            if (intAge > 120) return 'Invalid age';
+            return null;
+          },
           decoration: InputDecoration(
             hintText: 'Age',
             hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 12 : 14),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
           ),
         ),
       ],
@@ -399,13 +453,22 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ),
         ),
         SizedBox(height: 10),
-        TextField(
+        TextFormField(
           onChanged: (value) => setState(() => region = value),
+          validator: (value) {
+            if (value == null || value.trim().isEmpty)
+              return 'Region is required';
+            if (value.length < 3) return 'Region must be at least 3 characters';
+            return null;
+          },
           decoration: InputDecoration(
             hintText: 'Enter your region',
             hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 12 : 14),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
           ),
         ),
       ],
@@ -425,13 +488,23 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ),
         ),
         SizedBox(height: 10),
-        TextField(
+        TextFormField(
           onChanged: (value) => setState(() => serviceAvailed = value),
+          validator: (value) {
+            if (value == null || value.trim().isEmpty)
+              return 'Service is required';
+            if (value.length < 3)
+              return 'Service must be at least 3 characters';
+            return null;
+          },
           decoration: InputDecoration(
             hintText: 'Enter the service availed',
             hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 12 : 14),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
           ),
         ),
       ],
