@@ -31,14 +31,15 @@ void main() async {
     }
   } catch (e) {
     // Ignore errors on web platform
-    print('Window manager not available: $e');
+    // Use debugPrint instead of print to avoid production print lint
+    debugPrint('Window manager not available: $e');
   }
   
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
