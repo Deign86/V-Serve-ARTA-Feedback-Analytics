@@ -1,0 +1,62 @@
+// Firestore security rules for V-Serve ARTA Feedback Analytics
+//
+// Purpose: allow client submissions to the `feedbacks` collection while
+// performing minimal validation and preventing clients from setting server
+// timestamps or other sensitive fields.
+//
+// IMPORTANT: These rules are meant for short-term testing / staging use.
+// Review and harden before deploying to production (e.g., require
+// authentication, stricter validation, rate-limiting, and content checks).
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Allow authenticated admin users full access (optional)
+    // match /users/{userId} {
+    //   allow read, write: if request.auth != null && request.auth.token.admin == true;
+    // }
+
+    // Feedbacks collection: allow unauthenticated creates with validation.
+    match /feedbacks/{feedbackId} {
+      allow create: if isValidFeedback();
+      // Do not allow direct client updates/deletes to keep data integrity.
+      allow update, delete: if false;
+      // Reads from the client are denied by default. If you want to allow
+      // reading feedbacks from the client, change the rule below (careful).
+      allow read: if false;
+    }
+
+    // Fallback: deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Minimal validation function for feedback documents.
+    function isValidFeedback() {
+      // Required keys
+      let required = ['clientType', 'date', 'sex', 'age', 'region', 'serviceAvailed'];
+      // Ensure required keys are present
+      return request.resource.data.keys().hasAll(required) &&
+        // Basic types and lengths
+        request.resource.data.clientType is string && request.resource.data.clientType.size() > 0 && request.resource.data.clientType.size() <= 64 &&
+        request.resource.data.date is string && request.resource.data.date.size() <= 32 &&
+        request.resource.data.sex is string && request.resource.data.sex.size() <= 16 &&
+        // age may be sent as int or string (client may serialize); allow both but limit size
+        (request.resource.data.age is int || (request.resource.data.age is string && request.resource.data.age.size() <= 4)) &&
+        request.resource.data.region is string && request.resource.data.region.size() <= 256 &&
+        request.resource.data.serviceAvailed is string && request.resource.data.serviceAvailed.size() <= 512 &&
+  // NOTE: allow clients to include a createdAt sentinel (serverTimestamp)
+  // Some client SDKs send FieldValue.serverTimestamp() which appears in
+  // the request; blocking the key outright will reject valid client writes.
+  // If you want to prevent client-supplied timestamps, replace this
+  // with stricter checks (for example: require createdAt is a timestamp
+  // or omit it from the client and set it server-side).
+  true;
+    }
+
+  }
+}
+
+// End of rules

@@ -31,6 +31,10 @@ dependencies:
   flutter:
     sdk: flutter
   google_fonts: ^6.1.0
+  http: ^1.5.0
+  firebase_core: ^4.2.0
+  cloud_firestore: ^6.0.3
+  shared_preferences: ^2.0.18
 
   # window_manager is used at runtime to control desktop window behavior.
   window_manager: ^0.5.1
@@ -96,5 +100,11 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+dependency_overrides:
+  characters: 1.4.1
+  material_color_utilities: 0.13.0
+  meta: 1.17.0
+  test_api: 0.7.7
 
 

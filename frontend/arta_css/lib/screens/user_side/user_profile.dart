@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/offline_queue.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -177,16 +179,77 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     width: isMobile ? 140 : 160,
                     height: isMobile ? 44 : 50,
                     child: ElevatedButton(
-                      onPressed: () {
-                        if (_formKey.currentState?.validate() ?? false) {
-                          Navigator.pushNamed(context, '/citizenCharter');
-                        } else {
+                      onPressed: () async {
+                        if (!(_formKey.currentState?.validate() ?? false)) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(
-                                'Please fill out all fields correctly.',
-                              ),
+                              content: Text('Please fill out all fields correctly.'),
                               backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
+                        // collect data from form state
+                        final payload = {
+                          'clientType': clientType,
+                          'date': selectedDate?.toIso8601String(),
+                          'sex': sex,
+                          'age': age,
+                          'region': region,
+                          'serviceAvailed': serviceAvailed,
+                        };
+
+                        final scaffold = ScaffoldMessenger.of(context);
+                        scaffold.showSnackBar(
+                          SnackBar(content: Text('Submitting...')),
+                        );
+
+                        try {
+                          // Write to Firestore directly from the client.
+                          final firestore = FirebaseFirestore.instance;
+                          await firestore.collection('feedbacks').add({
+                            ...payload,
+                            'createdAt': FieldValue.serverTimestamp(),
+                          });
+
+                          scaffold.hideCurrentSnackBar();
+                          scaffold.showSnackBar(
+                            SnackBar(content: Text('Submitted successfully.')),
+                          );
+                          await Future.delayed(const Duration(milliseconds: 600));
+                          if (!mounted) return;
+                          Navigator.pushNamed(context, '/citizenCharter');
+                        } catch (err) {
+                          scaffold.hideCurrentSnackBar();
+                          // Save payload to offline queue for retry
+                          await OfflineQueue.enqueue(payload);
+
+                          scaffold.showSnackBar(
+                            SnackBar(
+                              content: Text('Submission saved offline. Tap Retry to resend.'),
+                              backgroundColor: Colors.orange,
+                              action: SnackBarAction(
+                                label: 'Retry',
+                                onPressed: () async {
+                                  scaffold.showSnackBar(SnackBar(content: Text('Retrying...')));
+                                  try {
+                                    final flushed = await OfflineQueue.flush();
+                                    if (flushed > 0) {
+                                      scaffold.hideCurrentSnackBar();
+                                      scaffold.showSnackBar(SnackBar(content: Text('Resubmitted $flushed items.')));
+                                      if (!mounted) return;
+                                      Navigator.pushNamed(context, '/citizenCharter');
+                                    } else {
+                                      scaffold.hideCurrentSnackBar();
+                                      scaffold.showSnackBar(SnackBar(content: Text('No pending items to resend.')));
+                                    }
+                                  } catch (e) {
+                                    scaffold.hideCurrentSnackBar();
+                                    scaffold.showSnackBar(SnackBar(content: Text('Retry failed: $e')));
+                                  }
+                                },
+                              ),
                             ),
                           );
                         }

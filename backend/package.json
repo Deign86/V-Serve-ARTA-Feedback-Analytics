@@ -1,0 +1,21 @@
+{
+  "name": "v-serve-arta-backend",
+  "version": "0.1.0",
+  "description": "Minimal backend scaffold for V-Serve ARTA Feedback (connects to Firestore via firebase-admin)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "firebase-admin": "^11.9.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}
