@@ -175,8 +175,8 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.98),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(blurRadius: 20, color: Colors.black12)],
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(blurRadius: 14, color: Colors.black12)],
       ),
       child: SingleChildScrollView(
         controller: _scrollController,
