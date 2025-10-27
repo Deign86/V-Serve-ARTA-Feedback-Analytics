@@ -289,34 +289,42 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ),
         SizedBox(height: isMobile ? 10 : 12),
         Wrap(
-          spacing: isMobile ? 14 : 24,
+          spacing: isMobile ? 8 : 12,
           runSpacing: 8,
-          children:
-              ['CITIZEN', 'BUSINESS', 'GOVERNMENT (EMPLOYEE OR ANOTHER AGENCY)']
-                  .map(
-                    (type) => SizedBox(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Radio<String>(
-                            value: type,
-                            groupValue: clientType,
-                            activeColor: const Color(0xFF003366),
-                            onChanged: (value) =>
-                                setState(() => clientType = value),
-                          ),
-                          Text(
-                            type,
-                            style: GoogleFonts.poppins(
-                              fontSize: isMobile ? 11 : 14,
-                              color: const Color(0xFF003366),
-                            ),
-                          ),
-                        ],
+          children: ['CITIZEN', 'BUSINESS', 'GOVERNMENT (EMPLOYEE OR ANOTHER AGENCY)']
+              .map(
+                (type) => ChoiceChip(
+                  label: SizedBox(
+                    width: isMobile ? 120 : 260,
+                    child: Center(
+                      child: Text(
+                        type,
+                        style: GoogleFonts.poppins(
+                          fontSize: isMobile ? 11 : 14,
+                          color: clientType == type
+                              ? Colors.white
+                              : const Color(0xFF003366),
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                  )
-                  .toList(),
+                  ),
+                  selected: clientType == type,
+                  selectedColor: const Color(0xFF003366),
+                  backgroundColor: Colors.white,
+                  side: BorderSide(
+                    color: clientType == type
+                        ? const Color(0xFF003366)
+                        : Colors.grey.shade300,
+                  ),
+                  onSelected: (selected) {
+                    setState(() {
+                      clientType = selected ? type : null;
+                    });
+                  },
+                ),
+              )
+              .toList(),
         ),
       ],
     );
@@ -408,24 +416,22 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         children: ['MALE', 'FEMALE']
             .map(
               (s) => Expanded(
-                child: Row(
-                  children: [
-                    Radio<String>(
-                      value: s,
-                      groupValue: sex,
-                      activeColor: const Color(0xFF003366),
-                      onChanged: (value) => setState(() => sex = value),
-                    ),
-                    Flexible(  // Add Flexible here to prevent overflow
-                      child: Text(
-                        s,
-                        style: GoogleFonts.ptSansNarrow(
-                          fontSize: isMobile ? 9 : 13,
-                          color: const Color(0xFF003366),
-                        ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                  child: ChoiceChip(
+                    label: Text(
+                      s,
+                      style: GoogleFonts.ptSansNarrow(
+                        fontSize: isMobile ? 9 : 13,
+                        color: sex == s ? Colors.white : const Color(0xFF003366),
                       ),
                     ),
-                  ],
+                    selected: sex == s,
+                    selectedColor: const Color(0xFF003366),
+                    backgroundColor: Colors.white,
+                    onSelected: (selected) =>
+                        setState(() => sex = selected ? s : null),
+                  ),
                 ),
               ),
             )
