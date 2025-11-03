@@ -204,8 +204,8 @@ class _SQDScreenState extends State<SQDScreen> {
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.98),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(blurRadius: 20, color: Colors.black12)],
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(blurRadius: 14, color: Colors.black12)],
       ),
       child: SingleChildScrollView(
         controller: _scrollController,
@@ -325,83 +325,96 @@ class _SQDScreenState extends State<SQDScreen> {
           ),
           const SizedBox(height: 13),
           Center(
-            child: Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 16,
-              runSpacing: 12,
-              children: List.generate(emojis.length, (optIdx) {
-                final bool selected = answers[index] == optIdx;
-                final bool isNA = optIdx == 5;
-                return GestureDetector(
-                  onTap: () => setState(() => answers[index] = optIdx),
-                  child: Container(
-                    width: isMobile ? 65 : 110, // Reduced width for mobile
-                    height: isMobile ? 95 : 130, // Reduced height for mobile
-                    decoration: BoxDecoration(
-                      color: selected ? bgColors[optIdx] : Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: selected
-                            ? borderColors[optIdx]
-                            : Colors.grey.shade300,
-                        width: selected ? 3 : 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: selected ? 10 : 5,
-                          offset: Offset(0, selected ? 4 : 2),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 4 : 0),
+              child: SizedBox(
+                width: double.infinity,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(emojis.length, (optIdx) {
+                    final bool selected = answers[index] == optIdx;
+                    final bool isNA = optIdx == 5;
+                    return GestureDetector(
+                      onTap: () => setState(() => answers[index] = optIdx),
+                      child: Container(
+                        width: isMobile ? 50 : 100,
+                        height: isMobile ? 70 : 120,
+                        margin: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 4 : 10,
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          height: isMobile ? 40 : 65, // smaller emoji height
-                          child: isNA
-                              ? Center(
-                                  child: Text(
-                                    'N/A',
-                                    style: GoogleFonts.montserrat(
-                                      color: Colors.red.shade700,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: isMobile ? 20 : 32,
-                                    ),
-                                  ),
-                                )
-                              : Center(
-                                  child: Image.asset(
-                                    emojis[optIdx],
-                                    width: isMobile ? 40 : 65,
-                                    height: isMobile ? 40 : 65,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                        ),
-                        const SizedBox(height: 6),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Text(
-                            labels[optIdx],
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: isMobile ? 9 : 14, // smaller text font
-                              color: isNA
-                                  ? Colors.red.shade700
-                                  : Colors.black87,
-                              fontWeight: isNA
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                              height: 1.3,
-                            ),
+                        decoration: BoxDecoration(
+                          color: selected ? bgColors[optIdx] : Colors.white,
+                          borderRadius: BorderRadius.circular(
+                            isMobile ? 8 : 16,
                           ),
+                          border: Border.all(
+                            color: selected
+                                ? borderColors[optIdx]
+                                : Colors.grey.shade300,
+                            width: selected ? 2 : 1.2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: selected ? 5 : 2,
+                              offset: Offset(0, selected ? 2 : 1),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              height: isMobile ? 20 : 60,
+                              child: isNA
+                                  ? Center(
+                                      child: Text(
+                                        'N/A',
+                                        style: GoogleFonts.montserrat(
+                                          color: Colors.red.shade700,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: isMobile ? 12 : 30,
+                                        ),
+                                      ),
+                                    )
+                                  : Center(
+                                      child: Image.asset(
+                                        emojis[optIdx],
+                                        width: isMobile ? 22 : 45,
+                                        height: isMobile ? 22 : 45,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
+                            ),
+                            const SizedBox(height: 2),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 1),
+                              child: Text(
+                                labels[optIdx],
+                                textAlign: TextAlign.center,
+                                softWrap: true,
+                                maxLines: 3,
+                                overflow: TextOverflow.visible,
+                                style: GoogleFonts.poppins(
+                                  fontSize: isMobile ? 8 : 14,
+                                  color: isNA
+                                      ? Colors.red.shade700
+                                      : Colors.black87,
+                                  fontWeight: isNA
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
+                                  height: 1.2,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
             ),
           ),
         ],
