@@ -1,0 +1,17 @@
+# Root .gitignore — ignore local Flutter SDK directories and common build artifacts
+
+# Ignore a local Flutter SDK folder if someone places it in the repo
+flutter/
+**/flutter/
+
+# Common Flutter/Dart project build outputs and caches (project-level)
+**/.dart_tool/
+**/build/
+**/.packages
+pubspec.lock
+
+# End of .gitignore
+
+# Sensitive local service files (do not commit)
+**/google-services.json
+**/serviceAccountKey.json
