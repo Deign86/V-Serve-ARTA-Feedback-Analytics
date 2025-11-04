@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'services/offline_queue.dart';
 import 'dart:io' show Platform;
 import 'package:window_manager/window_manager.dart';
 import 'screens/user_side/landing_page.dart';
@@ -9,6 +12,28 @@ import 'screens/user_side/suggestions.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase for client-side Firestore usage.
+  // If you use the FlutterFire CLI, it will generate `firebase_options.dart` and you can
+  // initialize with explicit options. This call attempts a default initialization which
+  // works if platform config files (google-services.json / GoogleService-Info.plist) are present
+  // or when using firebase_options.dart. If initialization fails, the app will continue but
+  // Firestore writes will return an error.
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    debugPrint('Firebase initialized with generated options');
+    // Attempt to flush any pending offline submissions
+    try {
+      final flushed = await OfflineQueue.flush();
+      if (flushed > 0) debugPrint('Flushed $flushed pending feedbacks');
+    } catch (e) {
+      debugPrint('Failed flushing offline queue: $e');
+    }
+  } catch (e) {
+    debugPrint('Firebase initializeApp failed: $e');
+  }
   
   try {
     if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
@@ -31,14 +56,15 @@ void main() async {
     }
   } catch (e) {
     // Ignore errors on web platform
-    print('Window manager not available: $e');
+    // Use debugPrint instead of print to avoid production print lint
+    debugPrint('Window manager not available: $e');
   }
   
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {

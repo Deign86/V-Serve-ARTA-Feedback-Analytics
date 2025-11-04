@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../models/survey_data.dart';
+import 'sqd.dart';
 
 class CitizenCharterScreen extends StatefulWidget {
-  const CitizenCharterScreen({Key? key}) : super(key: key);
+  final SurveyData surveyData;
+  
+  const CitizenCharterScreen({
+    Key? key,
+    required this.surveyData,
+  }) : super(key: key);
 
   @override
   State<CitizenCharterScreen> createState() => _CitizenCharterScreenState();
@@ -64,7 +71,26 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
 
   void _onNextPressed() {
     if (_isFormValid()) {
-      Navigator.pushNamed(context, '/sqd');
+      // Extract rating numbers from the selected answers
+      final cc0Rating = cc1Answer != null ? int.tryParse(cc1Answer!.substring(0, 1)) : null;
+      final cc1Rating = cc2Answer != null ? int.tryParse(cc2Answer!.substring(0, 1)) : null;
+      final cc2Rating = cc3Answer != null ? int.tryParse(cc3Answer!.substring(0, 1)) : null;
+      
+      // Update survey data with Part 2 responses
+      final updatedData = widget.surveyData.copyWith(
+        cc0Rating: cc0Rating,
+        cc1Rating: cc1Rating,
+        cc2Rating: cc2Rating,
+      );
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SQDScreen(
+            surveyData: updatedData,
+          ),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

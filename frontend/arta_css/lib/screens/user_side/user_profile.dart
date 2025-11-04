@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../models/survey_data.dart';
+import 'citizen_charter.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({Key? key}) : super(key: key);
@@ -179,7 +181,24 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     child: ElevatedButton(
                       onPressed: () {
                         if (_formKey.currentState?.validate() ?? false) {
-                          Navigator.pushNamed(context, '/citizenCharter');
+                          // Collect Part 1 data and pass to next screen
+                          final surveyData = SurveyData(
+                            clientType: clientType,
+                            date: selectedDate,
+                            sex: sex,
+                            age: age != null ? int.tryParse(age!) : null,
+                            regionOfResidence: region,
+                            serviceAvailed: serviceAvailed,
+                          );
+                          
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CitizenCharterScreen(
+                                surveyData: surveyData,
+                              ),
+                            ),
+                          );
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(

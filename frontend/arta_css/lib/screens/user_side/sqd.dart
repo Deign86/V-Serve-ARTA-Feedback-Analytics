@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../models/survey_data.dart';
+import 'suggestions.dart';
 
 class SQDScreen extends StatefulWidget {
-  const SQDScreen({Key? key}) : super(key: key);
+  final SurveyData surveyData;
+  
+  const SQDScreen({
+    Key? key,
+    required this.surveyData,
+  }) : super(key: key);
 
   @override
   State<SQDScreen> createState() => _SQDScreenState();
@@ -99,7 +106,27 @@ class _SQDScreenState extends State<SQDScreen> {
 
   void _onNextPressed() {
     if (_isFormValid()) {
-      Navigator.pushNamed(context, '/suggestions');
+      // Update survey data with Part 3 SQD responses
+      final updatedData = widget.surveyData.copyWith(
+        sqd0Rating: answers[0],
+        sqd1Rating: answers[1],
+        sqd2Rating: answers[2],
+        sqd3Rating: answers[3],
+        sqd4Rating: answers[4],
+        sqd5Rating: answers[5],
+        sqd6Rating: answers[6],
+        sqd7Rating: answers[7],
+        sqd8Rating: answers[8],
+      );
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SuggestionsScreen(
+            surveyData: updatedData,
+          ),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
