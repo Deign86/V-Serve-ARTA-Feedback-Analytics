@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../models/survey_data.dart';
+import '../../services/offline_queue.dart';
 
 class SuggestionsScreen extends StatefulWidget {
-  const SuggestionsScreen({Key? key}) : super(key: key);
+  final SurveyData surveyData;
+  
+  const SuggestionsScreen({
+    Key? key,
+    required this.surveyData,
+  }) : super(key: key);
 
   @override
   State<SuggestionsScreen> createState() => _SuggestionsScreenState();
@@ -11,6 +18,7 @@ class SuggestionsScreen extends StatefulWidget {
 class _SuggestionsScreenState extends State<SuggestionsScreen> {
   late TextEditingController _suggestionsController;
   late TextEditingController _emailController;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -306,11 +314,49 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
           width: isMobile ? 140 : 180,
           height: isMobile ? 44 : 50,
           child: ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ThankYouScreen()),
+            onPressed: _isSubmitting ? null : () async {
+              // Collect Part 4 data
+              final finalData = widget.surveyData.copyWith(
+                suggestions: _suggestionsController.text.trim().isEmpty 
+                    ? null 
+                    : _suggestionsController.text.trim(),
+                email: _emailController.text.trim().isEmpty 
+                    ? null 
+                    : _emailController.text.trim(),
               );
+              
+              setState(() {
+                _isSubmitting = true;
+              });
+              
+              try {
+                // Save complete survey data to offline queue (will sync to Firestore)
+                await OfflineQueue.enqueue(finalData.toJson());
+                
+                // Try to flush immediately (will fail silently if offline)
+                await OfflineQueue.flush();
+                
+                if (!mounted) return;
+                
+                // Navigate to thank you screen
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ThankYouScreen()),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                
+                setState(() {
+                  _isSubmitting = false;
+                });
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error saving survey: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF003366),
@@ -318,14 +364,23 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                 borderRadius: BorderRadius.circular(24),
               ),
             ),
-            child: Text(
-              'SUBMIT SURVEY',
-              style: GoogleFonts.montserrat(
-                fontSize: isMobile ? 12 : 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
+            child: _isSubmitting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Text(
+                    'SUBMIT SURVEY',
+                    style: GoogleFonts.montserrat(
+                      fontSize: isMobile ? 12 : 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
           ),
         ),
       ],
