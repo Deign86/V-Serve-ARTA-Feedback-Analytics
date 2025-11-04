@@ -61,7 +61,7 @@ class SurveyData {
       'date': date?.toIso8601String(),
       'sex': sex,
       'age': age,
-      'regionOfResidence': regionOfResidence,
+      'region': regionOfResidence, // Firestore rules expect 'region'
       'serviceAvailed': serviceAvailed,
       // Part 2
       'cc0Rating': cc0Rating,
@@ -93,7 +93,7 @@ class SurveyData {
       date: json['date'] != null ? DateTime.parse(json['date'] as String) : null,
       sex: json['sex'] as String?,
       age: json['age'] as int?,
-      regionOfResidence: json['regionOfResidence'] as String?,
+      regionOfResidence: json['region'] as String?, // Firestore stores as 'region'
       serviceAvailed: json['serviceAvailed'] as String?,
       cc0Rating: json['cc0Rating'] as int?,
       cc1Rating: json['cc1Rating'] as int?,
