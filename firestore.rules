@@ -35,25 +35,21 @@ service cloud.firestore {
 
     // Minimal validation function for feedback documents.
     function isValidFeedback() {
-      // Required keys
+      // Required keys - must be present (can be null though)
       let required = ['clientType', 'date', 'sex', 'age', 'region', 'serviceAvailed'];
       // Ensure required keys are present
       return request.resource.data.keys().hasAll(required) &&
-        // Basic types and lengths
-        request.resource.data.clientType is string && request.resource.data.clientType.size() > 0 && request.resource.data.clientType.size() <= 64 &&
-        request.resource.data.date is string && request.resource.data.date.size() <= 32 &&
-        request.resource.data.sex is string && request.resource.data.sex.size() <= 16 &&
-        // age may be sent as int or string (client may serialize); allow both but limit size
-        (request.resource.data.age is int || (request.resource.data.age is string && request.resource.data.age.size() <= 4)) &&
-        request.resource.data.region is string && request.resource.data.region.size() <= 256 &&
-        request.resource.data.serviceAvailed is string && request.resource.data.serviceAvailed.size() <= 512 &&
-  // NOTE: allow clients to include a createdAt sentinel (serverTimestamp)
-  // Some client SDKs send FieldValue.serverTimestamp() which appears in
-  // the request; blocking the key outright will reject valid client writes.
-  // If you want to prevent client-supplied timestamps, replace this
-  // with stricter checks (for example: require createdAt is a timestamp
-  // or omit it from the client and set it server-side).
-  true;
+        // Basic types and lengths - allow null or validate if present
+        (request.resource.data.clientType == null || (request.resource.data.clientType is string && request.resource.data.clientType.size() > 0 && request.resource.data.clientType.size() <= 64)) &&
+        (request.resource.data.date == null || (request.resource.data.date is string && request.resource.data.date.size() <= 64)) &&
+        (request.resource.data.sex == null || (request.resource.data.sex is string && request.resource.data.sex.size() <= 16)) &&
+        // age may be sent as int or string (client may serialize); allow both but limit size, or null
+        (request.resource.data.age == null || request.resource.data.age is int || (request.resource.data.age is string && request.resource.data.age.size() <= 4)) &&
+        (request.resource.data.region == null || (request.resource.data.region is string && request.resource.data.region.size() <= 256)) &&
+        (request.resource.data.serviceAvailed == null || (request.resource.data.serviceAvailed is string && request.resource.data.serviceAvailed.size() <= 512));
+  // NOTE: Removed the final && true because all optional fields (ratings, suggestions, email, etc.)
+  // are allowed to be present or absent without validation. The createdAt timestamp added by
+  // the client SDK is also allowed.
     }
 
   }
