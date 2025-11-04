@@ -325,16 +325,23 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                     : _emailController.text.trim(),
               );
               
+              debugPrint('=== SUBMITTING SURVEY ===');
+              debugPrint('Survey data: ${finalData.toJson()}');
+              
               setState(() {
                 _isSubmitting = true;
               });
               
               try {
                 // Save complete survey data to offline queue (will sync to Firestore)
+                debugPrint('Enqueueing data...');
                 await OfflineQueue.enqueue(finalData.toJson());
+                debugPrint('Data enqueued successfully');
                 
                 // Try to flush immediately (will fail silently if offline)
-                await OfflineQueue.flush();
+                debugPrint('Attempting to flush to Firestore...');
+                final flushed = await OfflineQueue.flush();
+                debugPrint('Flush completed. Items saved: $flushed');
                 
                 if (!mounted) return;
                 
@@ -343,7 +350,10 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                   context,
                   MaterialPageRoute(builder: (context) => const ThankYouScreen()),
                 );
-              } catch (e) {
+              } catch (e, stackTrace) {
+                debugPrint('ERROR saving survey: $e');
+                debugPrint('Stack trace: $stackTrace');
+                
                 if (!mounted) return;
                 
                 setState(() {
@@ -354,6 +364,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                   SnackBar(
                     content: Text('Error saving survey: $e'),
                     backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 5),
                   ),
                 );
               }
