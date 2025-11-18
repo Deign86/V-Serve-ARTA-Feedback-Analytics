@@ -418,162 +418,269 @@ class ThankYouScreen extends StatelessWidget {
             child: Center(
               child: Container(
                 width: isMobile ? double.infinity : 900,
-                height: isMobile ? double.infinity : 500,
+                constraints: BoxConstraints(
+                  maxHeight: isMobile ? double.infinity : 500,
+                ),
+                margin: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 16 : 0,
+                  vertical: isMobile ? 20 : 0,
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   color: Colors.transparent,
                 ),
-                child: Row(
-                  children: [
-                    // Comments Section
-                    Expanded(
-                      flex: 2,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: isMobile ? 24 : 40,
-                            vertical: isMobile ? 32 : 48),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(20),
-                            bottomLeft: Radius.circular(20),
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Additional Comments:",
-                              style: GoogleFonts.montserrat(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF003366),
-                                fontSize: isMobile ? 16 : 18,
-                              ),
-                            ),
-                            SizedBox(height: isMobile ? 12 : 18),
-                            // Gradient border for TextField
-                            Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.red.shade600,
-                                    Color(0XFF1C1E97),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                              ),
-                              padding: const EdgeInsets.all(2),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(10),
-                                  color: Colors.white,
-                                ),
-                                child: TextField(
-                                  maxLines: 6,
-                                  decoration: InputDecoration(
-                                    hintText: 'Write your comments here...',
-                                    hintStyle: GoogleFonts.poppins(
-                                      fontSize: isMobile ? 14 : 16,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                    border: InputBorder.none,
-                                    contentPadding:
-                                        EdgeInsets.all(isMobile ? 16 : 22),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                  ),
-                                  style: GoogleFonts.poppins(
-                                    fontSize: isMobile ? 14 : 16,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: isMobile ? 24 : 32),
-                            Center(
-                              child: SizedBox(
-                                width: isMobile ? double.infinity : 180,
-                                height: isMobile ? 40 : 50,
-                                child: ElevatedButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color(0xFF003366),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'BACK TO HOME',
-                                    style: GoogleFonts.montserrat(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      fontSize: isMobile ? 11 : 14,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Thank You Section
-                    Expanded(
-                      flex: 1,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Color(0xFF1C1E97),
-                          borderRadius: BorderRadius.only(
-                            topRight: Radius.circular(20),
-                            bottomRight: Radius.circular(20),
-                          ),
-                        ),
-                        padding: EdgeInsets.symmetric(
-                            horizontal: isMobile ? 16 : 24,
-                            vertical: isMobile ? 24 : 40),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Spacer(),
-                            Text(
-                              "THANK YOU",
-                              style: GoogleFonts.montserrat(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: isMobile ? 24 : 32,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            SizedBox(height: isMobile ? 10 : 16),
-                            Text(
-                              "FOR YOUR FEEDBACK!",
-                              style: GoogleFonts.poppins(
-                                color: Colors.white70,
-                                fontSize: isMobile ? 12 : 16,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            Spacer(),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                child: isMobile
+                    ? _buildMobileLayout(context, isMobile)
+                    : _buildDesktopLayout(context, isMobile),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(BuildContext context, bool isMobile) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Thank You Section (top on mobile)
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 40,
+            ),
+            decoration: BoxDecoration(
+              color: Color(0xFF1C1E97),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  "THANK YOU",
+                  style: GoogleFonts.montserrat(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 28,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 12),
+                Text(
+                  "FOR YOUR FEEDBACK!",
+                  style: GoogleFonts.poppins(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          // Comments Section (bottom on mobile)
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 32,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Additional Comments:",
+                  style: GoogleFonts.montserrat(
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF003366),
+                    fontSize: 16,
+                  ),
+                ),
+                SizedBox(height: 16),
+                _buildCommentField(isMobile),
+                SizedBox(height: 24),
+                Center(
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF003366),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                      ),
+                      child: Text(
+                        'BACK TO HOME',
+                        style: GoogleFonts.montserrat(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout(BuildContext context, bool isMobile) {
+    return Row(
+      children: [
+        // Comments Section
+        Expanded(
+          flex: 2,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 40, vertical: 48),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                bottomLeft: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Additional Comments:",
+                  style: GoogleFonts.montserrat(
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF003366),
+                    fontSize: 18,
+                  ),
+                ),
+                SizedBox(height: 18),
+                _buildCommentField(isMobile),
+                SizedBox(height: 32),
+                Center(
+                  child: SizedBox(
+                    width: 180,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF003366),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                      ),
+                      child: Text(
+                        'BACK TO HOME',
+                        style: GoogleFonts.montserrat(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Thank You Section
+        Expanded(
+          flex: 1,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Color(0xFF1C1E97),
+              borderRadius: BorderRadius.only(
+                topRight: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+              ),
+            ),
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  "THANK YOU",
+                  style: GoogleFonts.montserrat(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 32,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  "FOR YOUR FEEDBACK!",
+                  style: GoogleFonts.poppins(
+                    color: Colors.white70,
+                    fontSize: 16,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCommentField(bool isMobile) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          colors: [Colors.red.shade600, Color(0XFF1C1E97)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      padding: const EdgeInsets.all(2),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: Colors.white,
+        ),
+        child: TextField(
+          maxLines: 6,
+          decoration: InputDecoration(
+            hintText: 'Write your comments here...',
+            hintStyle: GoogleFonts.poppins(
+              fontSize: isMobile ? 14 : 16,
+              color: Colors.grey.shade600,
+            ),
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.all(isMobile ? 16 : 22),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide.none,
+            ),
+          ),
+          style: GoogleFonts.poppins(
+            fontSize: isMobile ? 14 : 16,
+            color: Colors.black87,
+          ),
+        ),
       ),
     );
   }
