@@ -6,22 +6,21 @@ import 'dart:io' show Platform;
 import 'package:window_manager/window_manager.dart';
 import 'screens/user_side/landing_page.dart';
 import 'screens/user_side/user_profile.dart';
+import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'services/auth_services.dart';
+import 'models/user_model.dart';
+import 'screens/role_based_login_screen.dart';
+import 'screens/admin/role_based_dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Firebase for client-side Firestore usage.
-  // If you use the FlutterFire CLI, it will generate `firebase_options.dart` and you can
-  // initialize with explicit options. This call attempts a default initialization which
-  // works if platform config files (google-services.json / GoogleService-Info.plist) are present
-  // or when using firebase_options.dart. If initialization fails, the app will continue but
-  // Firestore writes will return an error.
+
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
     debugPrint('Firebase initialized with generated options');
-    // Attempt to flush any pending offline submissions
     try {
       final flushed = await OfflineQueue.flush();
       if (flushed > 0) debugPrint('Flushed $flushed pending feedbacks');
@@ -31,11 +30,11 @@ void main() async {
   } catch (e) {
     debugPrint('Firebase initializeApp failed: $e');
   }
-  
+
   try {
     if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
       await windowManager.ensureInitialized();
-      
+
       WindowOptions windowOptions = const WindowOptions(
         size: Size(1920, 1080),
         minimumSize: Size(1920, 1080),
@@ -45,19 +44,22 @@ void main() async {
         skipTaskbar: false,
         titleBarStyle: TitleBarStyle.normal,
       );
-      
+
       windowManager.waitUntilReadyToShow(windowOptions, () async {
         await windowManager.show();
         await windowManager.focus();
       });
     }
   } catch (e) {
-    // Ignore errors on web platform
-    // Use debugPrint instead of print to avoid production print lint
     debugPrint('Window manager not available: $e');
   }
-  
-  runApp(const MyApp());
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => AuthService(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -66,13 +68,16 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: ThemeData(
+        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
+      ),
       title: 'V-Serve',
-      initialRoute: '/',
+      initialRoute: '/login',
       routes: {
         '/': (context) => const LandingScreen(),
         '/profile': (context) => const UserProfileScreen(),
-        // Note: CitizenCharter, SQD, and Suggestions screens are navigated to
-        // using Navigator.push() with surveyData parameter, not named routes
+        '/login': (context) => const RoleBasedLoginScreen(),
+        '/dashboard': (context) => const DashboardScreen(),
       },
       debugShowCheckedModeBanner: false,
     );
