@@ -1,45 +1,34 @@
-import 'dart:io';
 import 'dart:convert';
 import 'package:csv/csv.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 
-class ExportService {
-  static Future<Directory> _getSaveDir() async {
-    try {
-      final dir = await getApplicationDocumentsDirectory();
-      return dir;
-    } catch (e) {
-      // fallback to temp
-      return Directory.systemTemp;
-    }
-  }
+// Conditional imports for web vs native
+import 'export_service_stub.dart'
+    if (dart.library.html) 'export_service_web.dart'
+    if (dart.library.io) 'export_service_native.dart' as platform;
 
+class ExportService {
   static String _safeFileName(String base, String ext) {
     final ts = DateTime.now().toIso8601String().replaceAll(':', '-');
     final name = base.replaceAll(RegExp(r"[^A-Za-z0-9_\- ]"), '').replaceAll(' ', '_');
-    return '\$name-\$ts.\$ext';
+    return '${name}_$ts.$ext';
   }
 
   static Future<String> exportCsv(String baseName, List<List<dynamic>> rows) async {
-    final dir = await _getSaveDir();
     final filename = _safeFileName(baseName, 'csv');
-    final path = '${dir.path}/$filename';
     final csv = const ListToCsvConverter().convert(rows);
-    final file = File(path);
-    await file.writeAsString(csv, flush: true);
-    return path;
+    
+    await platform.downloadFile(filename, csv, 'text/csv');
+    return filename;
   }
 
   static Future<String> exportJson(String baseName, List<Map<String, dynamic>> data) async {
-    final dir = await _getSaveDir();
     final filename = _safeFileName(baseName, 'json');
-    final path = '${dir.path}/$filename';
     final encoded = const JsonEncoder.withIndent('  ').convert(data);
-    final file = File(path);
-    await file.writeAsString(encoded, flush: true);
-    return path;
+    
+    await platform.downloadFile(filename, encoded, 'application/json');
+    return filename;
   }
 
   static Future<String> exportPdf(String baseName, List<Map<String, dynamic>> rows) async {
@@ -66,11 +55,9 @@ class ExportService {
     );
 
     final bytes = await doc.save();
-    final dir = await _getSaveDir();
     final filename = _safeFileName(baseName, 'pdf');
-    final path = '${dir.path}/$filename';
-    final file = File(path);
-    await file.writeAsBytes(bytes, flush: true);
-    return path;
+    
+    await platform.downloadFileBytes(filename, bytes, 'application/pdf');
+    return filename;
   }
 }

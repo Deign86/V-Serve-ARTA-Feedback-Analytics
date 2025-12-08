@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import '../../services/export_service.dart';
 import '../../services/feedback_service.dart';
+import '../../services/survey_config_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // THEME CONSTANTS
@@ -13,22 +14,17 @@ final Color brandRed = Colors.red.shade900;
 
 // ARTA Configuration Screen
 class ArtaConfigurationScreen extends StatefulWidget {
-  const ArtaConfigurationScreen({Key? key}) : super(key: key);
+  const ArtaConfigurationScreen({super.key});
 
   @override
   State<ArtaConfigurationScreen> createState() => _ArtaConfigurationScreenState();
 }
 
 class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
-  bool _ccEnabled = true;
-  bool _sqdEnabled = true;
-  bool _demographicsEnabled = true;
-  bool _cgovQuestionsEnabled = true;
-  bool _suggestionsEnabled = true;
-  bool _kioskMode = false;
-
   @override
   Widget build(BuildContext context) {
+    final configService = Provider.of<SurveyConfigService>(context);
+    
     return Scaffold(
       backgroundColor: Colors.transparent, // Transparent to show dashboard background
       body: SingleChildScrollView(
@@ -91,22 +87,22 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
                           _buildToggleItem(
                             'Citizen\'s Charter (CC) Questions',
                             'CC1 (Awareness), CC2 (Visibility), CC3 (Helpfulness)',
-                            _ccEnabled,
-                            (v) => setState(() => _ccEnabled = v),
+                            configService.ccEnabled,
+                            (v) => configService.setCcEnabled(v),
                           ),
                           const Divider(),
                           _buildToggleItem(
                             'Service Quality Dimensions (SQD)',
                             'SQD0 to SQD8 (Likert Scale Rating)',
-                            _sqdEnabled,
-                            (v) => setState(() => _sqdEnabled = v),
+                            configService.sqdEnabled,
+                            (v) => configService.setSqdEnabled(v),
                           ),
                           const Divider(),
                           _buildToggleItem(
                             'Client Demographics',
                             'Client Type, Gender, Age, Region, Service Availed',
-                            _demographicsEnabled,
-                            (v) => setState(() => _demographicsEnabled = v),
+                            configService.demographicsEnabled,
+                            (v) => configService.setDemographicsEnabled(v),
                           ),
                         ],
                       ),
@@ -117,15 +113,15 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
                           _buildToggleItem(
                             'CGOV Additional Questions',
                             'Include optional questions specific to Valenzuela City programs.',
-                            _cgovQuestionsEnabled,
-                            (v) => setState(() => _cgovQuestionsEnabled = v),
+                            configService.cgovQuestionsEnabled,
+                            (v) => configService.setCgovQuestionsEnabled(v),
                           ),
                           const Divider(),
                           _buildToggleItem(
                             'Suggestions Box',
                             'Allow free-text feedback at the end of the survey.',
-                            _suggestionsEnabled,
-                            (v) => setState(() => _suggestionsEnabled = v),
+                            configService.suggestionsEnabled,
+                            (v) => configService.setSuggestionsEnabled(v),
                           ),
                         ],
                       ),
@@ -136,8 +132,8 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
                           _buildToggleItem(
                             'Kiosk Mode',
                             'Auto-reset survey after submission (for tablets at City Hall).',
-                            _kioskMode,
-                            (v) => setState(() => _kioskMode = v),
+                            configService.kioskMode,
+                            (v) => configService.setKioskMode(v),
                             icon: Icons.tablet_mac,
                             activeColor: Colors.purple,
                           ),
@@ -257,7 +253,7 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: activeColor ?? Colors.green,
+            activeThumbColor: activeColor ?? Colors.green,
           ),
         ],
       ),
@@ -422,7 +418,7 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
 // Updated SurveyDetailScreen content to match ARTA
 class SurveyDetailScreen extends StatelessWidget {
   final String title;
-  const SurveyDetailScreen({Key? key, required this.title}) : super(key: key);
+  const SurveyDetailScreen({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -552,7 +548,7 @@ class SurveyDetailScreen extends StatelessWidget {
                 Text(opt, style: TextStyle(fontFamily: fontBody, fontSize: 14, color: Colors.grey.shade800)),
               ],
             ),
-          )).toList(),
+          )),
         ],
       ),
     );
@@ -561,7 +557,7 @@ class SurveyDetailScreen extends StatelessWidget {
 
 // Detailed Analytics Screen
 class DetailedAnalyticsScreen extends StatefulWidget {
-  const DetailedAnalyticsScreen({Key? key}) : super(key: key);
+  const DetailedAnalyticsScreen({super.key});
 
   @override
   State<DetailedAnalyticsScreen> createState() => _DetailedAnalyticsScreenState();
@@ -1142,7 +1138,7 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
 // Simple simulation wrappers for other screens to keep code clean
 class SurveyAnalyticsScreen extends StatelessWidget {
   final String title;
-  const SurveyAnalyticsScreen({Key? key, required this.title}) : super(key: key);
+  const SurveyAnalyticsScreen({super.key, required this.title});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1154,7 +1150,7 @@ class SurveyAnalyticsScreen extends StatelessWidget {
 
 class AddUserScreen extends StatelessWidget {
   final String? existingName;
-  const AddUserScreen({Key? key, this.existingName}) : super(key: key);
+  const AddUserScreen({super.key, this.existingName});
   @override
   Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: Text(existingName ?? "Add User")));
 }
@@ -1162,14 +1158,14 @@ class AddUserScreen extends StatelessWidget {
 class UserDetailScreen extends StatelessWidget {
   final String name;
   final String email;
-  const UserDetailScreen({Key? key, required this.name, required this.email}) : super(key: key);
+  const UserDetailScreen({super.key, required this.name, required this.email});
   @override
   Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: Text(name)));
 }
 
 class ExportPreviewScreen extends StatelessWidget {
   final String filePath;
-  const ExportPreviewScreen({Key? key, required this.filePath}) : super(key: key);
+  const ExportPreviewScreen({super.key, required this.filePath});
 
   @override
   Widget build(BuildContext context) {
@@ -1203,7 +1199,7 @@ class ExportPreviewScreen extends StatelessWidget {
 
 class ExportProcessScreen extends StatefulWidget {
   final String templateName;
-  const ExportProcessScreen({Key? key, required this.templateName}) : super(key: key);
+  const ExportProcessScreen({super.key, required this.templateName});
   @override
   State<ExportProcessScreen> createState() => _ExportProcessScreenState();
 }
@@ -1269,7 +1265,7 @@ class _ExportProcessScreenState extends State<ExportProcessScreen> {
 }
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
+  const SettingsScreen({super.key});
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }

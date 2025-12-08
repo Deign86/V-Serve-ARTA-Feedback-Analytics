@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
+import '../../services/survey_config_service.dart';
 import 'citizen_charter.dart';
+import 'sqd.dart';
+import 'suggestions.dart';
 
 class UserProfileScreen extends StatefulWidget {
-  const UserProfileScreen({Key? key}) : super(key: key);
+  const UserProfileScreen({super.key});
 
   @override
   State<UserProfileScreen> createState() => _UserProfileScreenState();
@@ -36,8 +40,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
+    final configService = Provider.of<SurveyConfigService>(context);
     final currentPage = 1;
-    final totalSteps = 4;
+    final totalSteps = configService.totalSteps;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -65,7 +70,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     SizedBox(height: isMobile ? 16 : 24),
                     _buildProgressBar(isMobile, currentPage, totalSteps),
                     SizedBox(height: isMobile ? 16 : 24),
-                    Expanded(child: _buildFormCard(isMobile)),
+                    Expanded(child: _buildFormCard(isMobile, configService)),
                   ],
                 ),
               ),
@@ -128,7 +133,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildFormCard(bool isMobile) {
+  Widget _buildFormCard(bool isMobile, SurveyConfigService configService) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -191,14 +196,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             serviceAvailed: serviceAvailed,
                           );
                           
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CitizenCharterScreen(
-                                surveyData: surveyData,
-                              ),
-                            ),
-                          );
+                          // Navigate based on configuration
+                          _navigateToNextScreen(context, surveyData, configService);
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -233,6 +232,30 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Navigate to the next screen based on survey configuration
+  void _navigateToNextScreen(BuildContext context, SurveyData surveyData, SurveyConfigService configService) {
+    Widget nextScreen;
+    
+    if (configService.ccEnabled) {
+      // CC is enabled, go to Citizen Charter
+      nextScreen = CitizenCharterScreen(surveyData: surveyData);
+    } else if (configService.sqdEnabled) {
+      // CC disabled but SQD enabled, skip to SQD
+      nextScreen = SQDScreen(surveyData: surveyData);
+    } else if (configService.suggestionsEnabled) {
+      // Only suggestions enabled, skip to suggestions
+      nextScreen = SuggestionsScreen(surveyData: surveyData);
+    } else {
+      // Nothing else enabled, go directly to thank you
+      nextScreen = const ThankYouScreen();
+    }
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => nextScreen),
     );
   }
 
@@ -362,8 +385,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             firstDate: DateTime(2000),
             lastDate: DateTime.now(),
           );
-          if (picked != null) setState(() => selectedDate = picked);
-          else {
+          if (picked != null) {
+            setState(() => selectedDate = picked);
+          } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Please fill out all fields correctly.'),
@@ -371,7 +395,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             );
           }
-          return null;
+          return;
         },
         child: Container(
           padding: EdgeInsets.symmetric(

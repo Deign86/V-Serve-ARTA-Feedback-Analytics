@@ -1349,9 +1349,9 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
         ...data.map((item) => headers.map((h) => item[h]?.toString() ?? '').toList()),
       ];
       
-      final path = await ExportService.exportCsv('ARTA_Feedback_Data', rows);
+      final filename = await ExportService.exportCsv('ARTA_Feedback_Data', rows);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('CSV exported to: $path'), backgroundColor: Colors.green),
+        SnackBar(content: Text('CSV exported: $filename'), backgroundColor: Colors.green),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1374,9 +1374,9 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
         return;
       }
       
-      final path = await ExportService.exportJson('ARTA_Feedback_Data', data);
+      final filename = await ExportService.exportJson('ARTA_Feedback_Data', data);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('JSON exported to: $path'), backgroundColor: Colors.green),
+        SnackBar(content: Text('JSON exported: $filename'), backgroundColor: Colors.green),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1404,9 +1404,9 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
                     const SnackBar(content: Text('Generating PDF report...')),
                   );
                   final data = feedbackService.exportFeedbacks();
-                  final path = await ExportService.exportPdf('ARTA_Compliance_Report', data);
+                  final filename = await ExportService.exportPdf('ARTA_Compliance_Report', data);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('PDF exported to: $path'), backgroundColor: Colors.green),
+                    SnackBar(content: Text('PDF exported: $filename'), backgroundColor: Colors.green),
                   );
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -1426,9 +1426,9 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
                     const SnackBar(content: Text('Generating detailed analysis...')),
                   );
                   final data = feedbackService.exportFeedbacks();
-                  final path = await ExportService.exportPdf('ARTA_Detailed_Analysis', data);
+                  final filename = await ExportService.exportPdf('ARTA_Detailed_Analysis', data);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('PDF exported to: $path'), backgroundColor: Colors.green),
+                    SnackBar(content: Text('PDF exported: $filename'), backgroundColor: Colors.green),
                   );
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(

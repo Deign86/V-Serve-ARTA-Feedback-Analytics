@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
 import '../../services/offline_queue.dart';
+import '../../services/survey_config_service.dart';
 
 class SuggestionsScreen extends StatefulWidget {
   final SurveyData surveyData;
   
   const SuggestionsScreen({
-    Key? key,
+    super.key,
     required this.surveyData,
-  }) : super(key: key);
+  });
 
   @override
   State<SuggestionsScreen> createState() => _SuggestionsScreenState();
@@ -19,6 +21,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
   late TextEditingController _suggestionsController;
   late TextEditingController _emailController;
   bool _isSubmitting = false;
+  bool _hasSubmitted = false; // Guard against duplicate submissions
 
   @override
   void initState() {
@@ -37,6 +40,10 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
+    final configService = Provider.of<SurveyConfigService>(context);
+    final currentStep = configService.getStepNumber(SurveyStep.suggestions);
+    final totalSteps = configService.totalSteps;
+    
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -61,7 +68,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                   children: [
                     _buildHeader(isMobile),
                     SizedBox(height: isMobile ? 16 : 24),
-                    _buildProgressBar(isMobile, 4, 4),
+                    _buildProgressBar(isMobile, currentStep, totalSteps),
                     SizedBox(height: isMobile ? 16 : 24),
                     Expanded(child: _buildFormCard(isMobile)),
                   ],
@@ -314,7 +321,13 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
           width: isMobile ? 140 : 180,
           height: isMobile ? 44 : 50,
           child: ElevatedButton(
-            onPressed: _isSubmitting ? null : () async {
+            onPressed: (_isSubmitting || _hasSubmitted) ? null : () async {
+              // Guard against duplicate submissions
+              if (_hasSubmitted) {
+                debugPrint('Survey already submitted, ignoring duplicate submission attempt');
+                return;
+              }
+              
               // Collect Part 4 data
               final finalData = widget.surveyData.copyWith(
                 suggestions: _suggestionsController.text.trim().isEmpty 
@@ -330,6 +343,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
               
               setState(() {
                 _isSubmitting = true;
+                _hasSubmitted = true; // Mark as submitted to prevent duplicates
               });
               
               try {
@@ -345,10 +359,10 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                 
                 if (!mounted) return;
                 
-                // Navigate to thank you screen
-                Navigator.pushReplacement(
-                  context,
+                // Navigate to thank you screen - use pushAndRemoveUntil to clear the survey stack
+                Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (context) => const ThankYouScreen()),
+                  (route) => route.isFirst, // Keep only the landing page
                 );
               } catch (e, stackTrace) {
                 debugPrint('ERROR saving survey: $e');
@@ -358,6 +372,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                 
                 setState(() {
                   _isSubmitting = false;
+                  _hasSubmitted = false; // Allow retry on error
                 });
                 
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -401,8 +416,55 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
 
 //THANK YOU WIDGET
 
-class ThankYouScreen extends StatelessWidget {
-  const ThankYouScreen({Key? key}) : super(key: key);
+class ThankYouScreen extends StatefulWidget {
+  const ThankYouScreen({super.key});
+
+  @override
+  State<ThankYouScreen> createState() => _ThankYouScreenState();
+}
+
+class _ThankYouScreenState extends State<ThankYouScreen> {
+  int _kioskCountdown = 10; // Countdown seconds for kiosk mode
+  bool _isKioskMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Check kiosk mode after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkKioskMode();
+    });
+  }
+
+  void _checkKioskMode() {
+    final configService = Provider.of<SurveyConfigService>(context, listen: false);
+    if (configService.kioskMode) {
+      setState(() {
+        _isKioskMode = true;
+      });
+      _startKioskCountdown();
+    }
+  }
+
+  void _startKioskCountdown() {
+    Future.delayed(const Duration(seconds: 1), () {
+      if (!mounted) return;
+      if (_kioskCountdown > 1) {
+        setState(() {
+          _kioskCountdown--;
+        });
+        _startKioskCountdown();
+      } else {
+        // Auto-navigate back to landing page
+        _navigateToHome();
+      }
+    });
+  }
+
+  void _navigateToHome() {
+    // Clear the navigation stack and go to landing page
+    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -500,26 +562,40 @@ class ThankYouScreen extends StatelessWidget {
                             ),
                             SizedBox(height: isMobile ? 24 : 32),
                             Center(
-                              child: SizedBox(
-                                width: isMobile ? double.infinity : 180,
-                                height: isMobile ? 40 : 50,
-                                child: ElevatedButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color(0xFF003366),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(24),
+                              child: Column(
+                                children: [
+                                  SizedBox(
+                                    width: isMobile ? double.infinity : 180,
+                                    height: isMobile ? 40 : 50,
+                                    child: ElevatedButton(
+                                      onPressed: _navigateToHome,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Color(0xFF003366),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(24),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        _isKioskMode ? 'START NEW SURVEY' : 'BACK TO HOME',
+                                        style: GoogleFonts.montserrat(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                          fontSize: isMobile ? 11 : 14,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                  child: Text(
-                                    'BACK TO HOME',
-                                    style: GoogleFonts.montserrat(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      fontSize: isMobile ? 11 : 14,
+                                  if (_isKioskMode) ...[
+                                    SizedBox(height: 12),
+                                    Text(
+                                      'Auto-reset in $_kioskCountdown seconds...',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600,
+                                      ),
                                     ),
-                                  ),
-                                ),
+                                  ],
+                                ],
                               ),
                             ),
                           ],

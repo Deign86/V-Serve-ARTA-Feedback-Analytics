@@ -2,16 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'services/offline_queue.dart';
-import 'dart:io' show Platform;
-import 'package:window_manager/window_manager.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'screens/user_side/landing_page.dart';
 import 'screens/user_side/user_profile.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'services/auth_services.dart';
 import 'services/feedback_service.dart';
+import 'services/survey_config_service.dart';
 import 'screens/role_based_login_screen.dart';
 import 'screens/admin/role_based_dashboard.dart';
+
+// Conditional import for window_manager (desktop only)
+import 'platform/window_helper_stub.dart'
+    if (dart.library.io) 'platform/window_helper_native.dart' as window_helper;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,23 +36,9 @@ void main() async {
   }
 
   try {
-    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-      await windowManager.ensureInitialized();
-
-      WindowOptions windowOptions = const WindowOptions(
-        size: Size(1920, 1080),
-        minimumSize: Size(1920, 1080),
-        maximumSize: Size(1920, 1080),
-        center: true,
-        backgroundColor: Colors.transparent,
-        skipTaskbar: false,
-        titleBarStyle: TitleBarStyle.normal,
-      );
-
-      windowManager.waitUntilReadyToShow(windowOptions, () async {
-        await windowManager.show();
-        await windowManager.focus();
-      });
+    // Initialize window manager for desktop platforms only
+    if (!kIsWeb) {
+      await window_helper.initializeWindow();
     }
   } catch (e) {
     debugPrint('Window manager not available: $e');
@@ -59,6 +49,11 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => FeedbackService()),
+        ChangeNotifierProvider(create: (_) {
+          final configService = SurveyConfigService();
+          configService.loadConfig(); // Load saved configuration
+          return configService;
+        }),
       ],
       child: const MyApp(),
     ),

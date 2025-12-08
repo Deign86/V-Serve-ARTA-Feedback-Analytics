@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
+import '../../services/survey_config_service.dart';
 import 'sqd.dart';
+import 'suggestions.dart';
 
 class CitizenCharterScreen extends StatefulWidget {
   final SurveyData surveyData;
   
   const CitizenCharterScreen({
-    Key? key,
+    super.key,
     required this.surveyData,
-  }) : super(key: key);
+  });
 
   @override
   State<CitizenCharterScreen> createState() => _CitizenCharterScreenState();
@@ -70,6 +73,8 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
   }
 
   void _onNextPressed() {
+    final configService = Provider.of<SurveyConfigService>(context, listen: false);
+    
     if (_isFormValid()) {
       // Extract rating numbers from the selected answers
       final cc0Rating = cc1Answer != null ? int.tryParse(cc1Answer!.substring(0, 1)) : null;
@@ -83,13 +88,19 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
         cc2Rating: cc2Rating,
       );
       
+      // Navigate based on configuration
+      Widget nextScreen;
+      if (configService.sqdEnabled) {
+        nextScreen = SQDScreen(surveyData: updatedData);
+      } else if (configService.suggestionsEnabled) {
+        nextScreen = SuggestionsScreen(surveyData: updatedData);
+      } else {
+        nextScreen = const ThankYouScreen();
+      }
+      
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => SQDScreen(
-            surveyData: updatedData,
-          ),
-        ),
+        MaterialPageRoute(builder: (context) => nextScreen),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -104,8 +115,9 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
-    final currentStep = 2; // Set this to 2 for Citizen's Charter
-    final totalSteps = 4; // Full flow: Profile, Charter, SDQ, Thank You
+    final configService = Provider.of<SurveyConfigService>(context);
+    final currentStep = configService.getStepNumber(SurveyStep.citizenCharter);
+    final totalSteps = configService.totalSteps;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
