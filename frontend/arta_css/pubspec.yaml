@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  fl_chart: ^1.1.1
+  provider: ^6.0.5
   google_fonts: ^6.1.0
   http: ^1.5.0
   provider: ^6.1.5
@@ -50,8 +52,6 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  window_manager: ^0.3.8
   
 
   # The "flutter_lints" package below contains a set of recommended lints to

@@ -15,7 +15,7 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  
+
   // Logic: State variables
   bool _isLoading = false;
   String? _errorMessage;
@@ -70,7 +70,7 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
         ),
         // Added a slight dark overlay to ensure the card pops out against the city photo
         child: Container(
-          color: Colors.black.withOpacity(0.1), 
+          color: Colors.black.withOpacity(0.1),
           child: Center(
             child: SingleChildScrollView(
               child: Container(
@@ -98,7 +98,7 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          
+
                           // Visual: Valenzuela Branding Titles
                           const Text(
                             'CITY GOVERNMENT OF VALENZUELA',
@@ -118,7 +118,7 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 32),
-                          
+
                           // Visual: Welcome Text
                           const Text(
                             'Welcome back!',
@@ -142,12 +142,17 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.error_outline, color: Colors.red.shade700),
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: Colors.red.shade700,
+                                  ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
                                       _errorMessage!,
-                                      style: TextStyle(color: Colors.red.shade700),
+                                      style: TextStyle(
+                                        color: Colors.red.shade700,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -211,7 +216,9 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                disabledBackgroundColor: const Color(0xFF003366).withOpacity(0.6),
+                                disabledBackgroundColor: const Color(
+                                  0xFF003366,
+                                ).withOpacity(0.6),
                               ),
                               child: _isLoading
                                   ? const SizedBox(
@@ -219,7 +226,10 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
                                       width: 20,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
                                       ),
                                     )
                                   : const Text(
@@ -232,9 +242,9 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
                                     ),
                             ),
                           ),
-                          
+
                           const SizedBox(height: 24),
-                          
+
                           // Logic: Demo Credentials
                           Container(
                             padding: const EdgeInsets.all(16),
@@ -254,10 +264,26 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                _buildCredential('Admin', 'admin@valenzuela.gov.ph', 'admin123'),
-                                _buildCredential('Editor', 'editor@valenzuela.gov.ph', 'editor123'),
-                                _buildCredential('Analyst', 'analyst@valenzuela.gov.ph', 'analyst123'),
-                                _buildCredential('Viewer', 'viewer@valenzuela.gov.ph', 'viewer123'),
+                                _buildCredential(
+                                  'Admin',
+                                  'admin@valenzuela.gov.ph',
+                                  'admin123',
+                                ),
+                                _buildCredential(
+                                  'Editor',
+                                  'editor@valenzuela.gov.ph',
+                                  'editor123',
+                                ),
+                                _buildCredential(
+                                  'Analyst',
+                                  'analyst@valenzuela.gov.ph',
+                                  'analyst123',
+                                ),
+                                _buildCredential(
+                                  'Viewer',
+                                  'viewer@valenzuela.gov.ph',
+                                  'viewer123',
+                                ),
                               ],
                             ),
                           ),
