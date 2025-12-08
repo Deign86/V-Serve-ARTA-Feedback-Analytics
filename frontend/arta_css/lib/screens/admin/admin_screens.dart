@@ -6,8 +6,6 @@ import '../../services/export_service.dart';
 import '../../services/feedback_service.dart';
 import '../../services/survey_config_service.dart';
 import '../../services/qr_code_service.dart';
-import '../../services/dark_mode_service.dart';
-import '../../widgets/dark_mode_overlay.dart';
 import '../../models/survey_data.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -1498,80 +1496,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Wrap Settings screen with DarkModeOverlay for consistency
-    return DarkModeOverlay(
-      child: Consumer<DarkModeService>(
-        builder: (context, darkModeService, _) {
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('Settings'),
-              backgroundColor: brandBlue,
-              foregroundColor: Colors.white,
-              actions: [
-                // Quick dark mode toggle in app bar
-                IconButton(
-                  icon: Icon(
-                    darkModeService.isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                  ),
-                  tooltip: darkModeService.isDarkMode ? 'Switch to light mode' : 'Switch to dark mode',
-                  onPressed: () => darkModeService.toggleDarkMode(),
-                ),
-              ],
-            ),
-            body: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                      // Dark Mode Section
-                      _buildDarkModeSection(context, darkModeService),
-                      const SizedBox(height: 24),
-                      
-                      // Export Format Section
-                      Card(
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Settings'),
+        backgroundColor: brandBlue,
+        foregroundColor: Colors.white,
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Export Format Section
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.file_download, color: brandBlue),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    'Default Export Format',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: brandBlue,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
+                              Icon(Icons.file_download, color: brandBlue),
+                              const SizedBox(width: 12),
                               Text(
-                                'Choose the default format for data exports',
-                                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                                'Default Export Format',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: brandBlue,
+                                ),
                               ),
-                              const SizedBox(height: 16),
-                              _buildFormatOption('csv', 'CSV', 'Spreadsheet compatible format', Icons.table_chart, Colors.green),
-                              _buildFormatOption('json', 'JSON', 'Structured data format', Icons.code, Colors.blue),
-                              _buildFormatOption('pdf', 'PDF', 'Printable document format', Icons.picture_as_pdf, Colors.red),
                             ],
                           ),
-                        ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Choose the default format for data exports',
+                            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildFormatOption('csv', 'CSV', 'Spreadsheet compatible format', Icons.table_chart, Colors.green),
+                          _buildFormatOption('json', 'JSON', 'Structured data format', Icons.code, Colors.blue),
+                          _buildFormatOption('pdf', 'PDF', 'Printable document format', Icons.picture_as_pdf, Colors.red),
+                        ],
                       ),
-                      const SizedBox(height: 24),
-                      
-                      // About Section
-                      Card(
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // About Section
+                  Card(
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -1624,164 +1604,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  /// Builds the dark mode settings section
-  Widget _buildDarkModeSection(BuildContext context, DarkModeService darkModeService) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  darkModeService.isDarkMode ? Icons.dark_mode : Icons.light_mode,
-                  color: brandBlue,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'Appearance',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: brandBlue,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Customize the admin dashboard appearance',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-            ),
-            const SizedBox(height: 16),
-            
-            // Dark Mode Toggle
-            _buildDarkModeOption(
-              context,
-              darkModeService,
-              DarkModePreference.system,
-              'System',
-              'Follow your device theme settings',
-              Icons.settings_suggest,
-            ),
-            _buildDarkModeOption(
-              context,
-              darkModeService,
-              DarkModePreference.light,
-              'Light',
-              'Always use light theme',
-              Icons.light_mode,
-            ),
-            _buildDarkModeOption(
-              context,
-              darkModeService,
-              DarkModePreference.dark,
-              'Dark',
-              'Always use dark theme',
-              Icons.dark_mode,
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Current status indicator
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: darkModeService.isDarkMode 
-                    ? Colors.grey.shade800.withValues(alpha: 0.1)
-                    : Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 18,
-                    color: brandBlue,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Dark mode is currently ${darkModeService.isDarkMode ? 'enabled' : 'disabled'}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: brandBlue,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDarkModeOption(
-    BuildContext context,
-    DarkModeService darkModeService,
-    DarkModePreference preference,
-    String title,
-    String subtitle,
-    IconData icon,
-  ) {
-    final isSelected = darkModeService.preference == preference;
-    final color = brandBlue;
-    
-    return InkWell(
-      onTap: () => darkModeService.setPreference(preference),
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        margin: const EdgeInsets.only(bottom: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? color : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: isSelected ? color : Colors.black87,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
-            ),
-            if (isSelected)
-              Icon(Icons.check_circle, color: color, size: 24),
-          ],
-        ),
-      ),
     );
   }
 

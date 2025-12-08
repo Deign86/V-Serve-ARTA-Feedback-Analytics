@@ -5,15 +5,13 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'admin_screens.dart';
 import '../../services/export_service.dart';
-import '../../services/dark_mode_service.dart';
-import '../../widgets/dark_mode_overlay.dart';
 
 // NOTE: This file provides screens (DashboardScreen, etc.)
 // and no longer contains its own `main()` or a top-level `MaterialApp`.
 // The app should use the single top-level `MaterialApp` defined in `main.dart`.
 // Login is handled by RoleBasedLoginScreen at '/admin/login'.
 
-// Dashboard Screen with Dark Mode Support
+// Dashboard Screen
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -35,49 +33,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 900;
-    
-    // Update system brightness for dark mode detection
-    final brightness = MediaQuery.of(context).platformBrightness;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<DarkModeService>().updateSystemBrightness(brightness);
-    });
 
-    // Wrap entire dashboard with DarkModeOverlay for admin-only dark mode
-    return DarkModeOverlay(
-      child: Scaffold(
-        body: Stack(
-          children: [
-            // background image with overlay
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: const AssetImage('assets/city_bg2.png'),
-                    fit: BoxFit.cover,
-                    // Removed heavy color filter to let the image show through more naturally as requested
-                    // but kept a very slight tint for text readability if needed, or removed entirely.
-                    // User asked for "white background should be remove... so they are like bricks and the background should be the city_bg2"
-                  ),
-                ),
-                child: Container(
-                  color: Colors.black.withValues(alpha: 0.1), // Very subtle overlay
+    return Scaffold(
+      body: Stack(
+        children: [
+          // background image with overlay
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: const AssetImage('assets/city_bg2.png'),
+                  fit: BoxFit.cover,
+                  // Removed heavy color filter to let the image show through more naturally as requested
+                  // but kept a very slight tint for text readability if needed, or removed entirely.
+                  // User asked for "white background should be remove... so they are like bricks and the background should be the city_bg2"
                 ),
               ),
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.1), // Very subtle overlay
+              ),
             ),
-            // content row
-            Row(
-              children: [
-            // Sidebar
-          Container(
-            width: isDesktop ? 250 : 70,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  brandRed,
-                  Colors.red.shade900,
-                ],
+          ),
+          // content row
+          Row(
+            children: [
+          // Sidebar
+        Container(
+          width: isDesktop ? 250 : 70,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                brandRed,
+                Colors.red.shade900,
+              ],
               ),
             ),
             child: Column(
@@ -156,8 +146,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ), // end Row
         ], // end Stack children
       ), // end Stack (body)
-    ), // end Scaffold
-    ); // end DarkModeOverlay
+    ); // end Scaffold
   }
 
   Widget _buildMenuItem(int index, IconData icon, String label, bool isDesktop) {

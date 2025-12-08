@@ -10,7 +10,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'services/auth_services.dart';
 import 'services/feedback_service.dart';
 import 'services/survey_config_service.dart';
-import 'services/dark_mode_service.dart';
 import 'screens/role_based_login_screen.dart';
 import 'screens/admin/role_based_dashboard.dart';
 
@@ -45,10 +44,6 @@ void main() async {
     debugPrint('Window manager not available: $e');
   }
 
-  // Initialize dark mode service
-  final darkModeService = DarkModeService();
-  await darkModeService.initialize();
-
   runApp(
     MultiProvider(
       providers: [
@@ -59,7 +54,6 @@ void main() async {
           configService.loadConfig(); // Load saved configuration
           return configService;
         }),
-        ChangeNotifierProvider.value(value: darkModeService),
       ],
       child: const MyApp(),
     ),
