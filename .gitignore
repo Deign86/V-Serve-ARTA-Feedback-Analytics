@@ -15,3 +15,4 @@ pubspec.lock
 # Sensitive local service files (do not commit)
 **/google-services.json
 **/serviceAccountKey.json
+.vercel
