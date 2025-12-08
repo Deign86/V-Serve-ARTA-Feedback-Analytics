@@ -23,8 +23,8 @@ frontend/arta_css/build/
 
 # Ignore config files not needed for deployment
 *.md
-*.yaml
-!vercel.json
+!frontend/arta_css/pubspec.yaml
+!frontend/arta_css/pubspec.lock
 firebase.json
 firestore.rules
 analysis_options.yaml
