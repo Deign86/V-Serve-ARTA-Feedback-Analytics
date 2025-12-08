@@ -10,7 +10,6 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'services/auth_services.dart';
 import 'services/feedback_service.dart';
-import 'models/user_model.dart';
 import 'screens/role_based_login_screen.dart';
 import 'screens/admin/role_based_dashboard.dart';
 
@@ -76,10 +75,18 @@ class MyApp extends StatelessWidget {
         textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
       ),
       title: 'V-Serve',
-      initialRoute: '/login', //change this to '/' if you want to use the user side or the survey
+      initialRoute: '/', // Public survey is the default landing page
       routes: {
+        // Public routes - accessible to everyone (survey/feedback)
         '/': (context) => const LandingScreen(),
         '/profile': (context) => const UserProfileScreen(),
+        
+        // Admin routes - accessible via specialized link
+        '/admin': (context) => const RoleBasedLoginScreen(),
+        '/admin/login': (context) => const RoleBasedLoginScreen(),
+        '/admin/dashboard': (context) => const DashboardScreen(),
+        
+        // Legacy routes (for backward compatibility)
         '/login': (context) => const RoleBasedLoginScreen(),
         '/dashboard': (context) => const DashboardScreen(),
       },

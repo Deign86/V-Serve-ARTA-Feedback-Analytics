@@ -6,180 +6,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'admin_screens.dart';
 import '../../services/export_service.dart';
 
-// NOTE: This file provides screens (LoginScreen, DashboardScreen, etc.)
+// NOTE: This file provides screens (DashboardScreen, etc.)
 // and no longer contains its own `main()` or a top-level `MaterialApp`.
 // The app should use the single top-level `MaterialApp` defined in `main.dart`.
-
-// Login Screen
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
-
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen> {
-  final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.red.shade900,
-              Colors.blue.shade900,
-            ],
-          ),
-        ),
-        child: Center(
-          child: SingleChildScrollView(
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 450),
-              margin: const EdgeInsets.all(24),
-              child: Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(40),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Logo
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.account_balance,
-                          size: 50,
-                          color: brandRed,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      // Title
-                      const Text(
-                        'CITY GOVERNMENT OF VALENZUELA',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const Text(
-                        'ARTA FEEDBACK SYSTEM',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.black54,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      RichText(
-                        text: TextSpan(
-                          text: 'Welcome back, ',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            color: Colors.black87,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: 'Admin',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: brandRed,
-                              ),
-                            ),
-                            const TextSpan(text: '!'),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      // Username field
-                      TextField(
-                        controller: _usernameController,
-                        decoration: InputDecoration(
-                          hintText: 'Enter your username here',
-                          prefixIcon: const Icon(Icons.person_outline),
-                          filled: true,
-                          fillColor: Colors.grey.shade100,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Password field
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          hintText: 'Enter your password here',
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          filled: true,
-                          fillColor: Colors.grey.shade100,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      // Login button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const DashboardScreen(),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: brandBlue,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'LOGIN',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+// Login is handled by RoleBasedLoginScreen at '/admin/login'.
 
 // Dashboard Screen
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({Key? key}) : super(key: key);
+  const DashboardScreen({super.key});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -342,10 +176,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             : null,
         onTap: () {
           if (index == 6) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
-            );
+            // Sign out - navigate to admin login
+            Navigator.pushReplacementNamed(context, '/admin/login');
           } else if (index == 5) {
             Navigator.push(
               context,
@@ -369,7 +201,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
 // Dashboard Overview
 class DashboardOverview extends StatefulWidget {
-  const DashboardOverview({Key? key}) : super(key: key);
+  const DashboardOverview({super.key});
 
   @override
   State<DashboardOverview> createState() => _DashboardOverviewState();
@@ -829,7 +661,7 @@ class _DashboardOverviewState extends State<DashboardOverview> {
 
 // User Management Screen
 class UserManagementScreen extends StatelessWidget {
-  const UserManagementScreen({Key? key}) : super(key: key);
+  const UserManagementScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -1165,7 +997,7 @@ class UserManagementScreen extends StatelessWidget {
   }
   Future<void> _showAddUserDialog(BuildContext context) async {
     String selectedRole = 'Analyst/Viewer'; // Default
-    final _formKey = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>();
     String name = '';
     String email = '';
 
@@ -1186,7 +1018,7 @@ class UserManagementScreen extends StatelessWidget {
               content: SizedBox(
                 width: 400,
                 child: Form(
-                  key: _formKey,
+                  key: formKey,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -1211,7 +1043,7 @@ class UserManagementScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        value: selectedRole,
+                        initialValue: selectedRole,
                         decoration: InputDecoration(
                           labelText: 'User Role',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -1236,8 +1068,8 @@ class UserManagementScreen extends StatelessWidget {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      _formKey.currentState!.save();
+                    if (formKey.currentState!.validate()) {
+                      formKey.currentState!.save();
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -1265,7 +1097,7 @@ class UserManagementScreen extends StatelessWidget {
 
 // Data Exports Screen
 class DataExportsScreen extends StatefulWidget {
-  const DataExportsScreen({Key? key}) : super(key: key);
+  const DataExportsScreen({super.key});
 
   @override
   State<DataExportsScreen> createState() => _DataExportsScreenState();

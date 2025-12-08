@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_services.dart';
 
 class RoleBasedLoginScreen extends StatefulWidget {
-  const RoleBasedLoginScreen({Key? key}) : super(key: key);
+  const RoleBasedLoginScreen({super.key});
 
   @override
   State<RoleBasedLoginScreen> createState() => _RoleBasedLoginScreenState();
@@ -48,7 +48,7 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
 
     if (success) {
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/dashboard');
+        Navigator.pushReplacementNamed(context, '/admin/dashboard');
       }
     } else {
       setState(() {
