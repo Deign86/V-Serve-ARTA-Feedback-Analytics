@@ -7,7 +7,6 @@ import '../../services/feedback_service.dart';
 import '../../services/survey_config_service.dart';
 import '../../services/qr_code_service.dart';
 import '../../models/survey_data.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 // THEME CONSTANTS
 const String fontHeading = 'Montserrat';
@@ -1456,43 +1455,8 @@ class _ExportProcessScreenState extends State<ExportProcessScreen> {
   }
 }
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
-  @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  String _exportFormat = 'csv';
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPrefs();
-  }
-
-  Future<void> _loadPrefs() async {
-    setState(() => _isLoading = true);
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _exportFormat = prefs.getString('exportFormat') ?? 'csv';
-      _isLoading = false;
-    });
-  }
-
-  Future<void> _savePrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('exportFormat', _exportFormat);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Settings saved successfully'),
-        backgroundColor: Colors.green.shade600,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1502,142 +1466,85 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: brandBlue,
         foregroundColor: Colors.white,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Export Format Section
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.file_download, color: brandBlue),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Default Export Format',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: brandBlue,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Choose the default format for data exports',
-                            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildFormatOption('csv', 'CSV', 'Spreadsheet compatible format', Icons.table_chart, Colors.green),
-                          _buildFormatOption('json', 'JSON', 'Structured data format', Icons.code, Colors.blue),
-                          _buildFormatOption('pdf', 'PDF', 'Printable document format', Icons.picture_as_pdf, Colors.red),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // About Section
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.info_outline, color: brandBlue),
-                              const SizedBox(width: 12),
-                              Text(
-                                'About',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: brandBlue,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          _buildInfoRow('Application', 'V-Serve ARTA Feedback Analytics'),
-                          _buildInfoRow('Version', '1.0.0'),
-                          _buildInfoRow('Developer', 'City Government of Valenzuela'),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  
-                  // Save Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _savePrefs,
-                      icon: const Icon(Icons.save),
-                      label: const Text('Save Settings'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: brandBlue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-    );
-  }
-
-  Widget _buildFormatOption(String value, String title, String subtitle, IconData icon, Color color) {
-    final isSelected = _exportFormat == value;
-    return InkWell(
-      onTap: () => setState(() => _exportFormat = value),
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        margin: const EdgeInsets.only(bottom: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? color : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Row(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: isSelected ? color : Colors.black87)),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                ],
+            // About Section
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.grey.shade200),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, color: brandBlue),
+                        const SizedBox(width: 12),
+                        Text(
+                          'About',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: brandBlue,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildInfoRow('Application', 'V-Serve ARTA Feedback Analytics'),
+                    _buildInfoRow('Version', '1.0.0'),
+                    _buildInfoRow('Developer', 'City Government of Valenzuela'),
+                  ],
+                ),
               ),
             ),
-            if (isSelected)
-              Icon(Icons.check_circle, color: color, size: 24),
+            const SizedBox(height: 24),
+            
+            // Tip Section
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.blue.shade100),
+              ),
+              color: Colors.blue.shade50,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Icon(Icons.lightbulb_outline, color: Colors.blue.shade700),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Tip: Export Settings',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'You can set your default export format in the Data Exports tab for quick one-click exports.',
+                            style: TextStyle(fontSize: 13, color: Colors.blue.shade600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
