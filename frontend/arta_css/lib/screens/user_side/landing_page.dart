@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'user_profile.dart'; // Make sure this matches your file name
+import 'user_profile.dart';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({Key? key}) : super(key: key);
@@ -17,7 +17,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
   // --- ARTA Text Animation Controllers ---
   late AnimationController _expandController;
   late Animation<double> _expandAnimation;
-  Timer? _hoverTimer; // Delay timer for ARTA text
+  Timer? _hoverTimer; 
 
   // --- Button Hover State ---
   bool _isHoveringButton = false;
@@ -80,20 +80,29 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
             ),
           ),
           
-          // 2. Scrollable Content on Top
+          // 2. Content
           Positioned.fill(
             child: SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isMobile ? 16 : 40,
-                    vertical: isMobile ? 20 : 40,
+              child: isMobile 
+                ? SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                    child: _buildMobileLayout(context),
+                  )
+                : Center(
+                    // === DESKTOP RESPONSIVE FIX ===
+                    // This ensures that if the screen is zoomed (125%), 
+                    // the content scales down to fit instead of scrolling.
+                    child: Container(
+                      padding: const EdgeInsets.all(40),
+                      width: double.infinity,
+                      height: double.infinity,
+                      alignment: Alignment.center,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: _buildDesktopLayout(context),
+                      ),
+                    ),
                   ),
-                  child: isMobile 
-                      ? _buildMobileLayout(context) 
-                      : _buildDesktopLayout(context),
-                ),
-              ),
             ),
           ),
         ],
@@ -115,8 +124,9 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
 
   // ------------------ DESKTOP LAYOUT ------------------
   Widget _buildDesktopLayout(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 1430),
+    // We set a specific width for the FittedBox to calculate aspect ratio against
+    return SizedBox(
+      width: 1300, // Ideal width
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -126,7 +136,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
               flex: 3,
               child: _buildTextCard(context, false),
             ),
-            const SizedBox(width: 40),
+            const SizedBox(width: 60),
             // Right side (Carousel)
             Expanded(
               flex: 2,
@@ -162,6 +172,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
               CircleAvatar(
                 radius: isMobile ? 24 : 36,
                 backgroundImage: const AssetImage('assets/city_logo.png'),
+                backgroundColor: Colors.transparent,
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -192,7 +203,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
           
           SizedBox(height: isMobile ? 30 : 50),
           
-          // --- HOVER ANIMATION FOR ARTA (Delay + Smooth Slide) ---
+          // --- HOVER ANIMATION FOR ARTA ---
           MouseRegion(
             onEnter: (_) {
               _hoverTimer?.cancel();
@@ -274,29 +285,25 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
               onExit: (_) => setState(() => _isHoveringButton = false),
               cursor: SystemMouseCursors.click,
               child: AnimatedScale(
-                scale: _isHoveringButton ? 1.05 : 1.0, // Scale up 5%
+                scale: _isHoveringButton ? 1.05 : 1.0, 
                 duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOutBack, // A little bounce effect
+                curve: Curves.easeOutBack,
                 child: SizedBox(
                   width: isMobile ? double.infinity : 220,
                   height: 55,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      // Animate Color from Deep Blue to Lighter Blue
                       backgroundColor: _isHoveringButton 
                           ? const Color(0xFF004C99) 
                           : const Color(0xFF003366),
-                      elevation: _isHoveringButton ? 10 : 5, // Lift effect
+                      elevation: _isHoveringButton ? 10 : 5,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
                     onPressed: () {
-                      // OLD: Navigator.pushNamed(context, '/profile');
-  
-                      // NEW: Smooth Custom Transition
                       Navigator.push(
-                       context, 
+                        context, 
                         SmoothPageRoute(page: const UserProfileScreen())
                       );
                     },
@@ -379,8 +386,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
   }
 }
 
-// === ADD THIS CLASS AT THE BOTTOM OF THE FILE ===
-
+// === SMOOTH PAGE ROUTE HELPER ===
 class SmoothPageRoute extends PageRouteBuilder {
   final Widget page;
 
@@ -388,25 +394,17 @@ class SmoothPageRoute extends PageRouteBuilder {
       : super(
           pageBuilder: (context, animation, secondaryAnimation) => page,
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            // 1. Define the slide (From Right to Left)
             const begin = Offset(1.0, 0.0);
             const end = Offset.zero;
-            
-            // 2. Define the curve (Smooth, luxurious feel)
             const curve = Curves.easeInOutCubic;
 
             var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
 
-            // 3. Combine Slide + Fade for extra smoothness
             return SlideTransition(
               position: animation.drive(tween),
-              child: FadeTransition(
-                opacity: animation, 
-                child: child
-              ),
+              child: FadeTransition(opacity: animation, child: child),
             );
           },
-          // 4. Match the speed of your other animations
           transitionDuration: const Duration(milliseconds: 600),
           reverseTransitionDuration: const Duration(milliseconds: 600),
         );
