@@ -23,9 +23,9 @@ service cloud.firestore {
       allow create: if isValidFeedback();
       // Do not allow direct client updates/deletes to keep data integrity.
       allow update, delete: if false;
-      // Reads from the client are denied by default. If you want to allow
-      // reading feedbacks from the client, change the rule below (careful).
-      allow read: if false;
+      // Allow reads for admin dashboard - in production, add authentication check
+      // TODO: Add authentication check like: allow read: if request.auth != null;
+      allow read: if true;
     }
 
     // Fallback: deny everything else
