@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:provider/provider.dart';
 import '../../services/export_service.dart';
+import '../../services/feedback_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../models/survey_data.dart'; // Import SurveyData model
 
 // THEME CONSTANTS
 const String fontHeading = 'Montserrat';
@@ -567,36 +568,68 @@ class DetailedAnalyticsScreen extends StatefulWidget {
 }
 
 class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
-  // Placeholder state for dynamic data
-  final double _overallScore = 4.7;
-  final String _topService = 'Social Services';
-  final double _topServiceScore = 4.9;
-  final String _needsAttention = 'Engineering';
-  final double _needsAttentionScore = 4.2;
-  
-  // SQD Data using SurveyData model structure concepts
-  final List<Map<String, dynamic>> _sqdData = [
-    {'code': 'SQD0', 'title': 'Satisfaction', 'desc': 'I am satisfied with the service that I availed', 'score': 4.8},
-    {'code': 'SQD1', 'title': 'Time', 'desc': 'I spent a reasonable amount of time for my transaction', 'score': 4.5},
-    {'code': 'SQD2', 'title': 'Requirements', 'desc': 'The office followed the transaction requirements', 'score': 4.7},
-    {'code': 'SQD3', 'title': 'Procedure', 'desc': 'The steps were easy and simple', 'score': 4.6},
-    {'code': 'SQD4', 'title': 'Information', 'desc': 'I easily found information about my transaction', 'score': 4.2},
-    {'code': 'SQD5', 'title': 'Cost', 'desc': 'I paid a reasonable amount of fees', 'score': 4.9},
-    {'code': 'SQD6', 'title': 'Fairness', 'desc': 'I feel the office was fair to everyone', 'score': 4.8},
-    {'code': 'SQD7', 'title': 'Courtesy', 'desc': 'I was treated courteously by the staff', 'score': 4.9},
-    {'code': 'SQD8', 'title': 'Outcome', 'desc': 'I got what I needed from the government office', 'score': 4.7},
+  // SQD metadata
+  static const List<Map<String, String>> _sqdMetadata = [
+    {'code': 'SQD0', 'title': 'Satisfaction', 'desc': 'I am satisfied with the service that I availed'},
+    {'code': 'SQD1', 'title': 'Time', 'desc': 'I spent a reasonable amount of time for my transaction'},
+    {'code': 'SQD2', 'title': 'Requirements', 'desc': 'The office followed the transaction requirements'},
+    {'code': 'SQD3', 'title': 'Procedure', 'desc': 'The steps were easy and simple'},
+    {'code': 'SQD4', 'title': 'Information', 'desc': 'I easily found information about my transaction'},
+    {'code': 'SQD5', 'title': 'Cost', 'desc': 'I paid a reasonable amount of fees'},
+    {'code': 'SQD6', 'title': 'Fairness', 'desc': 'I feel the office was fair to everyone'},
+    {'code': 'SQD7', 'title': 'Courtesy', 'desc': 'I was treated courteously by the staff'},
+    {'code': 'SQD8', 'title': 'Outcome', 'desc': 'I got what I needed from the government office'},
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Ensure data is loaded
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<FeedbackService>().fetchAllFeedbacks();
+    });
+  }
+
+  List<Map<String, dynamic>> _getSQDDataWithScores(Map<String, double> sqdAverages) {
+    return _sqdMetadata.map((meta) {
+      final code = meta['code']!;
+      final score = sqdAverages[code] ?? 0.0;
+      return {
+        'code': code,
+        'title': meta['title']!,
+        'desc': meta['desc']!,
+        'score': score,
+      };
+    }).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    return Consumer<FeedbackService>(
+      builder: (context, feedbackService, child) {
+        final stats = feedbackService.dashboardStats;
+        final isLoading = feedbackService.isLoading;
+        
+        final overallScore = stats?.avgSatisfaction ?? 0.0;
+        final topService = stats?.topPerformingService ?? 'N/A';
+        final topServiceScore = stats?.topPerformingServiceScore ?? 0.0;
+        final needsAttention = stats?.needsAttentionService ?? 'N/A';
+        final needsAttentionScore = stats?.needsAttentionServiceScore ?? 0.0;
+        final strongestSQD = stats?.strongestSQD ?? 'N/A';
+        final strongestSQDScore = stats?.strongestSQDScore ?? 0.0;
+        final sqdData = _getSQDDataWithScores(stats?.sqdAverages ?? {});
+        final clientTypeDistribution = stats?.clientTypeDistribution ?? {};
+        final serviceBreakdown = stats?.serviceBreakdown ?? {};
+
     return Scaffold(
       backgroundColor: Colors.transparent, // Transparent for dashboard background
-      body: SingleChildScrollView(
+      body: isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             // Header
             Container(
               padding: const EdgeInsets.all(24),
@@ -669,11 +702,11 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
             // Highlights
             Row(
               children: [
-                Expanded(child: _buildHighlightCard('Top Performing Service', _topService, 'Score: $_topServiceScore/5.0', Colors.green)),
+                Expanded(child: _buildHighlightCard('Top Performing Service', topService, 'Score: ${topServiceScore.toStringAsFixed(1)}/5.0', Colors.green)),
                 const SizedBox(width: 16),
-                Expanded(child: _buildHighlightCard('Needs Attention', _needsAttention, 'Score: $_needsAttentionScore/5.0', Colors.amber)),
+                Expanded(child: _buildHighlightCard('Needs Attention', needsAttention, 'Score: ${needsAttentionScore.toStringAsFixed(1)}/5.0', Colors.amber)),
                 const SizedBox(width: 16),
-                Expanded(child: _buildHighlightCard('Strongest Dimension', 'SQD5 & SQD7', 'Cost & Courtesy (4.9)', Colors.blue)),
+                Expanded(child: _buildHighlightCard('Strongest Dimension', strongestSQD, 'Score: ${strongestSQDScore.toStringAsFixed(1)}/5.0', Colors.blue)),
               ],
             ),
             const SizedBox(height: 24),
@@ -698,12 +731,12 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                     const SizedBox(height: 16),
                     _buildAnalysisText(
                       'Executive Summary',
-                      'The overall customer satisfaction index for the current period stands at a robust $_overallScore out of 5.0. The data indicates that the majority of constituents are "Very Satisfied" with the services provided by the City Government of Valenzuela.',
+                      'The overall customer satisfaction index for the current period stands at ${overallScore.toStringAsFixed(1)} out of 5.0. The data indicates that the majority of constituents are "Very Satisfied" with the services provided by the City Government of Valenzuela.',
                     ),
                     const SizedBox(height: 12),
                     _buildAnalysisText(
                       'Service Level Analysis',
-                      'Among the key service areas, $_topService is leading with exceptional satisfaction scores of $_topServiceScore. Conversely, $_needsAttention recorded the lowest score of $_needsAttentionScore.',
+                      'Among the key service areas, $topService is leading with exceptional satisfaction scores of ${topServiceScore.toStringAsFixed(1)}. Conversely, $needsAttention recorded the lowest score of ${needsAttentionScore.toStringAsFixed(1)}.',
                     ),
                   ],
                 ),
@@ -746,9 +779,9 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                           mainAxisSpacing: 16,
                           childAspectRatio: 2.2, // Adjusted for card content
                         ),
-                        itemCount: _sqdData.length,
+                        itemCount: sqdData.length,
                         itemBuilder: (context, index) {
-                          final data = _sqdData[index];
+                          final data = sqdData[index];
                           return _buildSQDCard(data);
                         },
                       );
@@ -777,17 +810,17 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(child: _buildSatisfactionByServiceCard()),
+                      Expanded(child: _buildSatisfactionByServiceCard(serviceBreakdown)),
                       const SizedBox(width: 24),
-                      Expanded(child: _buildRespondentProfileCard()),
+                      Expanded(child: _buildRespondentProfileCard(clientTypeDistribution)),
                     ],
                   );
                 } else {
                   return Column(
                     children: [
-                      _buildSatisfactionByServiceCard(),
+                      _buildSatisfactionByServiceCard(serviceBreakdown),
                       const SizedBox(height: 24),
-                      _buildRespondentProfileCard(),
+                      _buildRespondentProfileCard(clientTypeDistribution),
                     ],
                   );
                 }
@@ -809,7 +842,14 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                     const SizedBox(height: 24),
                     SizedBox(
                       height: 400,
-                      child: RadarChart(
+                      child: sqdData.isEmpty || sqdData.every((e) => (e['score'] as double) == 0)
+                          ? Center(
+                              child: Text(
+                                'No data available',
+                                style: TextStyle(color: Colors.grey.shade400),
+                              ),
+                            )
+                          : RadarChart(
                         RadarChartData(
                           radarShape: RadarShape.polygon,
                           ticksTextStyle: const TextStyle(color: Colors.transparent),
@@ -825,11 +865,11 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                               fillColor: brandRed.withOpacity(0.4),
                               borderColor: brandRed,
                               entryRadius: 3,
-                              dataEntries: _sqdData.map((e) => RadarEntry(value: e['score'] as double)).toList(),
+                              dataEntries: sqdData.map((e) => RadarEntry(value: e['score'] as double)).toList(),
                             ),
                           ],
                           getTitle: (index, angle) {
-                             return RadarChartTitle(text: _sqdData[index]['code']);
+                             return RadarChartTitle(text: sqdData[index]['code']);
                           },
                         ),
                       ),
@@ -841,6 +881,8 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
           ],
         ),
       ),
+    );
+      },
     );
   }
 
@@ -934,7 +976,12 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
     );
   }
 
-  Widget _buildSatisfactionByServiceCard() {
+  Widget _buildSatisfactionByServiceCard(Map<String, double> serviceBreakdown) {
+    // Sort by score descending and take top 5
+    final sortedServices = serviceBreakdown.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final topServices = sortedServices.take(5).toList();
+    
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
@@ -952,11 +999,18 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
               ],
             ),
             const SizedBox(height: 24),
-            _buildBarRow('Business Permit', 4.9),
-            _buildBarRow('Health Cert', 4.8),
-            _buildBarRow('Tax Declaration', 4.5),
-            _buildBarRow('Engineering', 4.2),
-            _buildBarRow('Social Services', 4.9),
+            if (topServices.isEmpty)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Text(
+                    'No service data available',
+                    style: TextStyle(color: Colors.grey.shade400),
+                  ),
+                ),
+              )
+            else
+              ...topServices.map((entry) => _buildBarRow(entry.key, entry.value)),
           ],
         ),
       ),
@@ -982,13 +1036,49 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
             ),
           ),
           const SizedBox(width: 12),
-          Text(val.toString(), style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
+          Text(val.toStringAsFixed(1), style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
         ],
       ),
     );
   }
 
-  Widget _buildRespondentProfileCard() {
+  Widget _buildRespondentProfileCard(Map<String, int> clientTypeDistribution) {
+    final total = clientTypeDistribution.values.fold(0, (a, b) => a + b);
+    final hasData = total > 0;
+    
+    // Define colors for different client types
+    final colors = <String, Color>{
+      'Citizen': brandBlue,
+      'Business': brandRed,
+      'Government': Colors.green,
+    };
+    
+    // Build pie chart sections
+    final sections = <PieChartSectionData>[];
+    final legends = <Widget>[];
+    
+    if (hasData) {
+      var colorIndex = 0;
+      final colorList = [brandBlue, brandRed, Colors.green, Colors.purple, Colors.orange];
+      
+      for (final entry in clientTypeDistribution.entries) {
+        final color = colors[entry.key] ?? colorList[colorIndex % colorList.length];
+        sections.add(
+          PieChartSectionData(
+            value: entry.value.toDouble(),
+            color: color,
+            radius: 40,
+            showTitle: false,
+          ),
+        );
+        legends.add(_buildLegendItem('${entry.key} (${entry.value})', color));
+        if (clientTypeDistribution.entries.toList().indexOf(entry) < clientTypeDistribution.length - 1) {
+          legends.add(const SizedBox(width: 16));
+        }
+        colorIndex++;
+      }
+    }
+    
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
@@ -1008,29 +1098,29 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
             const SizedBox(height: 24),
             SizedBox(
               height: 200,
-              child: PieChart(
+              child: !hasData
+                  ? Center(
+                      child: Text(
+                        'No data available',
+                        style: TextStyle(color: Colors.grey.shade400),
+                      ),
+                    )
+                  : PieChart(
                 PieChartData(
                   sectionsSpace: 0,
                   centerSpaceRadius: 60,
-                  sections: [
-                    PieChartSectionData(value: 60, color: brandBlue, radius: 40, showTitle: false),
-                    PieChartSectionData(value: 30, color: brandRed, radius: 40, showTitle: false),
-                    PieChartSectionData(value: 10, color: Colors.green, radius: 40, showTitle: false),
-                  ],
+                  sections: sections,
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildLegendItem('Citizen', brandBlue),
-                const SizedBox(width: 16),
-                _buildLegendItem('Business', brandRed),
-                const SizedBox(width: 16),
-                _buildLegendItem('Government', Colors.green),
-              ],
-            ),
+            if (hasData)
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 16,
+                runSpacing: 8,
+                children: legends,
+              ),
           ],
         ),
       ),
@@ -1039,6 +1129,7 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
 
   Widget _buildLegendItem(String label, Color color) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(width: 12, height: 12, color: color),
         const SizedBox(width: 8),

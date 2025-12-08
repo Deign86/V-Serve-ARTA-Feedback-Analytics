@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../services/auth_services.dart';
-import '../../../widgets/role_based_widget.dart';
-import '../../../models/user_model.dart'; // adjust if different
+import '../../../services/feedback_service.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:csv/csv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'admin_screens.dart';
 import '../../services/export_service.dart';
@@ -371,12 +368,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 // Dashboard Overview
-class DashboardOverview extends StatelessWidget {
+class DashboardOverview extends StatefulWidget {
   const DashboardOverview({Key? key}) : super(key: key);
 
   @override
+  State<DashboardOverview> createState() => _DashboardOverviewState();
+}
+
+class _DashboardOverviewState extends State<DashboardOverview> {
+  @override
+  void initState() {
+    super.initState();
+    // Fetch data when widget initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<FeedbackService>().fetchAllFeedbacks();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
+    return Consumer<FeedbackService>(
+      builder: (context, feedbackService, child) {
+        final stats = feedbackService.dashboardStats;
+        final isLoading = feedbackService.isLoading;
+        
+        return Container(
       color: Colors.transparent, // Transparent to show background
       child: SingleChildScrollView(
         child: Column(
@@ -385,35 +401,58 @@ class DashboardOverview extends StatelessWidget {
             // Header
             Container(
               padding: const EdgeInsets.all(32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                   RichText(
-                    text: TextSpan(
-                      style: GoogleFonts.montserrat(
-                        textStyle: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                       RichText(
+                        text: TextSpan(
+                          style: GoogleFonts.montserrat(
+                            textStyle: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          children: const <TextSpan>[
+                            TextSpan(
+                              text: 'ARTA ',
+                              style: TextStyle(color: Colors.amber),
+                            ),
+                            TextSpan(
+                              text: 'DASHBOARD',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ],
                         ),
                       ),
-                      children: const <TextSpan>[
-                        TextSpan(
-                          text: 'ARTA ',
-                          style: TextStyle(color: Colors.amber),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Client Satisfaction Measurement Overview',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
                         ),
-                        TextSpan(
-                          text: 'DASHBOARD',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Client Satisfaction Measurement Overview',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
+                  // Refresh button
+                  ElevatedButton.icon(
+                    onPressed: isLoading ? null : () {
+                      feedbackService.refresh();
+                    },
+                    icon: isLoading 
+                        ? const SizedBox(
+                            width: 16, 
+                            height: 16, 
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+                          )
+                        : const Icon(Icons.refresh),
+                    label: Text(isLoading ? 'Loading...' : 'Refresh Data'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.2),
+                      foregroundColor: Colors.white,
                     ),
                   ),
                 ],
@@ -440,32 +479,32 @@ class DashboardOverview extends StatelessWidget {
                     children: [
                       _buildStatCard(
                         'TOTAL RESPONSES',
-                        '2,847',
-                        '+12.5% from last month',
+                        stats?.totalResponsesFormatted ?? '0',
+                        'Real-time data from Firestore',
                         Icons.people,
                         Colors.blue.shade50,
                         brandBlue
                       ),
                       _buildStatCard(
                         'AVG. SATISFACTION',
-                        '4.7/5',
-                        '+0.1 from last month',
+                        stats?.avgSatisfactionFormatted ?? '0/5',
+                        'Based on SQD0 ratings',
                         Icons.star,
                         Colors.amber.shade50,
                         Colors.amber.shade800
                       ),
                       _buildStatCard(
                         'COMPLETION RATE',
-                        '98.2%',
-                        '+0.5% from last month',
+                        stats?.completionRateFormatted ?? '0%',
+                        'Surveys with all required fields',
                         Icons.check_circle,
                         Colors.green.shade50,
                         Colors.green
                       ),
                       _buildStatCard(
                         'NEGATIVE FEEDBACK',
-                        '1.2%',
-                        '-0.3% from last month',
+                        stats?.negativeRateFormatted ?? '0%',
+                        'Rating ≤ 2 out of 5',
                         Icons.warning,
                         Colors.red.shade50,
                         brandRed
@@ -487,21 +526,21 @@ class DashboardOverview extends StatelessWidget {
                       children: [
                         Expanded(
                           flex: 3,
-                          child: _buildWeeklyTrendsCard(),
+                          child: _buildWeeklyTrendsCard(stats?.weeklyTrends ?? {}),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           flex: 2,
-                          child: _buildSatisfactionDistribution(),
+                          child: _buildSatisfactionDistribution(stats?.satisfactionDistribution ?? {}),
                         ),
                       ],
                     );
                   } else {
                     return Column(
                       children: [
-                        _buildWeeklyTrendsCard(),
+                        _buildWeeklyTrendsCard(stats?.weeklyTrends ?? {}),
                         const SizedBox(height: 16),
-                        _buildSatisfactionDistribution(),
+                        _buildSatisfactionDistribution(stats?.satisfactionDistribution ?? {}),
                       ],
                     );
                   }
@@ -512,6 +551,8 @@ class DashboardOverview extends StatelessWidget {
           ],
         ),
       ),
+    );
+      },
     );
   }
 
@@ -564,7 +605,12 @@ class DashboardOverview extends StatelessWidget {
     );
   }
 
-  Widget _buildWeeklyTrendsCard() {
+  Widget _buildWeeklyTrendsCard(Map<String, int> weeklyTrends) {
+    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final maxY = weeklyTrends.values.isEmpty 
+        ? 10.0 
+        : (weeklyTrends.values.reduce((a, b) => a > b ? a : b) * 1.2).toDouble();
+    
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -596,22 +642,41 @@ class DashboardOverview extends StatelessWidget {
             const SizedBox(height: 24),
             SizedBox(
               height: 200,
-              child: BarChart(
+              child: weeklyTrends.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No data available',
+                        style: TextStyle(color: Colors.grey.shade400),
+                      ),
+                    )
+                  : BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
-                  maxY: 100,
-                  barTouchData: BarTouchData(enabled: false),
+                  maxY: maxY,
+                  barTouchData: BarTouchData(
+                    enabled: true,
+                    touchTooltipData: BarTouchTooltipData(
+                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                        return BarTooltipItem(
+                          '${days[group.x]}: ${rod.toY.toInt()} responses',
+                          const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        );
+                      },
+                    ),
+                  ),
                   titlesData: FlTitlesData(
                     show: true,
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
                         getTitlesWidget: (value, meta) {
-                          const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                          return Text(
-                            days[value.toInt()],
-                            style: const TextStyle(fontSize: 12),
-                          );
+                          if (value.toInt() >= 0 && value.toInt() < days.length) {
+                            return Text(
+                              days[value.toInt()],
+                              style: const TextStyle(fontSize: 12),
+                            );
+                          }
+                          return const Text('');
                         },
                       ),
                     ),
@@ -633,18 +698,16 @@ class DashboardOverview extends StatelessWidget {
                   gridData: FlGridData(
                     show: true,
                     drawVerticalLine: false,
-                    horizontalInterval: 25,
+                    horizontalInterval: maxY / 4,
                   ),
                   borderData: FlBorderData(show: false),
-                  barGroups: [
-                    BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 65, color: brandBlue)]),
-                    BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: 78, color: brandBlue)]),
-                    BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: 52, color: brandBlue)]),
-                    BarChartGroupData(x: 3, barRods: [BarChartRodData(toY: 90, color: brandBlue)]),
-                    BarChartGroupData(x: 4, barRods: [BarChartRodData(toY: 85, color: brandBlue)]),
-                    BarChartGroupData(x: 5, barRods: [BarChartRodData(toY: 45, color: brandBlue)]),
-                    BarChartGroupData(x: 6, barRods: [BarChartRodData(toY: 38, color: brandBlue)]),
-                  ],
+                  barGroups: days.asMap().entries.map((entry) {
+                    final count = weeklyTrends[entry.value] ?? 0;
+                    return BarChartGroupData(
+                      x: entry.key, 
+                      barRods: [BarChartRodData(toY: count.toDouble(), color: brandBlue, width: 16, borderRadius: BorderRadius.circular(4))],
+                    );
+                  }).toList(),
                 ),
               ),
             ),
@@ -654,7 +717,14 @@ class DashboardOverview extends StatelessWidget {
     );
   }
 
-  Widget _buildSatisfactionDistribution() {
+  Widget _buildSatisfactionDistribution(Map<String, double> distribution) {
+    final verySatisfied = distribution['Very Satisfied'] ?? 0;
+    final satisfied = distribution['Satisfied'] ?? 0;
+    final neutral = distribution['Neutral'] ?? 0;
+    final dissatisfied = distribution['Dissatisfied'] ?? 0;
+    
+    final hasData = verySatisfied > 0 || satisfied > 0 || neutral > 0 || dissatisfied > 0;
+    
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -686,14 +756,22 @@ class DashboardOverview extends StatelessWidget {
             const SizedBox(height: 24),
             SizedBox(
               height: 200,
-              child: PieChart(
+              child: !hasData
+                  ? Center(
+                      child: Text(
+                        'No data available',
+                        style: TextStyle(color: Colors.grey.shade400),
+                      ),
+                    )
+                  : PieChart(
                 PieChartData(
                   sectionsSpace: 2,
                   centerSpaceRadius: 50,
                   sections: [
+                    if (verySatisfied > 0)
                     PieChartSectionData(
-                      value: 65,
-                      title: 'Very Satisfied\n65%',
+                      value: verySatisfied,
+                      title: 'Very Satisfied\n${verySatisfied.toStringAsFixed(0)}%',
                       color: Colors.green,
                       radius: 60,
                       titleStyle: const TextStyle(
@@ -702,9 +780,10 @@ class DashboardOverview extends StatelessWidget {
                         color: Colors.white,
                       ),
                     ),
+                    if (satisfied > 0)
                     PieChartSectionData(
-                      value: 25,
-                      title: 'Satisfied\n25%',
+                      value: satisfied,
+                      title: 'Satisfied\n${satisfied.toStringAsFixed(0)}%',
                       color: Colors.blue,
                       radius: 60,
                       titleStyle: const TextStyle(
@@ -713,9 +792,10 @@ class DashboardOverview extends StatelessWidget {
                         color: Colors.white,
                       ),
                     ),
+                    if (neutral > 0)
                     PieChartSectionData(
-                      value: 8,
-                      title: 'Neutral\n8%',
+                      value: neutral,
+                      title: 'Neutral\n${neutral.toStringAsFixed(0)}%',
                       color: Colors.orange,
                       radius: 60,
                       titleStyle: const TextStyle(
@@ -724,9 +804,10 @@ class DashboardOverview extends StatelessWidget {
                         color: Colors.white,
                       ),
                     ),
+                    if (dissatisfied > 0)
                     PieChartSectionData(
-                      value: 2,
-                      title: 'Dissatisfied\n2%',
+                      value: dissatisfied,
+                      title: 'Dissatisfied\n${dissatisfied.toStringAsFixed(0)}%',
                       color: Colors.red,
                       radius: 60,
                       titleStyle: const TextStyle(
@@ -1183,11 +1264,42 @@ class UserManagementScreen extends StatelessWidget {
 }
 
 // Data Exports Screen
-class DataExportsScreen extends StatelessWidget {
+class DataExportsScreen extends StatefulWidget {
   const DataExportsScreen({Key? key}) : super(key: key);
 
   @override
+  State<DataExportsScreen> createState() => _DataExportsScreenState();
+}
+
+class _DataExportsScreenState extends State<DataExportsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Ensure data is loaded
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<FeedbackService>().fetchAllFeedbacks();
+    });
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'N/A';
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
+  String _getCCAwareness(int? cc0Rating) {
+    if (cc0Rating == null) return 'N/A';
+    return cc0Rating >= 3 ? 'Aware' : 'Not Aware';
+  }
+
+  @override
   Widget build(BuildContext context) {
+    return Consumer<FeedbackService>(
+      builder: (context, feedbackService, child) {
+        final stats = feedbackService.dashboardStats;
+        final recentFeedbacks = stats?.recentFeedbacks ?? [];
+        final isLoading = feedbackService.isLoading;
+
     return Container(
       color: Colors.transparent,
       child: SingleChildScrollView(
@@ -1235,9 +1347,9 @@ class DataExportsScreen extends StatelessWidget {
                      mainAxisSpacing: 16,
                      childAspectRatio: 1.8,
                      children: [
-                       _buildExportCard(context, 'ARTA Compliance Report', 'PDF Format', Icons.picture_as_pdf, Colors.red, isPdf: true),
-                       _buildExportCard(context, 'Raw Data Export', 'CSV Format', Icons.table_chart, Colors.green),
-                       _buildExportCard(context, 'Executive Summary', 'DOCX Format', Icons.description, Colors.blue, isDocx: true),
+                       _buildExportCard(context, feedbackService, 'ARTA Compliance Report', 'PDF Format', Icons.picture_as_pdf, Colors.red, isPdf: true),
+                       _buildExportCard(context, feedbackService, 'Raw Data Export', 'CSV Format', Icons.table_chart, Colors.green, isCsv: true),
+                       _buildExportCard(context, feedbackService, 'JSON Data Export', 'JSON Format', Icons.code, Colors.blue, isJson: true),
                      ],
                    );
                 },
@@ -1269,15 +1381,19 @@ class DataExportsScreen extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                'Latest survey submissions',
+                                'Latest survey submissions from Firestore',
                                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                               ),
                             ],
                           ),
                           OutlinedButton.icon(
-                            onPressed: () {},
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Refresh'),
+                            onPressed: isLoading ? null : () {
+                              feedbackService.refresh();
+                            },
+                            icon: isLoading 
+                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                : const Icon(Icons.refresh),
+                            label: Text(isLoading ? 'Loading...' : 'Refresh'),
                           ),
                         ],
                       ),
@@ -1297,12 +1413,26 @@ class DataExportsScreen extends StatelessWidget {
                         ),
                       ),
                       const Divider(),
-                      // Table Rows
-                      _buildRespondentRow('10234', 'Jan 24, 2024', 'Citizen', 'Business Permit', 'Aware', 5),
-                      _buildRespondentRow('10235', 'Jan 24, 2024', 'Business', 'Tax Declaration', 'Aware', 4),
-                      _buildRespondentRow('10236', 'Jan 23, 2024', 'Citizen', 'Social Services', 'Not Aware', 5),
-                      _buildRespondentRow('10237', 'Jan 23, 2024', 'Government', 'Health Cert', 'Aware', 5),
-                      _buildRespondentRow('10238', 'Jan 23, 2024', 'Citizen', 'Engineering', 'Aware', 3),
+                      // Table Rows from real data
+                      if (recentFeedbacks.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: Center(
+                            child: Text(
+                              isLoading ? 'Loading data...' : 'No feedback data available',
+                              style: TextStyle(color: Colors.grey.shade400),
+                            ),
+                          ),
+                        )
+                      else
+                        ...recentFeedbacks.map((feedback) => _buildRespondentRow(
+                          feedback.id?.substring(0, 6) ?? 'N/A',
+                          _formatDate(feedback.submittedAt ?? feedback.date),
+                          feedback.clientType ?? 'N/A',
+                          feedback.serviceAvailed ?? 'N/A',
+                          _getCCAwareness(feedback.cc0Rating),
+                          feedback.sqd0Rating ?? 0,
+                        )),
                     ],
                   ),
                 ),
@@ -1312,9 +1442,11 @@ class DataExportsScreen extends StatelessWidget {
         ),
       ),
     );
+      },
+    );
   }
 
-  Widget _buildExportCard(BuildContext context, String title, String sub, IconData icon, Color color, {bool isPdf = false, bool isDocx = false}) {
+  Widget _buildExportCard(BuildContext context, FeedbackService feedbackService, String title, String sub, IconData icon, Color color, {bool isPdf = false, bool isCsv = false, bool isJson = false}) {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
@@ -1341,13 +1473,13 @@ class DataExportsScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: () {
+                onPressed: () async {
                   if (isPdf) {
-                    _showPdfExportDialog(context);
-                  } else if (isDocx) {
-                    _simulateDocxExport(context);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Generating $title...')));
+                    _showPdfExportDialog(context, feedbackService);
+                  } else if (isCsv) {
+                    await _exportCsv(context, feedbackService);
+                  } else if (isJson) {
+                    await _exportJson(context, feedbackService);
                   }
                 },
                 icon: const Icon(Icons.download, size: 16),
@@ -1364,7 +1496,64 @@ class DataExportsScreen extends StatelessWidget {
     );
   }
 
-  void _showPdfExportDialog(BuildContext context) {
+  Future<void> _exportCsv(BuildContext context, FeedbackService feedbackService) async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Generating CSV export...')),
+      );
+      
+      final data = feedbackService.exportFeedbacks();
+      if (data.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No data to export'), backgroundColor: Colors.orange),
+        );
+        return;
+      }
+      
+      // Build CSV rows
+      final headers = data.first.keys.toList();
+      final rows = <List<dynamic>>[
+        headers,
+        ...data.map((item) => headers.map((h) => item[h]?.toString() ?? '').toList()),
+      ];
+      
+      final path = await ExportService.exportCsv('ARTA_Feedback_Data', rows);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('CSV exported to: $path'), backgroundColor: Colors.green),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Future<void> _exportJson(BuildContext context, FeedbackService feedbackService) async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Generating JSON export...')),
+      );
+      
+      final data = feedbackService.exportFeedbacks();
+      if (data.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No data to export'), backgroundColor: Colors.orange),
+        );
+        return;
+      }
+      
+      final path = await ExportService.exportJson('ARTA_Feedback_Data', data);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('JSON exported to: $path'), backgroundColor: Colors.green),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  void _showPdfExportDialog(BuildContext context, FeedbackService feedbackService) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1376,18 +1565,44 @@ class DataExportsScreen extends StatelessWidget {
               leading: const Icon(Icons.description, color: Colors.red),
               title: const Text('ARTA Compliance Report'),
               subtitle: const Text('Standard format for ARTA submission'),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Generating Compliance Report...')));
+                try {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Generating PDF report...')),
+                  );
+                  final data = feedbackService.exportFeedbacks();
+                  final path = await ExportService.exportPdf('ARTA_Compliance_Report', data);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('PDF exported to: $path'), backgroundColor: Colors.green),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
+                  );
+                }
               },
             ),
             ListTile(
               leading: const Icon(Icons.analytics, color: Colors.blue),
               title: const Text('Detailed Analysis'),
               subtitle: const Text('Full breakdown of SQD and comments'),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Generating Detailed Analysis...')));
+                try {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Generating detailed analysis...')),
+                  );
+                  final data = feedbackService.exportFeedbacks();
+                  final path = await ExportService.exportPdf('ARTA_Detailed_Analysis', data);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('PDF exported to: $path'), backgroundColor: Colors.green),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
+                  );
+                }
               },
             ),
           ],
@@ -1400,45 +1615,6 @@ class DataExportsScreen extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  void _simulateDocxExport(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                CircularProgressIndicator(),
-                SizedBox(width: 20),
-                Text("Generating Executive Summary (DOCX)..."),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.pop(context); // Close progress dialog
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Export Successful'),
-          content: const Text('The Executive Summary has been generated successfully.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
-    });
   }
 
   Widget _buildRespondentRow(String id, String date, String type, String service, String cc, int score) {

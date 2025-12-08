@@ -1,5 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 /// Model to hold complete survey response data across all parts
 class SurveyData {
+  // Document ID from Firestore
+  String? id;
+  
   // Part 1: User Profile
   String? clientType;
   DateTime? date;
@@ -7,6 +12,9 @@ class SurveyData {
   int? age;
   String? regionOfResidence;
   String? serviceAvailed;
+  
+  // Metadata
+  DateTime? submittedAt;
 
   // Part 2: Citizen Charter (CC0-CC3)
   int? cc0Rating; // Awareness rating
@@ -30,12 +38,14 @@ class SurveyData {
   String? email;
 
   SurveyData({
+    this.id,
     this.clientType,
     this.date,
     this.sex,
     this.age,
     this.regionOfResidence,
     this.serviceAvailed,
+    this.submittedAt,
     this.cc0Rating,
     this.cc1Rating,
     this.cc2Rating,
@@ -56,6 +66,8 @@ class SurveyData {
   /// Convert to JSON for submission to backend/Firestore
   Map<String, dynamic> toJson() {
     return {
+      // ID (if available)
+      if (id != null) 'id': id,
       // Part 1
       'clientType': clientType,
       'date': date?.toIso8601String(),
@@ -82,32 +94,59 @@ class SurveyData {
       'suggestions': suggestions,
       'email': email,
       // Metadata
-      'submittedAt': DateTime.now().toIso8601String(),
+      'submittedAt': submittedAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
     };
+  }
+
+  /// Helper to safely parse int from dynamic
+  static int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  /// Helper to safely parse DateTime from dynamic
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    // Handle Firestore Timestamp object
+    if (value is Timestamp) {
+      return value.toDate();
+    }
+    // Handle Firestore Timestamp as Map (from JSON serialization)
+    if (value is Map && value['_seconds'] != null) {
+      return DateTime.fromMillisecondsSinceEpoch(value['_seconds'] * 1000);
+    }
+    return null;
   }
 
   /// Create from JSON (for potential future retrieval)
   factory SurveyData.fromJson(Map<String, dynamic> json) {
     return SurveyData(
+      id: json['id'] as String?,
       clientType: json['clientType'] as String?,
-      date: json['date'] != null ? DateTime.parse(json['date'] as String) : null,
+      date: _parseDateTime(json['date']),
       sex: json['sex'] as String?,
-      age: json['age'] as int?,
+      age: _parseInt(json['age']),
       regionOfResidence: json['region'] as String?, // Firestore stores as 'region'
       serviceAvailed: json['serviceAvailed'] as String?,
-      cc0Rating: json['cc0Rating'] as int?,
-      cc1Rating: json['cc1Rating'] as int?,
-      cc2Rating: json['cc2Rating'] as int?,
-      cc3Rating: json['cc3Rating'] as int?,
-      sqd0Rating: json['sqd0Rating'] as int?,
-      sqd1Rating: json['sqd1Rating'] as int?,
-      sqd2Rating: json['sqd2Rating'] as int?,
-      sqd3Rating: json['sqd3Rating'] as int?,
-      sqd4Rating: json['sqd4Rating'] as int?,
-      sqd5Rating: json['sqd5Rating'] as int?,
-      sqd6Rating: json['sqd6Rating'] as int?,
-      sqd7Rating: json['sqd7Rating'] as int?,
-      sqd8Rating: json['sqd8Rating'] as int?,
+      submittedAt: _parseDateTime(json['submittedAt']),
+      cc0Rating: _parseInt(json['cc0Rating']),
+      cc1Rating: _parseInt(json['cc1Rating']),
+      cc2Rating: _parseInt(json['cc2Rating']),
+      cc3Rating: _parseInt(json['cc3Rating']),
+      sqd0Rating: _parseInt(json['sqd0Rating']),
+      sqd1Rating: _parseInt(json['sqd1Rating']),
+      sqd2Rating: _parseInt(json['sqd2Rating']),
+      sqd3Rating: _parseInt(json['sqd3Rating']),
+      sqd4Rating: _parseInt(json['sqd4Rating']),
+      sqd5Rating: _parseInt(json['sqd5Rating']),
+      sqd6Rating: _parseInt(json['sqd6Rating']),
+      sqd7Rating: _parseInt(json['sqd7Rating']),
+      sqd8Rating: _parseInt(json['sqd8Rating']),
       suggestions: json['suggestions'] as String?,
       email: json['email'] as String?,
     );
@@ -115,6 +154,7 @@ class SurveyData {
 
   /// Create a copy with updated fields
   SurveyData copyWith({
+    String? id,
     String? clientType,
     DateTime? date,
     String? sex,

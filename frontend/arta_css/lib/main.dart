@@ -9,6 +9,7 @@ import 'screens/user_side/user_profile.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'services/auth_services.dart';
+import 'services/feedback_service.dart';
 import 'models/user_model.dart';
 import 'screens/role_based_login_screen.dart';
 import 'screens/admin/role_based_dashboard.dart';
@@ -55,8 +56,11 @@ void main() async {
   }
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => AuthService(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => FeedbackService()),
+      ],
       child: const MyApp(),
     ),
   );
