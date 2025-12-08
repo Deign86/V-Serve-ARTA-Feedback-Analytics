@@ -34,8 +34,8 @@ class _LoginScreenState extends State<LoginScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.blue.shade400,
-              Colors.blue.shade700,
+              Colors.red.shade900,
+              Colors.blue.shade900,
             ],
           ),
         ),
@@ -62,10 +62,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           color: Colors.grey.shade200,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
-                          Icons.person,
+                        child: Icon(
+                          Icons.account_balance,
                           size: 50,
-                          color: Colors.blue,
+                          color: brandRed,
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -80,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const Text(
-                        'HELP US SERVE YOU BETTER!',
+                        'ARTA FEEDBACK SYSTEM',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 11,
@@ -89,9 +89,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 32),
                       RichText(
-                        text: const TextSpan(
+                        text: TextSpan(
                           text: 'Welcome back, ',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 24,
                             color: Colors.black87,
                           ),
@@ -100,10 +100,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               text: 'Admin',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.blue,
+                                color: brandRed,
                               ),
                             ),
-                            TextSpan(text: '!'),
+                            const TextSpan(text: '!'),
                           ],
                         ),
                       ),
@@ -153,7 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             );
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF003366),
+                            backgroundColor: brandBlue,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -193,9 +193,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   final List<Widget> _screens = [
     const DashboardOverview(),
-    const SurveyManagementScreen(),
+    const ArtaConfigurationScreen(),
     const UserManagementScreen(),
-    const AnalyticsScreen(),
+    const DetailedAnalyticsScreen(),
     const DataExportsScreen(),
   ];
 
@@ -206,13 +206,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // background image
+          // background image with overlay
           Positioned.fill(
-            child: Image.asset(
-              'assets/city_bg2.png',
-              fit: BoxFit.cover,
-              color: Colors.black.withOpacity(0.28),
-              colorBlendMode: BlendMode.darken,
+            child: Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: const AssetImage('assets/city_bg2.png'),
+                  fit: BoxFit.cover,
+                  // Removed heavy color filter to let the image show through more naturally as requested
+                  // but kept a very slight tint for text readability if needed, or removed entirely.
+                  // User asked for "white background should be remove... so they are like bricks and the background should be the city_bg2"
+                ),
+              ),
+              child: Container(
+                color: Colors.black.withOpacity(0.1), // Very subtle overlay
+              ),
             ),
           ),
           // content row
@@ -226,7 +234,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.red.shade700,
+                  brandRed,
                   Colors.red.shade900,
                 ],
               ),
@@ -245,9 +253,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           color: Colors.white,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.account_balance,
-                          color: Colors.red,
+                          color: brandRed,
                           size: 24,
                         ),
                       ),
@@ -284,9 +292,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 20),
                 // Menu items
                 _buildMenuItem(0, Icons.dashboard, 'Dashboard', isDesktop),
-                _buildMenuItem(1, Icons.poll, 'Survey Management', isDesktop),
+                _buildMenuItem(1, Icons.settings_applications, 'ARTA Configuration', isDesktop),
                 _buildMenuItem(2, Icons.people, 'User Management', isDesktop),
-                _buildMenuItem(3, Icons.analytics, 'Analytics', isDesktop),
+                _buildMenuItem(3, Icons.analytics, 'Detailed Analytics', isDesktop),
                 _buildMenuItem(4, Icons.download, 'Data Exports', isDesktop),
                 const Spacer(),
                 // Bottom menu
@@ -298,7 +306,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           // Main content
           Expanded(
-            child: _screens[_selectedIndex],
+            child: Container(
+               color: Colors.transparent, // Transparent to show background
+               child: _screens[_selectedIndex],
+            ),
           ),
             ], // end Row children
           ), // end Row
@@ -366,16 +377,7 @@ class DashboardOverview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-              colors: [
-              Colors.blue.shade300.withOpacity(0.6),
-              Colors.blue.shade600.withOpacity(0.6),
-            ],
-          ),
-      ),
+      color: Colors.transparent, // Transparent to show background
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,25 +385,35 @@ class DashboardOverview extends StatelessWidget {
             // Header
             Container(
               padding: const EdgeInsets.all(32),
-                  child: Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'ADMIN DASHBOARD',
-                    style: GoogleFonts.montserrat(
-                      textStyle: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                   RichText(
+                    text: TextSpan(
+                      style: GoogleFonts.montserrat(
+                        textStyle: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                      children: const <TextSpan>[
+                        TextSpan(
+                          text: 'ARTA ',
+                          style: TextStyle(color: Colors.amber),
+                        ),
+                        TextSpan(
+                          text: 'DASHBOARD',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    'Client Satisfaction Survey Management System',
+                    'Client Satisfaction Measurement Overview',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.white70,
+                      color: Colors.white,
                     ),
                   ),
                 ],
@@ -432,27 +444,31 @@ class DashboardOverview extends StatelessWidget {
                         '+12.5% from last month',
                         Icons.people,
                         Colors.blue.shade50,
-                      ),
-                      _buildStatCard(
-                        'ACTIVE SURVEYS',
-                        '12',
-                        '3 published this week',
-                        Icons.description,
-                        Colors.blue.shade50,
-                      ),
-                      _buildStatCard(
-                        'COMPLETION RATE',
-                        '87.3%',
-                        '+2.1% from last month',
-                        Icons.trending_up,
-                        Colors.blue.shade50,
+                        brandBlue
                       ),
                       _buildStatCard(
                         'AVG. SATISFACTION',
-                        '4.2/5',
-                        '+0.3 from last month',
+                        '4.7/5',
+                        '+0.1 from last month',
                         Icons.star,
-                        Colors.blue.shade50,
+                        Colors.amber.shade50,
+                        Colors.amber.shade800
+                      ),
+                      _buildStatCard(
+                        'COMPLETION RATE',
+                        '98.2%',
+                        '+0.5% from last month',
+                        Icons.check_circle,
+                        Colors.green.shade50,
+                        Colors.green
+                      ),
+                      _buildStatCard(
+                        'NEGATIVE FEEDBACK',
+                        '1.2%',
+                        '-0.3% from last month',
+                        Icons.warning,
+                        Colors.red.shade50,
+                        brandRed
                       ),
                     ],
                   );
@@ -493,23 +509,20 @@ class DashboardOverview extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            // Recent Surveys
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: _buildRecentSurveys(context),
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatCard(String title, String value, String change, IconData icon, Color bgColor) {
+  Widget _buildStatCard(String title, String value, String change, IconData icon, Color bgColor, Color iconColor) {
     return Card(
-      elevation: 2,
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
       ),
+      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -527,15 +540,15 @@ class DashboardOverview extends StatelessWidget {
                     color: Colors.grey.shade700,
                   ),
                 ),
-                Icon(icon, color: Colors.blue, size: 20),
+                Icon(icon, color: iconColor, size: 20),
               ],
             ),
             Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: brandBlue,
               ),
             ),
             Text(
@@ -553,26 +566,28 @@ class DashboardOverview extends StatelessWidget {
 
   Widget _buildWeeklyTrendsCard() {
     return Card(
-      elevation: 2,
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
       ),
+      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'WEEKLY RESPONSE TRENDS',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: brandBlue,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'Survey responses and completion rates over the last 7 days',
+              'Survey responses over the last 7 days',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey.shade600,
@@ -622,13 +637,13 @@ class DashboardOverview extends StatelessWidget {
                   ),
                   borderData: FlBorderData(show: false),
                   barGroups: [
-                    BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 65, color: const Color(0xFF003366))]),
-                    BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: 78, color: const Color(0xFF003366))]),
-                    BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: 52, color: const Color(0xFF003366))]),
-                    BarChartGroupData(x: 3, barRods: [BarChartRodData(toY: 90, color: const Color(0xFF003366))]),
-                    BarChartGroupData(x: 4, barRods: [BarChartRodData(toY: 85, color: const Color(0xFF003366))]),
-                    BarChartGroupData(x: 5, barRods: [BarChartRodData(toY: 45, color: const Color(0xFF003366))]),
-                    BarChartGroupData(x: 6, barRods: [BarChartRodData(toY: 38, color: const Color(0xFF003366))]),
+                    BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 65, color: brandBlue)]),
+                    BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: 78, color: brandBlue)]),
+                    BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: 52, color: brandBlue)]),
+                    BarChartGroupData(x: 3, barRods: [BarChartRodData(toY: 90, color: brandBlue)]),
+                    BarChartGroupData(x: 4, barRods: [BarChartRodData(toY: 85, color: brandBlue)]),
+                    BarChartGroupData(x: 5, barRods: [BarChartRodData(toY: 45, color: brandBlue)]),
+                    BarChartGroupData(x: 6, barRods: [BarChartRodData(toY: 38, color: brandBlue)]),
                   ],
                 ),
               ),
@@ -641,21 +656,23 @@ class DashboardOverview extends StatelessWidget {
 
   Widget _buildSatisfactionDistribution() {
     return Card(
-      elevation: 2,
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
       ),
+      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'SATISFACTION DISTRIBUTION',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: brandBlue,
               ),
             ),
             const SizedBox(height: 4),
@@ -675,8 +692,8 @@ class DashboardOverview extends StatelessWidget {
                   centerSpaceRadius: 50,
                   sections: [
                     PieChartSectionData(
-                      value: 45,
-                      title: 'Very Satisfied\n45%',
+                      value: 65,
+                      title: 'Very Satisfied\n65%',
                       color: Colors.green,
                       radius: 60,
                       titleStyle: const TextStyle(
@@ -686,8 +703,8 @@ class DashboardOverview extends StatelessWidget {
                       ),
                     ),
                     PieChartSectionData(
-                      value: 35,
-                      title: 'Satisfied\n35%',
+                      value: 25,
+                      title: 'Satisfied\n25%',
                       color: Colors.blue,
                       radius: 60,
                       titleStyle: const TextStyle(
@@ -697,8 +714,8 @@ class DashboardOverview extends StatelessWidget {
                       ),
                     ),
                     PieChartSectionData(
-                      value: 12,
-                      title: 'Neutral\n12%',
+                      value: 8,
+                      title: 'Neutral\n8%',
                       color: Colors.orange,
                       radius: 60,
                       titleStyle: const TextStyle(
@@ -708,19 +725,8 @@ class DashboardOverview extends StatelessWidget {
                       ),
                     ),
                     PieChartSectionData(
-                      value: 5,
-                      title: 'Dissatisfied\n5%',
-                      color: Colors.pink,
-                      radius: 60,
-                      titleStyle: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    PieChartSectionData(
-                      value: 3,
-                      title: 'Very\nDissatisfied\n3%',
+                      value: 2,
+                      title: 'Dissatisfied\n2%',
                       color: Colors.red,
                       radius: 60,
                       titleStyle: const TextStyle(
@@ -738,511 +744,6 @@ class DashboardOverview extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildRecentSurveys(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'RECENT SURVEYS',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Overview of recently created and active surveys',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
-              ),
-            ),
-            const SizedBox(height: 24),
-            _buildSurveyItem(
-              context,
-              'Q4 2024 Client Satisfaction',
-              '234 responses • 87% completion rate',
-              'active',
-              Colors.green,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSurveyItem(BuildContext context, String title, String subtitle, String status, Color statusColor) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade200),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.check_circle, color: statusColor, size: 24),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: statusColor,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          IconButton(
-            icon: const Icon(Icons.visibility_outlined),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (ctx) => SurveyDetailScreen(title: title)));
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Survey Management Screen
-class SurveyManagementScreen extends StatelessWidget {
-  const SurveyManagementScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.blue.shade300.withOpacity(0.6), Colors.blue.shade600.withOpacity(0.6)],
-        ),
-      ),
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'ADMIN DASHBOARD',
-                style: GoogleFonts.montserrat(
-                  textStyle: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Client Satisfaction Survey Management System',
-                style: TextStyle(fontSize: 16, color: Colors.white70),
-              ),
-              const SizedBox(height: 32),
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'SURVEY LIBRARY',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                'Manage all your surveys from one central location',
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                              ),
-                            ],
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const CreateSurveyScreen()),
-                              );
-                            },
-                            icon: const Icon(Icons.add),
-                            label: const Text('Create Survey'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      // Search and filter
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              decoration: InputDecoration(
-                                hintText: 'Search surveys...',
-                                prefixIcon: const Icon(Icons.search),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              showModalBottomSheet(
-                                context: context,
-                                builder: (ctx) => Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('Filter surveys', style: TextStyle(fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 12),
-                                      const Text('This is a placeholder filter sheet.'),
-                                      const SizedBox(height: 12),
-                                      Align(
-                                          alignment: Alignment.centerRight,
-                                          child: TextButton(
-                                            onPressed: () => Navigator.pop(ctx),
-                                            child: const Text('Close'),
-                                          ))
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.filter_list),
-                            label: const Text('Filter'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      // Survey list
-                     _buildSurveyListItem(
-                        context,
-                        'Q4 2024 Client Satisfaction Survey',
-                        'Quarterly assessment of client satisfaction across all departments',
-                        'Active',
-                        Colors.green,
-                        234,
-                        87,
-                        15,
-                        '1/20/2024',
-                      ),
-                      const SizedBox(height: 12),
-                      _buildSurveyListItem(
-                        context,
-                        'Department Feedback Survey',
-                        'Serv ice feedback collection for service improvement',
-                        'Active',
-                        Colors.green,
-                        156,
-                        92,
-                        8,
-                        '1/18/2024',
-                      ),
-                      const SizedBox(height: 12),
-                      _buildSurveyListItem(
-                        context,
-                        'Service Quality Assessment',
-                        'Detailed assessment of service quality metrics',
-                        'Paused',
-                        Colors.orange,
-                        89,
-                        74,
-                        22,
-                        '1/12/2024',
-                      ),
-                      const SizedBox(height: 12),
-                      _buildSurveyListItem(
-                        context,
-                        'Annual Client Review',
-                        'Comprehensive annual review of client experience',
-                        'Completed',
-                        Colors.blue,
-                        445,
-                        95,
-                        35,
-                        '12/31/2023',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
- // REPLACE THE OLD _buildSurveyListItem IN dashboard.dart WITH THIS:
-
-  Widget _buildSurveyListItem(
-    BuildContext context,
-    String title,
-    String description,
-    String status,
-    Color statusColor,
-    int responses,
-    int completion,
-    int questions,
-    String date,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey.shade200),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade100,
-            offset: const Offset(0, 2),
-            blurRadius: 6,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Status Icon
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              status == 'Active' ? Icons.bar_chart : Icons.pause_circle_filled,
-              color: statusColor,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 24),
-          
-          // Title and Description
-          Expanded(
-            flex: 3,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontFamily: 'Montserrat', // Headings
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF003366), // Valenzuela Blue
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontFamily: 'Poppins', // Body
-                    fontSize: 13,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // Small metrics row for mobile/compact view
-                Row(
-                  children: [
-                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        status.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: statusColor,
-                          fontFamily: 'Montserrat',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Created: $date',
-                      style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontFamily: 'Poppins'),
-                    ),
-                  ],
-                )
-              ],
-            ),
-          ),
-          
-          // Metrics
-          if (MediaQuery.of(context).size.width > 1100) ...[
-             const VerticalDivider(width: 32),
-             Expanded(
-               flex: 2,
-               child: Row(
-                 mainAxisAlignment: MainAxisAlignment.spaceAround,
-                 children: [
-                    _buildSurveyMetric(Icons.people_outline, '$responses', 'Responses'),
-                    _buildSurveyMetric(Icons.pie_chart_outline, '$completion%', 'Completion'),
-                    _buildSurveyMetric(Icons.quiz_outlined, '$questions', 'Questions'),
-                 ],
-               ),
-             ),
-          ],
-          
-          const VerticalDivider(width: 32),
-
-          // ACTION BUTTONS (Aligned and Styled)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildActionButton(
-                context, 
-                icon: Icons.visibility, 
-                color: const Color(0xFF003366), // Blue
-                tooltip: 'Preview Survey',
-                onTap: () {
-                   Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (ctx) => SurveyDetailScreen(title: title)),
-                  );
-                },
-              ),
-              const SizedBox(width: 8),
-              _buildActionButton(
-                context, 
-                icon: Icons.edit, 
-                color: Colors.blue.shade700, 
-                tooltip: 'Edit Survey',
-                onTap: () {
-                   Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (ctx) => CreateSurveyScreen(existingTitle: title)),
-                  );
-                },
-              ),
-              const SizedBox(width: 8),
-              _buildActionButton(
-                context, 
-                icon: Icons.analytics, 
-                color: Colors.orange.shade800, 
-                tooltip: 'Analytics',
-                onTap: () {
-                   Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (ctx) => SurveyAnalyticsScreen(title: title)),
-                  );
-                },
-              ),
-              const SizedBox(width: 8),
-              _buildActionButton(
-                context, 
-                icon: Icons.copy, 
-                color: Colors.grey.shade700, 
-                tooltip: 'Duplicate',
-                onTap: () {
-                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Survey duplicated')));
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Helper for the metrics (Responses, Completion, etc.)
-  Widget _buildSurveyMetric(IconData icon, String value, String label) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 16, color: Colors.grey.shade500),
-            const SizedBox(width: 4),
-            Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'Poppins')),
-          ],
-        ),
-        Text(label, style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontFamily: 'Poppins')),
-      ],
-    );
-  }
-
-  // Helper for the styled Action Buttons
-  Widget _buildActionButton(BuildContext context, {required IconData icon, required Color color, required String tooltip, required VoidCallback onTap}) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          hoverColor: color.withOpacity(0.1),
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              border: Border.all(color: color.withOpacity(0.3)),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 18, color: color),
-          ),
-        ),
-      ),
-    );
-  }
-  
 }
 
 // User Management Screen
@@ -1252,65 +753,45 @@ class UserManagementScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.blue.shade300.withOpacity(0.6), Colors.blue.shade600.withOpacity(0.6)],
-        ),
-      ),
+      color: Colors.transparent,
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'ADMIN DASHBOARD',
-                style: GoogleFonts.montserrat(
-                  textStyle: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+              RichText(
+                text: TextSpan(
+                  style: GoogleFonts.montserrat(
+                    textStyle: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                  children: const <TextSpan>[
+                    TextSpan(
+                      text: 'USER ',
+                      style: TextStyle(color: Colors.amber),
+                    ),
+                    TextSpan(
+                      text: 'MANAGEMENT',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Client Satisfaction Survey Management System',
-                style: TextStyle(fontSize: 16, color: Colors.white70),
+              Text(
+                'Manage system access and permissions',
+                style: TextStyle(fontSize: 16, color: Colors.white),
               ),
               const SizedBox(height: 32),
-              // Role cards
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final crossAxisCount = constraints.maxWidth > 1200
-                      ? 4
-                      : constraints.maxWidth > 800
-                          ? 2
-                          : 1;
-                  
-                  return GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 2,
-                    children: [
-                      _buildRoleCard('ADMINISTRATOR', '2,847', '+12.5% from last month'),
-                      _buildRoleCard('EDITOR', '12', '3 published this week'),
-                      _buildRoleCard('ANALYST', '87.3%', '+2.1% from last month'),
-                      _buildRoleCard('VIEWER', '4.2/5', '+0.3 from last month'),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
+              
               // Users table
               Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+                color: Colors.white,
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
@@ -1322,11 +803,12 @@ class UserManagementScreen extends StatelessWidget {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'SYSTEM USERS',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
+                                  color: brandBlue
                                 ),
                               ),
                               Text(
@@ -1337,15 +819,12 @@ class UserManagementScreen extends StatelessWidget {
                           ),
                               ElevatedButton.icon(
                                 onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (ctx) => const AddUserScreen()),
-                                  );
+                                  _showAddUserDialog(context);
                                 },
                                 icon: const Icon(Icons.add),
                                 label: const Text('Add User'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
+                                  backgroundColor: brandBlue,
                                   foregroundColor: Colors.white,
                                 ),
                               ),
@@ -1370,28 +849,7 @@ class UserManagementScreen extends StatelessWidget {
                           const SizedBox(width: 16),
                           OutlinedButton.icon(
                             onPressed: () {
-                              showModalBottomSheet(
-                                context: context,
-                                builder: (ctx) => Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('Filter users', style: TextStyle(fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 12),
-                                      const Text('This is a placeholder filter sheet.'),
-                                      const SizedBox(height: 12),
-                                      Align(
-                                          alignment: Alignment.centerRight,
-                                          child: TextButton(
-                                            onPressed: () => Navigator.pop(ctx),
-                                            child: const Text('Close'),
-                                          ))
-                                    ],
-                                  ),
-                                ),
-                              );
+                              // Filter logic
                             },
                             icon: const Icon(Icons.filter_list),
                             label: const Text('Filter'),
@@ -1427,67 +885,35 @@ class UserManagementScreen extends StatelessWidget {
                         'Jan 22, 2024',
                         'Dec 1, 2023',
                       ),
-                      const SizedBox(height: 12),
-                      _buildUserItem(
-                        context,
-                        'CR',
-                        'Carlos Rodriguez',
-                        'carlos.rodriguez@valenzuela.gov.ph',
-                        'Analyst',
-                        Colors.green,
-                        'Data Analytics',
-                        'Active',
-                        Colors.green,
-                        'Jan 22, 2024',
-                        'Jan 5, 2024',
-                      ),
-                      const SizedBox(height: 12),
-                      _buildUserItem(
-                        context,
-                        'AG',
-                        'Anna Garcia',
-                        'anna.garcia@valenzuela.gov.ph',
-                        'Viewer',
-                        Colors.grey,
-                        'Building Permits',
-                        'Active',
-                        Colors.green,
-                        'Jan 20, 2024',
-                        'Jan 10, 2024',
-                      ),
-                      const SizedBox(height: 12),
-                      _buildUserItem(
-                        context,
-                        'MT',
-                        'Miguel Torres',
-                        'miguel.torres@valenzuela.gov.ph',
-                        'Editor',
-                        Colors.purple,
-                        'Civil Registry',
-                        'Suspended',
-                        Colors.red,
-                        'Jan 15, 2024',
-                        'Oct 20, 2023',
-                      ),
-                      const SizedBox(height: 24),
-                      // Permissions matrix
-                      const Text(
-                        'Role Permissions Matrix',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Overview of permissions assigned to each role',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                      ),
-                      const SizedBox(height: 24),
-                      _buildPermissionsTable(),
                     ],
                   ),
                 ),
+              ),
+              const SizedBox(height: 24),
+
+              // Role cards
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final crossAxisCount = constraints.maxWidth > 1200
+                      ? 3
+                      : constraints.maxWidth > 800
+                          ? 2
+                          : 1;
+                  
+                  return GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 2.5,
+                    children: [
+                      _buildRoleCard('ADMINISTRATOR', '3 Active', 'Full System Access', Icons.admin_panel_settings, Colors.red),
+                      _buildRoleCard('EDITOR', '12 Active', 'Manage Surveys & Content', Icons.edit_document, Colors.blue),
+                      _buildRoleCard('ANALYST / VIEWER', '25 Active', 'View Reports & Analytics', Icons.analytics, Colors.green),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -1496,38 +922,52 @@ class UserManagementScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRoleCard(String title, String value, String change) {
+  Widget _buildRoleCard(String title, String value, String sub, IconData icon, Color color) {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Row(
           children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
               ),
+              child: Icon(icon, color: color, size: 24),
             ),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            Text(
-              change,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.green.shade600,
-              ),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: brandBlue,
+                  ),
+                ),
+                Text(
+                  sub,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -1557,14 +997,14 @@ class UserManagementScreen extends StatelessWidget {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: Colors.blue.shade700,
-            radius: 24,
+            backgroundColor: brandBlue,
+            radius: 20,
             child: Text(
               initials,
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
-                fontSize: 16,
+                fontSize: 14,
               ),
             ),
           ),
@@ -1634,468 +1074,110 @@ class UserManagementScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          Text(
-            lastLogin,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-          ),
-          const SizedBox(width: 16),
-          Text(
-            created,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-          ),
-          const SizedBox(width: 16),
           IconButton(
-            icon: const Icon(Icons.visibility_outlined),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (ctx) => UserDetailScreen(name: name, email: email)),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (ctx) => AddUserScreen(existingName: name)),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.email_outlined),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Send Email'),
-                  content: Text('Send an email to $email (simulated)?'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                    TextButton(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email sent (simulated)')));
-                        },
-                        child: const Text('Send'))
-                  ],
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Confirm delete'),
-                  content: Text('Delete user $name?'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                    TextButton(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User deleted (simulated)')));
-                        },
-                        child: const Text('Delete', style: TextStyle(color: Colors.red))),
-                  ],
-                ),
-              );
-            },
-            color: Colors.red,
+            icon: const Icon(Icons.more_vert),
+            onPressed: () {},
           ),
         ],
       ),
     );
   }
+  Future<void> _showAddUserDialog(BuildContext context) async {
+    String selectedRole = 'Analyst/Viewer'; // Default
+    final _formKey = GlobalKey<FormState>();
+    String name = '';
+    String email = '';
 
-  Widget _buildPermissionsTable() {
-    return Table(
-      border: TableBorder.all(color: Colors.grey.shade200),
-      columnWidths: const {
-        0: FlexColumnWidth(2),
-        1: FlexColumnWidth(1),
-        2: FlexColumnWidth(1),
-        3: FlexColumnWidth(1),
-        4: FlexColumnWidth(1),
-      },
-      children: [
-        TableRow(
-          decoration: BoxDecoration(color: Colors.grey.shade100),
-          children: [
-            _buildTableHeader('Permission'),
-            _buildTableHeader('Admin'),
-            _buildTableHeader('Editor'),
-            _buildTableHeader('Analyst'),
-            _buildTableHeader('Viewer'),
-          ],
-        ),
-        TableRow(
-          children: [
-            _buildTableCell('Create Surveys'),
-            _buildTableCheck(true),
-            _buildTableCheck(true),
-            _buildTableCheck(false),
-            _buildTableCheck(false),
-          ],
-        ),
-        TableRow(
-          children: [
-            _buildTableCell('Edit Surveys'),
-            _buildTableCheck(true),
-            _buildTableCheck(true),
-            _buildTableCheck(false),
-            _buildTableCheck(false),
-          ],
-        ),
-        TableRow(
-          children: [
-            _buildTableCell('View Analytics'),
-            _buildTableCheck(true),
-            _buildTableCheck(true),
-            _buildTableCheck(true),
-            _buildTableCheck(true),
-          ],
-        ),
-        TableRow(
-          children: [
-            _buildTableCell('Export Data'),
-            _buildTableCheck(true),
-            _buildTableCheck(true),
-            _buildTableCheck(true),
-            _buildTableCheck(false),
-          ],
-        ),
-        TableRow(
-          children: [
-            _buildTableCell('Manage Users'),
-            _buildTableCheck(true),
-            _buildTableCheck(false),
-            _buildTableCheck(false),
-            _buildTableCheck(false),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTableHeader(String text) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 13,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTableCell(String text) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 13),
-      ),
-    );
-  }
-
-  Widget _buildTableCheck(bool allowed) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Center(
-        child: Icon(
-          allowed ? Icons.check : Icons.close,
-          color: allowed ? Colors.green : Colors.red,
-          size: 20,
-        ),
-      ),
-    );
-  }
-}
-
-// Analytics Screen
-class AnalyticsScreen extends StatelessWidget {
-  const AnalyticsScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.blue.shade300.withOpacity(0.6), Colors.blue.shade600.withOpacity(0.6)],
-        ),
-      ),
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'ADMIN DASHBOARD',
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Text(
+                'Add New User',
                 style: GoogleFonts.montserrat(
-                  textStyle: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                  fontWeight: FontWeight.bold,
+                  color: brandBlue,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Client Satisfaction Survey Management System',
-                style: TextStyle(fontSize: 16, color: Colors.white70),
-              ),
-              const SizedBox(height: 32),
-              // Stats
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final crossAxisCount = constraints.maxWidth > 1200
-                      ? 4
-                      : constraints.maxWidth > 800
-                          ? 2
-                          : 1;
-                  
-                  return GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 2,
-                    children: [
-                      _buildStatCard('TOTAL RESPONSES', '2,847', '+12.5% from last month'),
-                      _buildStatCard('ACTIVE SURVEYS', '12', '3 published this week'),
-                      _buildStatCard('COMPLETION RATE', '87.3%', '+2.1% from last month'),
-                      _buildStatCard('AVG. SATISFACTION', '4.2/5', '+0.3 from last month'),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
-              // Charts
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
+              content: SizedBox(
+                width: 400,
+                child: Form(
+                  key: _formKey,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'Response Trends',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                      TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Full Name',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          prefixIcon: const Icon(Icons.person),
                         ),
+                        validator: (value) => value!.isEmpty ? 'Please enter name' : null,
+                        onSaved: (val) => name = val!,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Daily response volume over time',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        height: 250,
-                        child: LineChart(
-                          LineChartData(
-                            gridData: FlGridData(
-                              show: true,
-                              drawVerticalLine: false,
-                            ),
-                            titlesData: FlTitlesData(
-                              bottomTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  getTitlesWidget: (value, meta) {
-                                    if (value % 2 == 0) {
-                                      return Text(
-                                        '${value.toInt()}/1/2024',
-                                        style: const TextStyle(fontSize: 10),
-                                      );
-                                    }
-                                    return const Text('');
-                                  },
-                                  reservedSize: 30,
-                                ),
-                              ),
-                              leftTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  reservedSize: 40,
-                                  getTitlesWidget: (value, meta) {
-                                    return Text(
-                                      value.toInt().toString(),
-                                      style: const TextStyle(fontSize: 12),
-                                    );
-                                  },
-                                ),
-                              ),
-                              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                            ),
-                            borderData: FlBorderData(show: false),
-                            lineBarsData: [
-                              LineChartBarData(
-                                spots: [
-                                  const FlSpot(0, 50),
-                                  const FlSpot(1, 40),
-                                  const FlSpot(2, 30),
-                                  const FlSpot(3, 75),
-                                  const FlSpot(4, 30),
-                                  const FlSpot(5, 80),
-                                  const FlSpot(6, 90),
-                                ],
-                                isCurved: true,
-                                color: Colors.blue.shade700,
-                                barWidth: 3,
-                                dotData: FlDotData(show: true),
-                                belowBarData: BarAreaData(
-                                  show: true,
-                                  color: Colors.blue.shade700.withOpacity(0.3),
-                                ),
-                              ),
-                            ],
-                          ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Email Address',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          prefixIcon: const Icon(Icons.email),
                         ),
+                        validator: (value) => !value!.contains('@') ? 'Invalid email' : null,
+                        onSaved: (val) => email = val!,
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: selectedRole,
+                        decoration: InputDecoration(
+                          labelText: 'User Role',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          prefixIcon: const Icon(Icons.security),
+                        ),
+                        items: ['Administrator', 'Editor', 'Analyst/Viewer']
+                            .map((role) => DropdownMenuItem(
+                                  value: role,
+                                  child: Text(role),
+                                ))
+                            .toList(),
+                        onChanged: (val) => setState(() => selectedRole = val!),
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Completion Rate Trends',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Survey completion percentage over time',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        height: 250,
-                        child: LineChart(
-                          LineChartData(
-                            gridData: FlGridData(show: true, drawVerticalLine: false),
-                            titlesData: FlTitlesData(
-                              bottomTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  getTitlesWidget: (value, meta) {
-                                    if (value % 2 == 0) {
-                                      return Text(
-                                        '${value.toInt()}/1/2024',
-                                        style: const TextStyle(fontSize: 10),
-                                      );
-                                    }
-                                    return const Text('');
-                                  },
-                                  reservedSize: 30,
-                                ),
-                              ),
-                              leftTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  reservedSize: 40,
-                                  getTitlesWidget: (value, meta) {
-                                    return Text(
-                                      '${value.toInt()}%',
-                                      style: const TextStyle(fontSize: 12),
-                                    );
-                                  },
-                                ),
-                              ),
-                              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                            ),
-                            borderData: FlBorderData(show: false),
-                            lineBarsData: [
-                              LineChartBarData(
-                                spots: [
-                                  const FlSpot(0, 80),
-                                  const FlSpot(1, 85),
-                                  const FlSpot(2, 80),
-                                  const FlSpot(3, 92),
-                                  const FlSpot(4, 88),
-                                  const FlSpot(5, 75),
-                                  const FlSpot(6, 95),
-                                  const FlSpot(7, 90),
-                                ],
-                                isCurved: true,
-                                color: Colors.green,
-                                barWidth: 3,
-                                dotData: FlDotData(show: true),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600)),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String title, String value, String change) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
-              ),
-            ),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            Text(
-              change,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.green.shade600,
-              ),
-            ),
-          ],
-        ),
-      ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      _formKey.currentState!.save();
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('User "$name" added as $selectedRole'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: brandBlue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('Add User'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -2107,63 +1189,66 @@ class DataExportsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.blue.shade300.withOpacity(0.6), Colors.blue.shade600.withOpacity(0.6)],
-        ),
-      ),
+      color: Colors.transparent,
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'ADMIN DASHBOARD',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+              RichText(
+                text: TextSpan(
+                  style: GoogleFonts.montserrat(
+                    textStyle: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  children: const <TextSpan>[
+                    TextSpan(
+                      text: 'DATA ',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    TextSpan(
+                      text: 'EXPORTS',
+                      style: TextStyle(color: Colors.amber),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Client Satisfaction Survey Management System',
-                style: TextStyle(fontSize: 16, color: Colors.white70),
+              Text(
+                'Download survey data and reports',
+                style: TextStyle(fontSize: 16, color: Colors.white),
               ),
               const SizedBox(height: 32),
-              // Stats
+              
+              // Export Cards
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final crossAxisCount = constraints.maxWidth > 1200
-                      ? 4
-                      : constraints.maxWidth > 800
-                          ? 2
-                          : 1;
-                  
-                  return GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 2,
-                    children: [
-                      _buildStatCard('2,847', '+12.5% from last month'),
-                      _buildStatCard('12', '3 published this week'),
-                      _buildStatCard('87.3%', '+2.1% from last month'),
-                      _buildStatCard('4.2/5', '+0.3 from last month'),
-                    ],
-                  );
+                   final crossAxisCount = constraints.maxWidth > 1000 ? 3 : 1;
+                   return GridView.count(
+                     shrinkWrap: true,
+                     physics: const NeverScrollableScrollPhysics(),
+                     crossAxisCount: crossAxisCount,
+                     crossAxisSpacing: 16,
+                     mainAxisSpacing: 16,
+                     childAspectRatio: 1.8,
+                     children: [
+                       _buildExportCard(context, 'ARTA Compliance Report', 'PDF Format', Icons.picture_as_pdf, Colors.red, isPdf: true),
+                       _buildExportCard(context, 'Raw Data Export', 'CSV Format', Icons.table_chart, Colors.green),
+                       _buildExportCard(context, 'Executive Summary', 'DOCX Format', Icons.description, Colors.blue, isDocx: true),
+                     ],
+                   );
                 },
               ),
-              const SizedBox(height: 24),
-              // Export History
+              const SizedBox(height: 32),
+
+              // Recent Respondents Table
               Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+                color: Colors.white,
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
@@ -2175,187 +1260,49 @@ class DataExportsScreen extends StatelessWidget {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Export History',
+                              Text(
+                                'RECENT RESPONDENTS',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
+                                  color: brandBlue
                                 ),
                               ),
                               Text(
-                                'Manage your data exports and download files',
+                                'Latest survey submissions',
                                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                               ),
                             ],
                           ),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (ctx) => const ExportProcessScreen(templateName: 'Custom Export')),
-                              );
-                            },
-                            icon: const Icon(Icons.add),
-                            label: const Text('New Export'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      // Search and filter
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              decoration: InputDecoration(
-                                hintText: 'Search exports...',
-                                prefixIcon: const Icon(Icons.search),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
                           OutlinedButton.icon(
-                            onPressed: () {
-                              showModalBottomSheet(
-                                context: context,
-                                builder: (ctx) => Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('Filter exports', style: TextStyle(fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 12),
-                                      const Text('This is a placeholder filter sheet.'),
-                                      const SizedBox(height: 12),
-                                      Align(
-                                          alignment: Alignment.centerRight,
-                                          child: TextButton(
-                                            onPressed: () => Navigator.pop(ctx),
-                                            child: const Text('Close'),
-                                          ))
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.filter_list),
-                            label: const Text('Filter'),
+                            onPressed: () {},
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Refresh'),
                           ),
                         ],
                       ),
                       const SizedBox(height: 24),
-                      // Export items
-                      _buildExportItem(
-                        context,
-                        'Q4 2024 Client Satisfaction Report',
-                        'Jan 22, 2024, 06:30 PM',
-                        'PDF',
-                        'Q4 2024 Client Satisfaction S...',
-                        'completed',
-                        Colors.green,
-                        '2.4 MB',
-                        5,
-                        'Feb 22, 2024, 06:30 PM',
-                      ),
-                      const SizedBox(height: 12),
-                      _buildExportItem(
-                        context,
-                        'Department Feedback Data Export',
-                        'Jan 21, 2024, 10:15 PM',
-                        'CSV',
-                        'Department Feedback Survey',
-                        'completed',
-                        Colors.green,
-                        '856 KB',
-                        12,
-                        'Feb 21, 2024, 10:15 PM',
-                      ),
-                      const SizedBox(height: 12),
-                      _buildExportItem(
-                        context,
-                        'Service Quality Raw Data',
-                        'Jan 22, 2024, 04:45 PM',
-                        'JSON',
-                        'Service Quality Assessment',
-                        'processing',
-                        Colors.orange,
-                        '-',
-                        0,
-                        'Never',
-                      ),
-                      const SizedBox(height: 12),
-                      _buildExportItem(
-                        context,
-                        'Annual Review Analytics',
-                        'Jan 21, 2024, 12:20 AM',
-                        'XLSX',
-                        'Annual Client Review',
-                        'failed',
-                        Colors.red,
-                        '-',
-                        0,
-                        'Never',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Quick Export Templates
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Quick Export Templates',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                      // Table Header
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Row(
+                          children: [
+                            Expanded(flex: 1, child: Text('ID', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
+                            Expanded(flex: 2, child: Text('DATE', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
+                            Expanded(flex: 2, child: Text('CLIENT TYPE', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
+                            Expanded(flex: 3, child: Text('SERVICE AVAILED', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
+                            Expanded(flex: 2, child: Text('CC AWARENESS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
+                            Expanded(flex: 2, child: Text('SATISFACTION', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Pre-configured export options for common use cases',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                      ),
-                      const SizedBox(height: 24),
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          if (constraints.maxWidth > 900) {
-                            return Row(
-                              children: [
-                                Expanded(child: _buildTemplateCard(context, 'Weekly Summary (CSV)', 'Complete response data for the last 7 days', Colors.green, Icons.description)),
-                                const SizedBox(width: 16),
-                                Expanded(child: _buildTemplateCard(context, 'Monthly Report (PDF)', 'Formatted analytics report for monthly review', Colors.red, Icons.picture_as_pdf)),
-                                const SizedBox(width: 16),
-                                Expanded(child: _buildTemplateCard(context, 'Raw Data (JSON)', 'Complete dataset with all metadata', Colors.purple, Icons.data_object)),
-                              ],
-                            );
-                          } else {
-                            return Column(
-                              children: [
-                                _buildTemplateCard(context, 'Weekly Summary (CSV)', 'Complete response data for the last 7 days', Colors.green, Icons.description),
-                                const SizedBox(height: 16),
-                                _buildTemplateCard(context, 'Monthly Report (PDF)', 'Formatted analytics report for monthly review', Colors.red, Icons.picture_as_pdf),
-                                const SizedBox(height: 16),
-                                _buildTemplateCard(context, 'Raw Data (JSON)', 'Complete dataset with all metadata', Colors.purple, Icons.data_object),
-                              ],
-                            );
-                          }
-                        },
-                      ),
+                      const Divider(),
+                      // Table Rows
+                      _buildRespondentRow('10234', 'Jan 24, 2024', 'Citizen', 'Business Permit', 'Aware', 5),
+                      _buildRespondentRow('10235', 'Jan 24, 2024', 'Business', 'Tax Declaration', 'Aware', 4),
+                      _buildRespondentRow('10236', 'Jan 23, 2024', 'Citizen', 'Social Services', 'Not Aware', 5),
+                      _buildRespondentRow('10237', 'Jan 23, 2024', 'Government', 'Health Cert', 'Aware', 5),
+                      _buildRespondentRow('10238', 'Jan 23, 2024', 'Citizen', 'Engineering', 'Aware', 3),
                     ],
                   ),
                 ),
@@ -2367,29 +1314,48 @@ class DataExportsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String value, String change) {
+  Widget _buildExportCard(BuildContext context, String title, String sub, IconData icon, Color color, {bool isPdf = false, bool isDocx = false}) {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+      color: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+              child: Icon(icon, color: color, size: 28),
             ),
-            Text(
-              change,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.green.shade600,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+                const SizedBox(height: 4),
+                Text(sub, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              ],
+            ),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  if (isPdf) {
+                    _showPdfExportDialog(context);
+                  } else if (isDocx) {
+                    _simulateDocxExport(context);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Generating $title...')));
+                  }
+                },
+                icon: const Icon(Icons.download, size: 16),
+                label: const Text('Generate'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: color,
+                  side: BorderSide(color: color.withOpacity(0.5)),
+                ),
               ),
             ),
           ],
@@ -2398,320 +1364,104 @@ class DataExportsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildExportItem(
-    BuildContext context,
-    String title,
-    String date,
-    String format,
-    String survey,
-    String status,
-    Color statusColor,
-    String size,
-    int downloads,
-    String expires,
-  ) {
-    IconData formatIcon;
-    Color formatColor;
-    
-    switch (format) {
-      case 'PDF':
-        formatIcon = Icons.picture_as_pdf;
-        formatColor = Colors.red;
-        break;
-      case 'CSV':
-        formatIcon = Icons.description;
-        formatColor = Colors.green;
-        break;
-      case 'JSON':
-        formatIcon = Icons.data_object;
-        formatColor = Colors.purple;
-        break;
-      case 'XLSX':
-        formatIcon = Icons.table_chart;
-        formatColor = Colors.blue;
-        break;
-      default:
-        formatIcon = Icons.insert_drive_file;
-        formatColor = Colors.grey;
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade200),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(formatIcon, color: formatColor, size: 28),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 2,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  date,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: formatColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              format,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: formatColor,
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 2,
-            child: Text(
-              survey,
-              style: const TextStyle(fontSize: 13),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  status == 'completed'
-                      ? Icons.check_circle
-                      : status == 'processing'
-                          ? Icons.refresh
-                          : Icons.error,
-                  size: 14,
-                  color: statusColor,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  status,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: statusColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          SizedBox(
-            width: 60,
-            child: Text(
-              size,
-              textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 12),
-            ),
-          ),
-          const SizedBox(width: 16),
-          SizedBox(
-            width: 30,
-            child: Text(
-              downloads.toString(),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12),
-            ),
-          ),
-          const SizedBox(width: 16),
-          SizedBox(
-            width: 140,
-            child: Text(
-              expires,
-              style: TextStyle(
-                fontSize: 12,
-                color: expires == 'Never' ? Colors.grey : Colors.red,
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          if (status == 'completed') ...[
-            IconButton(
-              icon: const Icon(Icons.download),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Downloading $title (simulated)')));
-              },
-              color: Colors.blue,
-            ),
-            IconButton(
-              icon: const Icon(Icons.visibility_outlined),
-              onPressed: () async {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Preparing preview...')));
-                try {
-                  String path;
-                  if (format == 'CSV') {
-                    final rows = [
-                      ['id', 'name', 'value'],
-                      ['1', 'Sample', '100'],
-                    ];
-                    path = await ExportService.exportCsv(title, rows);
-                  } else if (format == 'JSON') {
-                    final data = [
-                      {'id': 1, 'name': 'Sample', 'value': 100}
-                    ];
-                    path = await ExportService.exportJson(title, data);
-                  } else if (format == 'PDF') {
-                    final data = [
-                      {'Metric': 'Sample', 'Value': '100'}
-                    ];
-                    path = await ExportService.exportPdf(title, data);
-                  } else {
-                    // fallback to csv
-                    final rows = [
-                      ['id', 'name', 'value'],
-                      ['1', 'Sample', '100'],
-                    ];
-                    path = await ExportService.exportCsv(title, rows);
-                  }
-                  Navigator.push(context, MaterialPageRoute(builder: (ctx) => ExportPreviewScreen(filePath: path)));
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Preview failed: $e')));
-                }
+  void _showPdfExportDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Export PDF Report'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.description, color: Colors.red),
+              title: const Text('ARTA Compliance Report'),
+              subtitle: const Text('Standard format for ARTA submission'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Generating Compliance Report...')));
               },
             ),
-            IconButton(
-              icon: const Icon(Icons.share_outlined),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('Share export'),
-                    content: Text('Share $title (simulated)?'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                      TextButton(
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Shared (simulated)')));
-                          },
-                          child: const Text('Share'))
-                    ],
-                  ),
-                );
-              },
-            ),
-          ] else if (status == 'processing') ...[
-            IconButton(
-              icon: const Icon(Icons.visibility_outlined),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export $title is processing')));
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.share_outlined),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cannot share while processing')));
-              },
-            ),
-          ] else ...[
-            IconButton(
-              icon: const Icon(Icons.visibility_outlined),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No preview available for $title')));
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.share_outlined),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cannot share failed export')));
+            ListTile(
+              leading: const Icon(Icons.analytics, color: Colors.blue),
+              title: const Text('Detailed Analysis'),
+              subtitle: const Text('Full breakdown of SQD and comments'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Generating Detailed Analysis...')));
               },
             ),
           ],
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Confirm delete'),
-                  content: Text('Delete export $title?'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                    TextButton(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Export deleted (simulated)')));
-                        },
-                        child: const Text('Delete', style: TextStyle(color: Colors.red))),
-                  ],
-                ),
-              );
-            },
-            color: Colors.red,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTemplateCard(BuildContext context, String title, String description, Color color, IconData icon) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (ctx) => ExportProcessScreen(templateName: title)),
-          );
-        },
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: color, size: 32),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                description,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-            ],
+  void _simulateDocxExport(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                CircularProgressIndicator(),
+                SizedBox(width: 20),
+                Text("Generating Executive Summary (DOCX)..."),
+              ],
+            ),
           ),
+        );
+      },
+    );
+
+    Future.delayed(const Duration(seconds: 2), () {
+      Navigator.pop(context); // Close progress dialog
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Export Successful'),
+          content: const Text('The Executive Summary has been generated successfully.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
         ),
+      );
+    });
+  }
+
+  Widget _buildRespondentRow(String id, String date, String type, String service, String cc, int score) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(flex: 1, child: Text(id, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+          Expanded(flex: 2, child: Text(date, style: const TextStyle(fontSize: 13))),
+          Expanded(flex: 2, child: Text(type, style: const TextStyle(fontSize: 13))),
+          Expanded(flex: 3, child: Text(service, style: const TextStyle(fontSize: 13))),
+          Expanded(flex: 2, child: Text(cc, style: const TextStyle(fontSize: 13))),
+          Expanded(
+            flex: 2,
+            child: Row(
+              children: [
+                Icon(Icons.star, size: 16, color: Colors.amber),
+                const SizedBox(width: 4),
+                Text('$score/5', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../services/export_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../models/survey_data.dart'; // Import SurveyData model
 
 // THEME CONSTANTS
 const String fontHeading = 'Montserrat';
@@ -8,198 +10,415 @@ const String fontBody = 'Poppins';
 final Color brandBlue = Colors.blue.shade900;
 final Color brandRed = Colors.red.shade900;
 
-class CreateSurveyScreen extends StatefulWidget {
-  final String? existingTitle;
-  const CreateSurveyScreen({Key? key, this.existingTitle}) : super(key: key);
+// ARTA Configuration Screen
+class ArtaConfigurationScreen extends StatefulWidget {
+  const ArtaConfigurationScreen({Key? key}) : super(key: key);
 
   @override
-  State<CreateSurveyScreen> createState() => _CreateSurveyScreenState();
+  State<ArtaConfigurationScreen> createState() => _ArtaConfigurationScreenState();
 }
 
-class _CreateSurveyScreenState extends State<CreateSurveyScreen> {
-  late TextEditingController _titleController;
-  late TextEditingController _descController;
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController(text: widget.existingTitle ?? '');
-    _descController = TextEditingController(text: 'Quarterly assessment of client satisfaction across all departments');
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descController.dispose();
-    super.dispose();
-  }
+class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
+  bool _ccEnabled = true;
+  bool _sqdEnabled = true;
+  bool _demographicsEnabled = true;
+  bool _cgovQuestionsEnabled = true;
+  bool _suggestionsEnabled = true;
+  bool _kioskMode = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 1,
-        iconTheme: IconThemeData(color: brandBlue),
-        title: Text(
-          widget.existingTitle == null ? 'Create New Survey' : 'Edit Survey',
-          style: TextStyle(fontFamily: fontHeading, color: brandBlue, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: TextButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Survey saved successfully')),
-                );
-                Navigator.pop(context);
-              },
-              icon: const Icon(Icons.save, size: 18),
-              label: const Text('Save Survey'),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white,
-                backgroundColor: brandBlue,
-                textStyle: const TextStyle(fontFamily: fontBody, fontWeight: FontWeight.bold),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-          )
-        ],
-      ),
-      body: Row(
-        children: [
-          // Sidebar / Settings Area
-          Container(
-            width: 300,
-            color: Colors.white,
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Survey Settings", style: TextStyle(fontFamily: fontHeading, fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
-                const SizedBox(height: 24),
-                _buildStyledTextField(_titleController, 'Survey Title'),
-                const SizedBox(height: 16),
-                _buildStyledTextField(_descController, 'Description', maxLines: 3),
-                const SizedBox(height: 24),
-                const Divider(),
-                const SizedBox(height: 16),
-                Text("Active Period", style: TextStyle(fontFamily: fontHeading, fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
-                const SizedBox(height: 12),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.calendar_today, color: brandBlue),
-                  title: Text("Start Date", style: TextStyle(fontFamily: fontBody, fontSize: 12)),
-                  subtitle: Text("Jan 20, 2024", style: TextStyle(fontFamily: fontBody, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            ),
-          ),
-          const VerticalDivider(width: 1),
-          // Preview Area
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(40),
+      backgroundColor: Colors.transparent, // Transparent to show dashboard background
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Card
+            // Header Card
+            Container(
+              padding: const EdgeInsets.all(24),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    constraints: const BoxConstraints(maxWidth: 800),
-                    child: Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      color: Colors.white,
-                      child: Padding(
-                        padding: const EdgeInsets.all(40),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Header Simulation
-                            Center(
-                              child: Column(
-                                children: [
-                                  Icon(Icons.account_balance, size: 40, color: brandRed),
-                                  const SizedBox(height: 8),
-                                  Text("CITY GOVERNMENT OF VALENZUELA", style: TextStyle(fontFamily: fontHeading, fontWeight: FontWeight.bold, fontSize: 14)),
-                                  const SizedBox(height: 40),
-                                ],
-                              ),
-                            ),
-                            // Mock Questions
-                            _buildMockQuestion(1, "Which department did you visit today?", "dropdown"),
-                            _buildMockQuestion(2, "How would you rate the service speed?", "rating"),
-                            _buildMockQuestion(3, "Was the staff courteous and helpful?", "yesno"),
-                            _buildMockQuestion(4, "Any suggestions for improvement?", "text"),
-                          ],
-                        ),
+                   RichText(
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontFamily: 'Montserrat',
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
                       ),
+                      children: const <TextSpan>[
+                        TextSpan(
+                          text: 'ARTA Survey ',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        TextSpan(
+                          text: 'Configuration',
+                          style: TextStyle(color: Colors.amber),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Manage the standard Client Satisfaction Measurement (CSM) form.',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 14,
+                      color: Colors.white,
                     ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 24),
+
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left Column: Configuration
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    children: [
+                      _buildSectionCard(
+                        title: 'Core Survey Sections',
+                        isMandatory: true,
+                        children: [
+                          _buildToggleItem(
+                            'Citizen\'s Charter (CC) Questions',
+                            'CC1 (Awareness), CC2 (Visibility), CC3 (Helpfulness)',
+                            _ccEnabled,
+                            (v) => setState(() => _ccEnabled = v),
+                          ),
+                          const Divider(),
+                          _buildToggleItem(
+                            'Service Quality Dimensions (SQD)',
+                            'SQD0 to SQD8 (Likert Scale Rating)',
+                            _sqdEnabled,
+                            (v) => setState(() => _sqdEnabled = v),
+                          ),
+                          const Divider(),
+                          _buildToggleItem(
+                            'Client Demographics',
+                            'Client Type, Gender, Age, Region, Service Availed',
+                            _demographicsEnabled,
+                            (v) => setState(() => _demographicsEnabled = v),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _buildSectionCard(
+                        title: 'Custom Modules',
+                        children: [
+                          _buildToggleItem(
+                            'CGOV Additional Questions',
+                            'Include optional questions specific to Valenzuela City programs.',
+                            _cgovQuestionsEnabled,
+                            (v) => setState(() => _cgovQuestionsEnabled = v),
+                          ),
+                          const Divider(),
+                          _buildToggleItem(
+                            'Suggestions Box',
+                            'Allow free-text feedback at the end of the survey.',
+                            _suggestionsEnabled,
+                            (v) => setState(() => _suggestionsEnabled = v),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _buildSectionCard(
+                        title: 'Deployment Settings',
+                        children: [
+                          _buildToggleItem(
+                            'Kiosk Mode',
+                            'Auto-reset survey after submission (for tablets at City Hall).',
+                            _kioskMode,
+                            (v) => setState(() => _kioskMode = v),
+                            icon: Icons.tablet_mac,
+                            activeColor: Colors.purple,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 24),
+                // Right Column: Preview & Access
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    children: [
+                      _buildAccessPointCard(context),
+                      const SizedBox(height: 24),
+                      _buildLivePreviewCard(context),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({required String title, required List<Widget> children, bool isMandatory = false}) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(isMandatory ? Icons.description_outlined : Icons.settings_suggest_outlined, color: brandRed, size: 20),
+                    const SizedBox(width: 12),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontFamily: fontHeading,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+                if (isMandatory)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'Mandatory',
+                      style: TextStyle(
+                        fontFamily: fontBody,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: brandRed,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToggleItem(String title, String subtitle, bool value, ValueChanged<bool> onChanged, {IconData? icon, Color? activeColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontFamily: fontBody,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontFamily: fontBody,
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: activeColor ?? Colors.green,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStyledTextField(TextEditingController controller, String label, {int maxLines = 1}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontFamily: fontBody, fontSize: 12, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          maxLines: maxLines,
-          style: const TextStyle(fontFamily: fontBody, fontSize: 14),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.grey.shade100,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
+  Widget _buildAccessPointCard(BuildContext context) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.qr_code_2, color: Colors.black87, size: 20),
+                const SizedBox(width: 12),
+                Text(
+                  'Access Point',
+                  style: TextStyle(
+                    fontFamily: fontHeading,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Center(
+              child: Container(
+                width: 180,
+                height: 180,
+                color: Colors.grey.shade100,
+                child: Icon(Icons.qr_code, size: 100, color: Colors.black87),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: Text(
+                'ID: ARTA-VAL-2024-Q1',
+                style: TextStyle(fontFamily: fontBody, fontSize: 10, color: Colors.grey.shade500),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Downloading QR Code...')));
+                    },
+                    icon: const Icon(Icons.download, size: 16),
+                    label: const Text('Download'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sending to printer...')));
+                    },
+                    icon: const Icon(Icons.print, size: 16),
+                    label: const Text('Print'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Direct Link:', style: TextStyle(fontFamily: fontBody, fontSize: 12, color: Colors.grey.shade600)),
+                Text('valenzuela.gov.ph/arta-survey', style: TextStyle(fontFamily: fontBody, fontSize: 12, color: Colors.blue, fontWeight: FontWeight.w500)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Status:', style: TextStyle(fontFamily: fontBody, fontSize: 12, color: Colors.grey.shade600)),
+                Text('Active', style: TextStyle(fontFamily: fontBody, fontSize: 12, color: Colors.green, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildMockQuestion(int number, String question, String type) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text("$number.", style: TextStyle(fontFamily: fontHeading, fontWeight: FontWeight.bold, fontSize: 16, color: brandBlue)),
-              const SizedBox(width: 12),
-              Text(question, style: TextStyle(fontFamily: fontBody, fontSize: 16, fontWeight: FontWeight.w500)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (type == 'text')
-            Container(
-              height: 100,
-              decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
-            )
-          else if (type == 'rating')
-             Row(children: List.generate(5, (index) => Padding(padding: const EdgeInsets.only(right: 8), child: Icon(Icons.star_border, color: Colors.amber, size: 30))))
-          else
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200)),
-              child: Row(children: [Text(type == 'dropdown' ? "Select an option..." : "Yes / No", style: TextStyle(fontFamily: fontBody, color: Colors.grey))]),
-            )
-        ],
+  Widget _buildLivePreviewCard(BuildContext context) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.blue.shade50),
+      ),
+      color: Colors.blue.shade50.withOpacity(0.3),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.visibility_outlined, color: brandBlue, size: 20),
+                const SizedBox(width: 12),
+                Text(
+                  'Live Preview',
+                  style: TextStyle(
+                    fontFamily: fontHeading,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: brandBlue,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'See how the survey looks on mobile devices before publishing changes.',
+              style: TextStyle(
+                fontFamily: fontBody,
+                fontSize: 12,
+                color: brandBlue.withOpacity(0.8),
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SurveyDetailScreen(title: 'ARTA Client Satisfaction Survey')),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade600,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Open Preview', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
+// Updated SurveyDetailScreen content to match ARTA
 class SurveyDetailScreen extends StatelessWidget {
   final String title;
   const SurveyDetailScreen({Key? key, required this.title}) : super(key: key);
@@ -246,7 +465,7 @@ class SurveyDetailScreen extends StatelessWidget {
                             children: [
                                CircleAvatar(backgroundColor: brandBlue, radius: 20, child: const Icon(Icons.account_balance, color: Colors.white, size: 20)),
                                const SizedBox(width: 16),
-                               Column(
+                                Column(
                                  crossAxisAlignment: CrossAxisAlignment.start,
                                  children: [
                                    Text('CITY GOVERNMENT OF VALENZUELA', style: TextStyle(fontFamily: fontHeading, fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey.shade700)),
@@ -266,10 +485,17 @@ class SurveyDetailScreen extends StatelessWidget {
                           ),
                           const Divider(height: 48),
 
-                          // Sample Content
-                          _buildPreviewItem(1, 'Which department did you visit?', ['Business Permit', 'Assessor', 'Treasury', 'Health Office']),
-                          _buildPreviewItem(2, 'How satisfied are you with the waiting time?', ['Very Satisfied', 'Satisfied', 'Neutral', 'Dissatisfied']),
-                          _buildPreviewItem(3, 'Was the staff knowledgeable?', ['Yes', 'No']),
+                          Text("Citizen's Charter (CC)", style: TextStyle(fontFamily: fontHeading, fontSize: 18, fontWeight: FontWeight.bold, color: brandBlue)),
+                          const SizedBox(height: 16),
+                          _buildPreviewItem(1, 'CC1: Do you know about the Citizen\'s Charter?', ['Yes, aware before my transaction', 'Yes, but only saw it today', 'No, not aware']),
+                          _buildPreviewItem(2, 'CC2: Did you see the Citizen\'s Charter?', ['Yes, it was easy to see', 'Yes, but hard to see', 'No, did not see it']),
+                          _buildPreviewItem(3, 'CC3: Was the Citizen\'s Charter helpful?', ['Yes, very helpful', 'Somewhat helpful', 'No, not helpful']),
+
+                          const Divider(height: 48),
+                          Text("Service Quality Dimensions (SQD)", style: TextStyle(fontFamily: fontHeading, fontSize: 18, fontWeight: FontWeight.bold, color: brandBlue)),
+                          const SizedBox(height: 16),
+                          _buildPreviewItem(4, 'SQD0: I am satisfied with the service that I availed.', []), // Empty list for rating
+                          _buildPreviewItem(5, 'SQD1: I spent a reasonable amount of time for my transaction.', []),
                           
                           const SizedBox(height: 32),
                           SizedBox(
@@ -307,6 +533,9 @@ class SurveyDetailScreen extends StatelessWidget {
         children: [
           Text(question, style: TextStyle(fontFamily: fontBody, fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
           const SizedBox(height: 12),
+          if (options.isEmpty)
+             Row(children: List.generate(5, (index) => Padding(padding: const EdgeInsets.only(right: 8), child: Icon(Icons.star_border, color: Colors.amber, size: 30))))
+          else
           ...options.map((opt) => Padding(
             padding: const EdgeInsets.only(bottom: 8.0),
             child: Row(
@@ -325,6 +554,496 @@ class SurveyDetailScreen extends StatelessWidget {
           )).toList(),
         ],
       ),
+    );
+  }
+}
+
+// Detailed Analytics Screen
+class DetailedAnalyticsScreen extends StatefulWidget {
+  const DetailedAnalyticsScreen({Key? key}) : super(key: key);
+
+  @override
+  State<DetailedAnalyticsScreen> createState() => _DetailedAnalyticsScreenState();
+}
+
+class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
+  // Placeholder state for dynamic data
+  final double _overallScore = 4.7;
+  final String _topService = 'Social Services';
+  final double _topServiceScore = 4.9;
+  final String _needsAttention = 'Engineering';
+  final double _needsAttentionScore = 4.2;
+  
+  // SQD Data using SurveyData model structure concepts
+  final List<Map<String, dynamic>> _sqdData = [
+    {'code': 'SQD0', 'title': 'Satisfaction', 'desc': 'I am satisfied with the service that I availed', 'score': 4.8},
+    {'code': 'SQD1', 'title': 'Time', 'desc': 'I spent a reasonable amount of time for my transaction', 'score': 4.5},
+    {'code': 'SQD2', 'title': 'Requirements', 'desc': 'The office followed the transaction requirements', 'score': 4.7},
+    {'code': 'SQD3', 'title': 'Procedure', 'desc': 'The steps were easy and simple', 'score': 4.6},
+    {'code': 'SQD4', 'title': 'Information', 'desc': 'I easily found information about my transaction', 'score': 4.2},
+    {'code': 'SQD5', 'title': 'Cost', 'desc': 'I paid a reasonable amount of fees', 'score': 4.9},
+    {'code': 'SQD6', 'title': 'Fairness', 'desc': 'I feel the office was fair to everyone', 'score': 4.8},
+    {'code': 'SQD7', 'title': 'Courtesy', 'desc': 'I was treated courteously by the staff', 'score': 4.9},
+    {'code': 'SQD8', 'title': 'Outcome', 'desc': 'I got what I needed from the government office', 'score': 4.7},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent, // Transparent for dashboard background
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            // Header
+            Container(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                   Expanded( // Added Expanded to allow column to take space
+                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                       RichText(
+                          text: TextSpan(
+                            style: TextStyle(
+                              fontFamily: 'Montserrat',
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            children: const <TextSpan>[
+                              TextSpan(
+                                text: 'DETAILED ',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              TextSpan(
+                                text: 'ANALYTICS',
+                                style: TextStyle(color: Colors.amber),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Deep dive into customer satisfaction metrics and segmentation.',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                  ),),
+                  Row(
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () {},
+                        icon: const Icon(Icons.calendar_today, size: 16),
+                        label: const Text('This Month'),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: () {},
+                        icon: const Icon(Icons.filter_list, size: 16),
+                        label: const Text('Advanced Filter'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            
+            // Highlights
+            Row(
+              children: [
+                Expanded(child: _buildHighlightCard('Top Performing Service', _topService, 'Score: $_topServiceScore/5.0', Colors.green)),
+                const SizedBox(width: 16),
+                Expanded(child: _buildHighlightCard('Needs Attention', _needsAttention, 'Score: $_needsAttentionScore/5.0', Colors.amber)),
+                const SizedBox(width: 16),
+                Expanded(child: _buildHighlightCard('Strongest Dimension', 'SQD5 & SQD7', 'Cost & Courtesy (4.9)', Colors.blue)),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Automated Analysis
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+              color: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.auto_awesome, color: brandBlue, size: 20),
+                        const SizedBox(width: 12),
+                        Text('Automated Performance Analysis', style: TextStyle(fontFamily: fontHeading, fontSize: 16, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildAnalysisText(
+                      'Executive Summary',
+                      'The overall customer satisfaction index for the current period stands at a robust $_overallScore out of 5.0. The data indicates that the majority of constituents are "Very Satisfied" with the services provided by the City Government of Valenzuela.',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildAnalysisText(
+                      'Service Level Analysis',
+                      'Among the key service areas, $_topService is leading with exceptional satisfaction scores of $_topServiceScore. Conversely, $_needsAttention recorded the lowest score of $_needsAttentionScore.',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // SQD Breakdown Grid (New Implementation)
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Service Quality Dimensions (SQD) Breakdown', style: TextStyle(fontFamily: fontHeading, fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                      TextButton.icon(
+                        onPressed: () {},
+                        icon: const Icon(Icons.arrow_forward, size: 16),
+                        label: const Text('View Detailed Analysis'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final crossAxisCount = constraints.maxWidth > 1200 ? 3 : constraints.maxWidth > 800 ? 2 : 1;
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 2.2, // Adjusted for card content
+                        ),
+                        itemCount: _sqdData.length,
+                        itemBuilder: (context, index) {
+                          final data = _sqdData[index];
+                          return _buildSQDCard(data);
+                        },
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: brandBlue),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Score interpretation: 5 - Strongly Agree, 1 - Strongly Disagree. ARTA compliance requires detailed tracking of all 9 dimensions (SQD0-SQD8).',
+                        style: TextStyle(fontSize: 12, color: brandBlue),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Charts Row
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth > 1000) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: _buildSatisfactionByServiceCard()),
+                      const SizedBox(width: 24),
+                      Expanded(child: _buildRespondentProfileCard()),
+                    ],
+                  );
+                } else {
+                  return Column(
+                    children: [
+                      _buildSatisfactionByServiceCard(),
+                      const SizedBox(height: 24),
+                      _buildRespondentProfileCard(),
+                    ],
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 24),
+            
+            // Radar Chart
+             Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+              color: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Visual SQD Analysis (Radar)', style: TextStyle(fontFamily: fontHeading, fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      height: 400,
+                      child: RadarChart(
+                        RadarChartData(
+                          radarShape: RadarShape.polygon,
+                          ticksTextStyle: const TextStyle(color: Colors.transparent),
+                          gridBorderData: BorderSide(color: Colors.grey.shade200),
+                          titlePositionPercentageOffset: 0.2,
+                          titleTextStyle: TextStyle(color: Colors.grey.shade800, fontSize: 12),
+                          tickCount: 5,
+                          // ticksBorderData removed
+                          radarBorderData: const BorderSide(color: Colors.transparent),
+                          radarBackgroundColor: Colors.transparent,
+                          dataSets: [
+                            RadarDataSet(
+                              fillColor: brandRed.withOpacity(0.4),
+                              borderColor: brandRed,
+                              entryRadius: 3,
+                              dataEntries: _sqdData.map((e) => RadarEntry(value: e['score'] as double)).toList(),
+                            ),
+                          ],
+                          getTitle: (index, angle) {
+                             return RadarChartTitle(text: _sqdData[index]['code']);
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSQDCard(Map<String, dynamic> data) {
+    double score = data['score'];
+    Color scoreColor = score >= 4.5 ? Colors.green : (score >= 4.0 ? Colors.amber : Colors.red);
+    Color bgColor = scoreColor.withOpacity(0.1);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(data['code'], style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey.shade800)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(4)),
+                child: Text(score.toString(), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: scoreColor)),
+              ),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(data['title'], style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87)),
+              const SizedBox(height: 4),
+              Text(data['desc'], style: TextStyle(fontSize: 12, color: Colors.grey.shade600), maxLines: 2, overflow: TextOverflow.ellipsis),
+            ],
+          ),
+          LinearProgressIndicator(
+            value: score / 5,
+            backgroundColor: Colors.grey.shade100,
+            color: brandBlue,
+            minHeight: 6,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHighlightCard(String label, String value, String sub, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            child: Icon(Icons.analytics, color: color, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(fontFamily: fontBody, fontSize: 12, color: Colors.grey.shade600)),
+                Text(value, style: TextStyle(fontFamily: fontHeading, fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(sub, style: TextStyle(fontFamily: fontBody, fontSize: 12, color: color, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalysisText(String title, String content) {
+    return RichText(
+      text: TextSpan(
+        style: TextStyle(fontFamily: fontBody, fontSize: 13, color: Colors.grey.shade800, height: 1.5),
+        children: [
+          TextSpan(text: '$title: ', style: const TextStyle(fontWeight: FontWeight.bold)),
+          TextSpan(text: content),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSatisfactionByServiceCard() {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.bar_chart, color: brandBlue, size: 20),
+                const SizedBox(width: 12),
+                Text('Satisfaction by Service', style: TextStyle(fontFamily: fontHeading, fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _buildBarRow('Business Permit', 4.9),
+            _buildBarRow('Health Cert', 4.8),
+            _buildBarRow('Tax Declaration', 4.5),
+            _buildBarRow('Engineering', 4.2),
+            _buildBarRow('Social Services', 4.9),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBarRow(String label, double val) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Row(
+        children: [
+          SizedBox(width: 100, child: Text(label, textAlign: TextAlign.end, style: TextStyle(fontSize: 12, color: Colors.grey.shade600))),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Stack(
+              children: [
+                Container(height: 20, decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(4))),
+                FractionallySizedBox(
+                  widthFactor: val / 5,
+                  child: Container(height: 20, decoration: BoxDecoration(color: brandBlue, borderRadius: BorderRadius.circular(4))),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(val.toString(), style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRespondentProfileCard() {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+             Row(
+              children: [
+                Icon(Icons.pie_chart, color: brandRed, size: 20),
+                const SizedBox(width: 12),
+                Text('Respondent Profile', style: TextStyle(fontFamily: fontHeading, fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 200,
+              child: PieChart(
+                PieChartData(
+                  sectionsSpace: 0,
+                  centerSpaceRadius: 60,
+                  sections: [
+                    PieChartSectionData(value: 60, color: brandBlue, radius: 40, showTitle: false),
+                    PieChartSectionData(value: 30, color: brandRed, radius: 40, showTitle: false),
+                    PieChartSectionData(value: 10, color: Colors.green, radius: 40, showTitle: false),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildLegendItem('Citizen', brandBlue),
+                const SizedBox(width: 16),
+                _buildLegendItem('Business', brandRed),
+                const SizedBox(width: 16),
+                _buildLegendItem('Government', Colors.green),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLegendItem(String label, Color color) {
+    return Row(
+      children: [
+        Container(width: 12, height: 12, color: color),
+        const SizedBox(width: 8),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+      ],
     );
   }
 }

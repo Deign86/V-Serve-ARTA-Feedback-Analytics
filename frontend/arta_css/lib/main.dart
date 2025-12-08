@@ -72,7 +72,7 @@ class MyApp extends StatelessWidget {
         textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
       ),
       title: 'V-Serve',
-      initialRoute: '/login',
+      initialRoute: '/login', //change this to '/' if you want to use the user side or the survey
       routes: {
         '/': (context) => const LandingScreen(),
         '/profile': (context) => const UserProfileScreen(),
