@@ -2,8 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "outputDirectory": "frontend/arta_css/build/web",
-  "buildCommand": null,
-  "installCommand": null,
+  "buildCommand": "cd flutter && chmod +x bin/flutter && bin/flutter config --no-analytics && cd ../frontend/arta_css && ../../flutter/bin/flutter pub get && ../../flutter/bin/flutter build web --release",
+  "installCommand": "echo 'Using bundled Flutter SDK'",
   "framework": null,
   "rewrites": [
     {
