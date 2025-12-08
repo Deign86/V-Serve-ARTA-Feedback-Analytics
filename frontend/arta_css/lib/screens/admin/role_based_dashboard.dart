@@ -5,13 +5,15 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'admin_screens.dart';
 import '../../services/export_service.dart';
+import '../../services/dark_mode_service.dart';
+import '../../widgets/dark_mode_overlay.dart';
 
 // NOTE: This file provides screens (DashboardScreen, etc.)
 // and no longer contains its own `main()` or a top-level `MaterialApp`.
 // The app should use the single top-level `MaterialApp` defined in `main.dart`.
 // Login is handled by RoleBasedLoginScreen at '/admin/login'.
 
-// Dashboard Screen
+// Dashboard Screen with Dark Mode Support
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -33,31 +35,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 900;
+    
+    // Update system brightness for dark mode detection
+    final brightness = MediaQuery.of(context).platformBrightness;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<DarkModeService>().updateSystemBrightness(brightness);
+    });
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          // background image with overlay
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: const AssetImage('assets/city_bg2.png'),
-                  fit: BoxFit.cover,
-                  // Removed heavy color filter to let the image show through more naturally as requested
-                  // but kept a very slight tint for text readability if needed, or removed entirely.
-                  // User asked for "white background should be remove... so they are like bricks and the background should be the city_bg2"
+    // Wrap entire dashboard with DarkModeOverlay for admin-only dark mode
+    return DarkModeOverlay(
+      child: Scaffold(
+        body: Stack(
+          children: [
+            // background image with overlay
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: const AssetImage('assets/city_bg2.png'),
+                    fit: BoxFit.cover,
+                    // Removed heavy color filter to let the image show through more naturally as requested
+                    // but kept a very slight tint for text readability if needed, or removed entirely.
+                    // User asked for "white background should be remove... so they are like bricks and the background should be the city_bg2"
+                  ),
+                ),
+                child: Container(
+                  color: Colors.black.withOpacity(0.1), // Very subtle overlay
                 ),
               ),
-              child: Container(
-                color: Colors.black.withOpacity(0.1), // Very subtle overlay
-              ),
             ),
-          ),
-          // content row
-          Row(
-            children: [
-          // Sidebar
+            // content row
+            Row(
+              children: [
+            // Sidebar
           Container(
             width: isDesktop ? 250 : 70,
             decoration: BoxDecoration(
@@ -146,7 +156,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ), // end Row
         ], // end Stack children
       ), // end Stack (body)
-    ); // end Scaffold
+    ), // end Scaffold
+    ); // end DarkModeOverlay
   }
 
   Widget _buildMenuItem(int index, IconData icon, String label, bool isDesktop) {
@@ -211,9 +222,13 @@ class _DashboardOverviewState extends State<DashboardOverview> {
   @override
   void initState() {
     super.initState();
-    // Fetch data when widget initializes
+    // Start real-time listener when widget initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<FeedbackService>().fetchAllFeedbacks();
+      final feedbackService = context.read<FeedbackService>();
+      // Start real-time updates if not already listening
+      if (!feedbackService.isListening) {
+        feedbackService.startRealtimeUpdates();
+      }
     });
   }
 
@@ -269,23 +284,61 @@ class _DashboardOverviewState extends State<DashboardOverview> {
                       ),
                     ],
                   ),
-                  // Refresh button
-                  ElevatedButton.icon(
-                    onPressed: isLoading ? null : () {
-                      feedbackService.refresh();
-                    },
-                    icon: isLoading 
-                        ? const SizedBox(
-                            width: 16, 
-                            height: 16, 
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
-                          )
-                        : const Icon(Icons.refresh),
-                    label: Text(isLoading ? 'Loading...' : 'Refresh Data'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(0.2),
-                      foregroundColor: Colors.white,
-                    ),
+                  // Real-time status indicator
+                  Row(
+                    children: [
+                      // Real-time indicator
+                      if (feedbackService.isListening)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          margin: const EdgeInsets.only(right: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.green.withOpacity(0.5)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Colors.greenAccent,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Live Updates',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      // Refresh button (manual refresh)
+                      ElevatedButton.icon(
+                        onPressed: isLoading ? null : () {
+                          feedbackService.refresh();
+                        },
+                        icon: isLoading 
+                            ? const SizedBox(
+                                width: 16, 
+                                height: 16, 
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+                              )
+                            : const Icon(Icons.refresh),
+                        label: Text(isLoading ? 'Loading...' : 'Refresh'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white.withOpacity(0.2),
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -757,12 +810,26 @@ class UserManagementScreen extends StatelessWidget {
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                               ),
+                              onChanged: (value) {
+                                // Search functionality - in a real app, this would filter the user list
+                                // For now, just show a snackbar with search term
+                                if (value.length >= 3) {
+                                  ScaffoldMessenger.of(context).clearSnackBars();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Searching for: "$value"'),
+                                      duration: const Duration(seconds: 1),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              },
                             ),
                           ),
                           const SizedBox(width: 16),
                           OutlinedButton.icon(
                             onPressed: () {
-                              // Filter logic
+                              _showUserFilterDialog(context);
                             },
                             icon: const Icon(Icons.filter_list),
                             label: const Text('Filter'),
@@ -1085,6 +1152,131 @@ class UserManagementScreen extends StatelessWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   child: const Text('Add User'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showUserFilterDialog(BuildContext context) async {
+    String? selectedRole;
+    String? selectedStatus;
+    String? selectedDepartment;
+
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  Icon(Icons.filter_list, color: brandBlue),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Filter Users',
+                    style: GoogleFonts.montserrat(
+                      fontWeight: FontWeight.bold,
+                      color: brandBlue,
+                    ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 400,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      value: selectedRole,
+                      decoration: InputDecoration(
+                        labelText: 'Role',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        prefixIcon: const Icon(Icons.security),
+                      ),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text('All Roles')),
+                        ...['Administrator', 'Editor', 'Analyst/Viewer']
+                            .map((role) => DropdownMenuItem(value: role, child: Text(role))),
+                      ],
+                      onChanged: (val) => setState(() => selectedRole = val),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedStatus,
+                      decoration: InputDecoration(
+                        labelText: 'Status',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        prefixIcon: const Icon(Icons.check_circle_outline),
+                      ),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text('All Statuses')),
+                        ...['Active', 'Inactive', 'Pending']
+                            .map((status) => DropdownMenuItem(value: status, child: Text(status))),
+                      ],
+                      onChanged: (val) => setState(() => selectedStatus = val),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedDepartment,
+                      decoration: InputDecoration(
+                        labelText: 'Department',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        prefixIcon: const Icon(Icons.business),
+                      ),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text('All Departments')),
+                        ...['IT Administration', 'Business Licensing', 'Civil Registry', 'Treasury', 'Assessor']
+                            .map((dept) => DropdownMenuItem(value: dept, child: Text(dept))),
+                      ],
+                      onChanged: (val) => setState(() => selectedDepartment = val),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      selectedRole = null;
+                      selectedStatus = null;
+                      selectedDepartment = null;
+                    });
+                  },
+                  child: Text('Clear All', style: TextStyle(color: Colors.red.shade600)),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600)),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    final filters = <String>[];
+                    if (selectedRole != null) filters.add(selectedRole!);
+                    if (selectedStatus != null) filters.add(selectedStatus!);
+                    if (selectedDepartment != null) filters.add(selectedDepartment!);
+                    
+                    if (filters.isNotEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Filter applied: ${filters.join(", ")}'),
+                          backgroundColor: Colors.blue.shade600,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: brandBlue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('Apply Filter'),
                 ),
               ],
             );

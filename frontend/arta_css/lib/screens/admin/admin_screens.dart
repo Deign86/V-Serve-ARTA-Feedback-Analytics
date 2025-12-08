@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../services/export_service.dart';
 import '../../services/feedback_service.dart';
 import '../../services/survey_config_service.dart';
+import '../../services/qr_code_service.dart';
+import '../../services/dark_mode_service.dart';
+import '../../widgets/dark_mode_overlay.dart';
+import '../../models/survey_data.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // THEME CONSTANTS
@@ -261,6 +266,8 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
   }
 
   Widget _buildAccessPointCard(BuildContext context) {
+    final GlobalKey qrKey = GlobalKey();
+    
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -290,17 +297,30 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
             ),
             const SizedBox(height: 24),
             Center(
-              child: Container(
-                width: 180,
-                height: 180,
-                color: Colors.grey.shade100,
-                child: Icon(Icons.qr_code, size: 100, color: Colors.black87),
+              child: RepaintBoundary(
+                key: qrKey,
+                child: Container(
+                  width: 180,
+                  height: 180,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: QrImageView(
+                    data: QrCodeService.surveyUrl,
+                    version: QrVersions.auto,
+                    size: 164,
+                    backgroundColor: Colors.white,
+                    errorCorrectionLevel: QrErrorCorrectLevel.M,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 12),
             Center(
               child: Text(
-                'ID: ARTA-VAL-2024-Q1',
+                'ID: ${QrCodeService.surveyId}',
                 style: TextStyle(fontFamily: fontBody, fontSize: 10, color: Colors.grey.shade500),
               ),
             ),
@@ -309,8 +329,36 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Downloading QR Code...')));
+                    onPressed: () async {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Generating QR Code image...')),
+                      );
+                      
+                      try {
+                        final imageBytes = await QrCodeService.captureWidgetAsImage(qrKey);
+                        if (imageBytes != null) {
+                          await QrCodeService.downloadQrCode(imageBytes);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('QR Code downloaded successfully!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } else {
+                          throw Exception('Failed to capture QR code image');
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Download failed: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
                     },
                     icon: const Icon(Icons.download, size: 16),
                     label: const Text('Download'),
@@ -319,8 +367,28 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sending to printer...')));
+                    onPressed: () async {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Preparing print document...')),
+                      );
+                      
+                      try {
+                        final imageBytes = await QrCodeService.captureWidgetAsImage(qrKey);
+                        if (imageBytes != null) {
+                          await QrCodeService.printQrCode(imageBytes);
+                        } else {
+                          throw Exception('Failed to capture QR code image');
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Print failed: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
                     },
                     icon: const Icon(Icons.print, size: 16),
                     label: const Text('Print'),
@@ -335,7 +403,10 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Direct Link:', style: TextStyle(fontFamily: fontBody, fontSize: 12, color: Colors.grey.shade600)),
-                Text('valenzuela.gov.ph/arta-survey', style: TextStyle(fontFamily: fontBody, fontSize: 12, color: Colors.blue, fontWeight: FontWeight.w500)),
+                SelectableText(
+                  QrCodeService.surveyUrl.replaceFirst('https://', ''),
+                  style: TextStyle(fontFamily: fontBody, fontSize: 11, color: Colors.blue, fontWeight: FontWeight.w500),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -564,6 +635,10 @@ class DetailedAnalyticsScreen extends StatefulWidget {
 }
 
 class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
+  // Date filter state
+  DateTimeRange? _selectedDateRange;
+  String _activeFilter = 'all'; // 'all', 'thisMonth', 'thisWeek', 'custom'
+  
   // SQD metadata
   static const List<Map<String, String>> _sqdMetadata = [
     {'code': 'SQD0', 'title': 'Satisfaction', 'desc': 'I am satisfied with the service that I availed'},
@@ -580,10 +655,96 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
   @override
   void initState() {
     super.initState();
-    // Ensure data is loaded
+    // Start real-time listener if not already listening
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<FeedbackService>().fetchAllFeedbacks();
+      final feedbackService = context.read<FeedbackService>();
+      if (!feedbackService.isListening) {
+        feedbackService.startRealtimeUpdates();
+      }
     });
+  }
+
+  // Filter feedbacks based on date range
+  List<SurveyData> _getFilteredFeedbacks(List<SurveyData> allFeedbacks) {
+    if (_selectedDateRange == null) return allFeedbacks;
+    
+    return allFeedbacks.where((feedback) {
+      final date = feedback.submittedAt ?? feedback.date;
+      if (date == null) return false;
+      return date.isAfter(_selectedDateRange!.start.subtract(const Duration(days: 1))) &&
+             date.isBefore(_selectedDateRange!.end.add(const Duration(days: 1)));
+    }).toList();
+  }
+
+  // Set This Month filter
+  void _setThisMonthFilter() {
+    final now = DateTime.now();
+    final firstDayOfMonth = DateTime(now.year, now.month, 1);
+    final lastDayOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+    
+    setState(() {
+      _selectedDateRange = DateTimeRange(start: firstDayOfMonth, end: lastDayOfMonth);
+      _activeFilter = 'thisMonth';
+    });
+  }
+
+  // Set This Week filter
+  void _setThisWeekFilter() {
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final endOfWeek = startOfWeek.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
+    
+    setState(() {
+      _selectedDateRange = DateTimeRange(
+        start: DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day),
+        end: DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day, 23, 59, 59),
+      );
+      _activeFilter = 'thisWeek';
+    });
+  }
+
+  // Show advanced filter dialog
+  Future<void> _showAdvancedFilterDialog() async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => _AdvancedFilterDialog(
+        currentDateRange: _selectedDateRange,
+      ),
+    );
+    
+    if (result != null) {
+      setState(() {
+        _selectedDateRange = result['dateRange'] as DateTimeRange?;
+        _activeFilter = result['dateRange'] != null ? 'custom' : 'all';
+      });
+    }
+  }
+
+  // Clear all filters
+  void _clearFilters() {
+    setState(() {
+      _selectedDateRange = null;
+      _activeFilter = 'all';
+    });
+  }
+
+  // Get filter button text
+  String _getFilterButtonText() {
+    switch (_activeFilter) {
+      case 'thisMonth':
+        return 'This Month';
+      case 'thisWeek':
+        return 'This Week';
+      case 'custom':
+        if (_selectedDateRange != null) {
+          final start = '${_selectedDateRange!.start.month}/${_selectedDateRange!.start.day}';
+          final end = '${_selectedDateRange!.end.month}/${_selectedDateRange!.end.day}';
+          return '$start - $end';
+        }
+        return 'Custom';
+      default:
+        return 'All Time';
+    }
   }
 
   List<Map<String, dynamic>> _getSQDDataWithScores(Map<String, double> sqdAverages) {
@@ -668,22 +829,52 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                   ),),
                   Row(
                     children: [
+                      // Clear filter button (shows when filter is active)
+                      if (_activeFilter != 'all') ...[                        
+                        IconButton(
+                          onPressed: _clearFilters,
+                          icon: const Icon(Icons.close, size: 18),
+                          tooltip: 'Clear filter',
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.red.shade100,
+                            foregroundColor: Colors.red.shade700,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      // This Month button
                       OutlinedButton.icon(
-                        onPressed: () {},
+                        onPressed: _setThisMonthFilter,
                         icon: const Icon(Icons.calendar_today, size: 16),
-                        label: const Text('This Month'),
+                        label: Text(_activeFilter == 'thisMonth' ? 'This Month ✓' : 'This Month'),
                         style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.white,
+                          backgroundColor: _activeFilter == 'thisMonth' ? Colors.blue.shade50 : Colors.white,
+                          foregroundColor: _activeFilter == 'thisMonth' ? Colors.blue.shade700 : null,
+                          side: _activeFilter == 'thisMonth' ? BorderSide(color: Colors.blue.shade400, width: 2) : null,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // This Week button
+                      OutlinedButton.icon(
+                        onPressed: _setThisWeekFilter,
+                        icon: const Icon(Icons.date_range, size: 16),
+                        label: Text(_activeFilter == 'thisWeek' ? 'This Week ✓' : 'This Week'),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: _activeFilter == 'thisWeek' ? Colors.blue.shade50 : Colors.white,
+                          foregroundColor: _activeFilter == 'thisWeek' ? Colors.blue.shade700 : null,
+                          side: _activeFilter == 'thisWeek' ? BorderSide(color: Colors.blue.shade400, width: 2) : null,
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                         ),
                       ),
                       const SizedBox(width: 12),
+                      // Advanced Filter button
                       ElevatedButton.icon(
-                        onPressed: () {},
+                        onPressed: _showAdvancedFilterDialog,
                         icon: const Icon(Icons.filter_list, size: 16),
-                        label: const Text('Advanced Filter'),
+                        label: Text(_activeFilter == 'custom' ? _getFilterButtonText() : 'Custom Range'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue.shade600,
+                          backgroundColor: _activeFilter == 'custom' ? Colors.green.shade600 : Colors.blue.shade600,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                         ),
@@ -905,7 +1096,7 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(4)),
-                child: Text(score.toString(), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: scoreColor)),
+                child: Text(score.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: scoreColor)),
               ),
             ],
           ),
@@ -1271,8 +1462,8 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _darkMode = false;
   String _exportFormat = 'csv';
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -1281,48 +1472,484 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadPrefs() async {
+    setState(() => _isLoading = true);
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _darkMode = prefs.getBool('darkMode') ?? false;
       _exportFormat = prefs.getString('exportFormat') ?? 'csv';
+      _isLoading = false;
     });
   }
 
   Future<void> _savePrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('darkMode', _darkMode);
     await prefs.setString('exportFormat', _exportFormat);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings saved')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Settings saved successfully'),
+        backgroundColor: Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
+    // Wrap Settings screen with DarkModeOverlay for consistency
+    return DarkModeOverlay(
+      child: Consumer<DarkModeService>(
+        builder: (context, darkModeService, _) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Settings'),
+              backgroundColor: brandBlue,
+              foregroundColor: Colors.white,
+              actions: [
+                // Quick dark mode toggle in app bar
+                IconButton(
+                  icon: Icon(
+                    darkModeService.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                  ),
+                  tooltip: darkModeService.isDarkMode ? 'Switch to light mode' : 'Switch to dark mode',
+                  onPressed: () => darkModeService.toggleDarkMode(),
+                ),
+              ],
+            ),
+            body: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                      // Dark Mode Section
+                      _buildDarkModeSection(context, darkModeService),
+                      const SizedBox(height: 24),
+                      
+                      // Export Format Section
+                      Card(
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(color: Colors.grey.shade200),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.file_download, color: brandBlue),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Default Export Format',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: brandBlue,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Choose the default format for data exports',
+                                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                              ),
+                              const SizedBox(height: 16),
+                              _buildFormatOption('csv', 'CSV', 'Spreadsheet compatible format', Icons.table_chart, Colors.green),
+                              _buildFormatOption('json', 'JSON', 'Structured data format', Icons.code, Colors.blue),
+                              _buildFormatOption('pdf', 'PDF', 'Printable document format', Icons.picture_as_pdf, Colors.red),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      // About Section
+                      Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.info_outline, color: brandBlue),
+                              const SizedBox(width: 12),
+                              Text(
+                                'About',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: brandBlue,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _buildInfoRow('Application', 'V-Serve ARTA Feedback Analytics'),
+                          _buildInfoRow('Version', '1.0.0'),
+                          _buildInfoRow('Developer', 'City Government of Valenzuela'),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  
+                  // Save Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _savePrefs,
+                      icon: const Icon(Icons.save),
+                      label: const Text('Save Settings'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: brandBlue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Builds the dark mode settings section
+  Widget _buildDarkModeSection(BuildContext context, DarkModeService darkModeService) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SwitchListTile(
-              title: const Text('Dark Mode'),
-              value: _darkMode,
-              onChanged: (v) => setState(() => _darkMode = v),
+            Row(
+              children: [
+                Icon(
+                  darkModeService.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                  color: brandBlue,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Appearance',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: brandBlue,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
-            const Text('Default Export Format', style: TextStyle(fontWeight: FontWeight.bold)),
-            RadioListTile<String>(title: const Text('CSV'), value: 'csv', groupValue: _exportFormat, onChanged: (v) => setState(() => _exportFormat = v!)),
-            RadioListTile<String>(title: const Text('JSON'), value: 'json', groupValue: _exportFormat, onChanged: (v) => setState(() => _exportFormat = v!)),
-            RadioListTile<String>(title: const Text('PDF'), value: 'pdf', groupValue: _exportFormat, onChanged: (v) => setState(() => _exportFormat = v!)),
+            Text(
+              'Customize the admin dashboard appearance',
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            ),
             const SizedBox(height: 16),
-            Row(children: [
-              ElevatedButton(onPressed: _savePrefs, child: const Text('Save')),
-              const SizedBox(width: 12),
-              OutlinedButton(onPressed: _loadPrefs, child: const Text('Reload')),
-            ])
+            
+            // Dark Mode Toggle
+            _buildDarkModeOption(
+              context,
+              darkModeService,
+              DarkModePreference.system,
+              'System',
+              'Follow your device theme settings',
+              Icons.settings_suggest,
+            ),
+            _buildDarkModeOption(
+              context,
+              darkModeService,
+              DarkModePreference.light,
+              'Light',
+              'Always use light theme',
+              Icons.light_mode,
+            ),
+            _buildDarkModeOption(
+              context,
+              darkModeService,
+              DarkModePreference.dark,
+              'Dark',
+              'Always use dark theme',
+              Icons.dark_mode,
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Current status indicator
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: darkModeService.isDarkMode 
+                    ? Colors.grey.shade800.withOpacity(0.1)
+                    : Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 18,
+                    color: brandBlue,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Dark mode is currently ${darkModeService.isDarkMode ? 'enabled' : 'disabled'}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: brandBlue,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDarkModeOption(
+    BuildContext context,
+    DarkModeService darkModeService,
+    DarkModePreference preference,
+    String title,
+    String subtitle,
+    IconData icon,
+  ) {
+    final isSelected = darkModeService.preference == preference;
+    final color = brandBlue;
+    
+    return InkWell(
+      onTap: () => darkModeService.setPreference(preference),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? color : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? color : Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(Icons.check_circle, color: color, size: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormatOption(String value, String title, String subtitle, IconData icon, Color color) {
+    final isSelected = _exportFormat == value;
+    return InkWell(
+      onTap: () => setState(() => _exportFormat = value),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? color : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: isSelected ? color : Colors.black87)),
+                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(Icons.check_circle, color: color, size: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: Colors.grey.shade600)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+}
+
+// Advanced Filter Dialog
+class _AdvancedFilterDialog extends StatefulWidget {
+  final DateTimeRange? currentDateRange;
+  
+  const _AdvancedFilterDialog({this.currentDateRange});
+  
+  @override
+  State<_AdvancedFilterDialog> createState() => _AdvancedFilterDialogState();
+}
+
+class _AdvancedFilterDialogState extends State<_AdvancedFilterDialog> {
+  DateTimeRange? _dateRange;
+  
+  @override
+  void initState() {
+    super.initState();
+    _dateRange = widget.currentDateRange;
+  }
+  
+  Future<void> _selectDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: _dateRange,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(primary: brandBlue),
+          ),
+          child: child!,
+        );
+      },
+    );
+    
+    if (picked != null) {
+      setState(() => _dateRange = picked);
+    }
+  }
+  
+  String _formatDate(DateTime date) {
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Row(
+        children: [
+          Icon(Icons.filter_alt, color: brandBlue),
+          const SizedBox(width: 12),
+          Text('Advanced Filter', style: TextStyle(color: brandBlue, fontWeight: FontWeight.bold)),
+        ],
+      ),
+      content: SizedBox(
+        width: 400,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Date Range', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: _selectDateRange,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.date_range, color: brandBlue),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _dateRange != null
+                            ? '${_formatDate(_dateRange!.start)} - ${_formatDate(_dateRange!.end)}'
+                            : 'Select date range',
+                        style: TextStyle(
+                          color: _dateRange != null ? Colors.black87 : Colors.grey.shade500,
+                        ),
+                      ),
+                    ),
+                    Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
+                  ],
+                ),
+              ),
+            ),
+            if (_dateRange != null) ...[
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () => setState(() => _dateRange = null),
+                icon: const Icon(Icons.clear, size: 18),
+                label: const Text('Clear date range'),
+                style: TextButton.styleFrom(foregroundColor: Colors.red.shade600),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600)),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, {'dateRange': _dateRange}),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: brandBlue,
+            foregroundColor: Colors.white,
+          ),
+          child: const Text('Apply Filter'),
+        ),
+      ],
     );
   }
 }
