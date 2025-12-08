@@ -60,7 +60,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 child: Container(
-                  color: Colors.black.withOpacity(0.1), // Very subtle overlay
+                  color: Colors.black.withValues(alpha: 0.1), // Very subtle overlay
                 ),
               ),
             ),
@@ -166,7 +166,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
+        color: isSelected ? Colors.white.withValues(alpha: 0.2) : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
       ),
       child: ListTile(
@@ -293,9 +293,9 @@ class _DashboardOverviewState extends State<DashboardOverview> {
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           margin: const EdgeInsets.only(right: 12),
                           decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.2),
+                            color: Colors.green.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.green.withOpacity(0.5)),
+                            border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -334,7 +334,7 @@ class _DashboardOverviewState extends State<DashboardOverview> {
                             : const Icon(Icons.refresh),
                         label: Text(isLoading ? 'Loading...' : 'Refresh'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white.withOpacity(0.2),
+                          backgroundColor: Colors.white.withValues(alpha: 0.2),
                           foregroundColor: Colors.white,
                         ),
                       ),
@@ -914,7 +914,7 @@ class UserManagementScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 24),
@@ -1016,7 +1016,7 @@ class UserManagementScreen extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: roleColor.withOpacity(0.1),
+                color: roleColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -1041,7 +1041,7 @@ class UserManagementScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
+              color: statusColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -1066,6 +1066,7 @@ class UserManagementScreen extends StatelessWidget {
     String selectedRole = 'Analyst/Viewer'; // Default
     final formKey = GlobalKey<FormState>();
     String name = '';
+    // ignore: unused_local_variable
     String email = '';
 
     return showDialog(
@@ -1192,7 +1193,7 @@ class UserManagementScreen extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<String>(
-                      value: selectedRole,
+                      initialValue: selectedRole,
                       decoration: InputDecoration(
                         labelText: 'Role',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -1207,7 +1208,7 @@ class UserManagementScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: selectedStatus,
+                      initialValue: selectedStatus,
                       decoration: InputDecoration(
                         labelText: 'Status',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -1222,7 +1223,7 @@ class UserManagementScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: selectedDepartment,
+                      initialValue: selectedDepartment,
                       decoration: InputDecoration(
                         labelText: 'Department',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -1483,7 +1484,7 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
               child: Icon(icon, color: color, size: 28),
             ),
             Column(
@@ -1510,7 +1511,7 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
                 label: const Text('Generate'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: color,
-                  side: BorderSide(color: color.withOpacity(0.5)),
+                  side: BorderSide(color: color.withValues(alpha: 0.5)),
                 ),
               ),
             ),
@@ -1521,14 +1522,15 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
   }
 
   Future<void> _exportCsv(BuildContext context, FeedbackService feedbackService) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         const SnackBar(content: Text('Generating CSV export...')),
       );
       
       final data = feedbackService.exportFeedbacks();
       if (data.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           const SnackBar(content: Text('No data to export'), backgroundColor: Colors.orange),
         );
         return;
@@ -1542,45 +1544,47 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
       ];
       
       final filename = await ExportService.exportCsv('ARTA_Feedback_Data', rows);
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         SnackBar(content: Text('CSV exported: $filename'), backgroundColor: Colors.green),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
       );
     }
   }
 
   Future<void> _exportJson(BuildContext context, FeedbackService feedbackService) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         const SnackBar(content: Text('Generating JSON export...')),
       );
       
       final data = feedbackService.exportFeedbacks();
       if (data.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           const SnackBar(content: Text('No data to export'), backgroundColor: Colors.orange),
         );
         return;
       }
       
       final filename = await ExportService.exportJson('ARTA_Feedback_Data', data);
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         SnackBar(content: Text('JSON exported: $filename'), backgroundColor: Colors.green),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
       );
     }
   }
 
   void _showPdfExportDialog(BuildContext context, FeedbackService feedbackService) {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Export PDF Report'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1590,18 +1594,18 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
               title: const Text('ARTA Compliance Report'),
               subtitle: const Text('Standard format for ARTA submission'),
               onTap: () async {
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
                 try {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     const SnackBar(content: Text('Generating PDF report...')),
                   );
                   final data = feedbackService.exportFeedbacks();
                   final filename = await ExportService.exportPdf('ARTA_Compliance_Report', data);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(content: Text('PDF exported: $filename'), backgroundColor: Colors.green),
                   );
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
                   );
                 }
@@ -1612,18 +1616,18 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
               title: const Text('Detailed Analysis'),
               subtitle: const Text('Full breakdown of SQD and comments'),
               onTap: () async {
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
                 try {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     const SnackBar(content: Text('Generating detailed analysis...')),
                   );
                   final data = feedbackService.exportFeedbacks();
                   final filename = await ExportService.exportPdf('ARTA_Detailed_Analysis', data);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(content: Text('PDF exported: $filename'), backgroundColor: Colors.green),
                   );
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
                   );
                 }
@@ -1633,7 +1637,7 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
         ],

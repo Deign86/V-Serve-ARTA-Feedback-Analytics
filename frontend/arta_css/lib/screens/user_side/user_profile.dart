@@ -137,7 +137,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.98),
+        color: Colors.white.withValues(alpha: 0.98),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [BoxShadow(blurRadius: 14, color: Colors.black12)],
       ),
@@ -340,10 +340,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // ignore: deprecated_member_use
                           Radio<String>(
                             value: type,
+                            // ignore: deprecated_member_use
                             groupValue: clientType,
                             activeColor: const Color(0xFF003366),
+                            // ignore: deprecated_member_use
                             onChanged: (value) =>
                                 setState(() => clientType = value),
                           ),
@@ -388,6 +391,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           if (picked != null) {
             setState(() => selectedDate = picked);
           } else {
+            if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Please fill out all fields correctly.'),
@@ -450,10 +454,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               (s) => Expanded(
                 child: Row(
                   children: [
+                    // ignore: deprecated_member_use
                     Radio<String>(
                       value: s,
+                      // ignore: deprecated_member_use
                       groupValue: sex,
                       activeColor: const Color(0xFF003366),
+                      // ignore: deprecated_member_use
                       onChanged: (value) => setState(() => sex = value),
                     ),
                     Flexible(  // Add Flexible here to prevent overflow

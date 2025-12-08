@@ -44,6 +44,7 @@ class ExportService {
         build: (context) => [
           pw.Header(level: 0, child: pw.Text(baseName)),
           if (headers.isNotEmpty)
+            // ignore: deprecated_member_use
             pw.Table.fromTextArray(
               headers: headers,
               data: data,

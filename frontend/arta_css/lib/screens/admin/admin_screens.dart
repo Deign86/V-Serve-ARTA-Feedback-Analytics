@@ -430,7 +430,7 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: Colors.blue.shade50),
       ),
-      color: Colors.blue.shade50.withOpacity(0.3),
+      color: Colors.blue.shade50.withValues(alpha: 0.3),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -457,7 +457,7 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
               style: TextStyle(
                 fontFamily: fontBody,
                 fontSize: 12,
-                color: brandBlue.withOpacity(0.8),
+                color: brandBlue.withValues(alpha: 0.8),
               ),
             ),
             const SizedBox(height: 24),
@@ -511,7 +511,7 @@ class SurveyDetailScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 5))],
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 5))],
                 ),
                 child: Column(
                   children: [
@@ -665,6 +665,7 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
   }
 
   // Filter feedbacks based on date range
+  // ignore: unused_element
   List<SurveyData> _getFilteredFeedbacks(List<SurveyData> allFeedbacks) {
     if (_selectedDateRange == null) return allFeedbacks;
     
@@ -937,7 +938,7 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1049,7 +1050,7 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                           radarBackgroundColor: Colors.transparent,
                           dataSets: [
                             RadarDataSet(
-                              fillColor: brandRed.withOpacity(0.4),
+                              fillColor: brandRed.withValues(alpha: 0.4),
                               borderColor: brandRed,
                               entryRadius: 3,
                               dataEntries: sqdData.map((e) => RadarEntry(value: e['score'] as double)).toList(),
@@ -1076,7 +1077,7 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
   Widget _buildSQDCard(Map<String, dynamic> data) {
     double score = data['score'];
     Color scoreColor = score >= 4.5 ? Colors.green : (score >= 4.0 ? Colors.amber : Colors.red);
-    Color bgColor = scoreColor.withOpacity(0.1);
+    Color bgColor = scoreColor.withValues(alpha: 0.1);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1132,7 +1133,7 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
             child: Icon(Icons.analytics, color: color, size: 24),
           ),
           const SizedBox(width: 16),
@@ -1422,8 +1423,10 @@ class _ExportProcessScreenState extends State<ExportProcessScreen> {
     try {
       final path = await ExportService.exportCsv(widget.templateName, rows);
       setState(() => _savedPath = path);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exported to $path')));
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
     }
   }
@@ -1483,6 +1486,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _savePrefs() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('exportFormat', _exportFormat);
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('Settings saved successfully'),
@@ -1696,7 +1700,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: darkModeService.isDarkMode 
-                    ? Colors.grey.shade800.withOpacity(0.1)
+                    ? Colors.grey.shade800.withValues(alpha: 0.1)
                     : Colors.blue.shade50,
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -1744,7 +1748,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? color : Colors.grey.shade300,
@@ -1790,7 +1794,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? color : Colors.grey.shade300,

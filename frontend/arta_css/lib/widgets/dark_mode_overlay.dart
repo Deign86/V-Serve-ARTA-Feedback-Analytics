@@ -31,6 +31,7 @@ const List<double> _darkModeWarmMatrix = <double>[
 
 /// High contrast dark mode matrix
 /// Better for accessibility
+// ignore: unused_element
 const List<double> _darkModeHighContrastMatrix = <double>[
   // R    G     B     A    offset
   -1.0,  0.0,  0.0,  0.0,  255.0,

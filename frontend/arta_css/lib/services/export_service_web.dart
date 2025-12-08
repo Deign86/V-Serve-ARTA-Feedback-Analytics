@@ -1,5 +1,4 @@
-/// Web implementation using dart:html for file downloads
-library export_service_web;
+// Web implementation using dart:html for file downloads
 
 // ignore: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:html' as html;

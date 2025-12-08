@@ -6,8 +6,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   cloud_firestore
   firebase_core
   permission_handler_windows
-  screen_retriever
-  window_manager
+  printing
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

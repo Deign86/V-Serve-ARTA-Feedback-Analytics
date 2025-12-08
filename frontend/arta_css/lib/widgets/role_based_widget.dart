@@ -9,12 +9,13 @@ class RoleBasedWidget extends StatelessWidget {
   final Widget child;
   final Widget? fallback;
 
+  // ignore: use_super_parameters
   const RoleBasedWidget({
-    Key? key,
+    super.key,
     required this.allowedRoles,
     required this.child,
     this.fallback,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -34,12 +35,13 @@ class PermissionBasedWidget extends StatelessWidget {
   final Widget child;
   final Widget? fallback;
 
+  // ignore: use_super_parameters
   const PermissionBasedWidget({
-    Key? key,
+    super.key,
     required this.permission,
     required this.child,
     this.fallback,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

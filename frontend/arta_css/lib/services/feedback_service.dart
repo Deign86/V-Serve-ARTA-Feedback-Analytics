@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../models/survey_data.dart';
@@ -15,11 +16,16 @@ class FeedbackService extends ChangeNotifier {
   // Dashboard statistics
   DashboardStats? _dashboardStats;
   
+  // Real-time stream subscription
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _feedbackSubscription;
+  bool _isListening = false;
+  
   // Getters
   List<SurveyData> get feedbacks => _feedbacks;
   bool get isLoading => _isLoading;
   String? get error => _error;
   DashboardStats? get dashboardStats => _dashboardStats;
+  bool get isListening => _isListening;
   
   /// Fetch all feedbacks from Firestore
   Future<List<SurveyData>> fetchAllFeedbacks({bool forceRefresh = false}) async {
@@ -87,6 +93,65 @@ class FeedbackService extends ChangeNotifier {
       notifyListeners();
       return [];
     }
+  }
+  
+  /// Start listening to real-time updates from Firestore
+  void startRealtimeUpdates() {
+    if (_isListening) return; // Already listening
+    
+    debugPrint('=== STARTING REAL-TIME FEEDBACK LISTENER ===');
+    _isListening = true;
+    
+    _feedbackSubscription = _firestore
+        .collection('feedbacks')
+        .snapshots()
+        .listen(
+          (snapshot) {
+            debugPrint('Real-time update: ${snapshot.docs.length} documents');
+            
+            _feedbacks = snapshot.docs.map((doc) {
+              final data = doc.data();
+              data['id'] = doc.id;
+              // Use createdAt as submittedAt if submittedAt is missing
+              if (data['submittedAt'] == null && data['createdAt'] != null) {
+                data['submittedAt'] = data['createdAt'];
+              }
+              return SurveyData.fromJson(data);
+            }).toList();
+            
+            // Sort locally by submittedAt or createdAt
+            _feedbacks.sort((a, b) {
+              final aDate = a.submittedAt ?? DateTime(1970);
+              final bDate = b.submittedAt ?? DateTime(1970);
+              return bDate.compareTo(aDate); // descending
+            });
+            
+            _lastFetch = DateTime.now();
+            _isLoading = false;
+            
+            // Recalculate stats
+            _calculateDashboardStats();
+          },
+          onError: (error) {
+            debugPrint('Real-time listener error: $error');
+            _error = error.toString();
+            notifyListeners();
+          },
+        );
+  }
+  
+  /// Stop listening to real-time updates
+  void stopRealtimeUpdates() {
+    debugPrint('=== STOPPING REAL-TIME FEEDBACK LISTENER ===');
+    _feedbackSubscription?.cancel();
+    _feedbackSubscription = null;
+    _isListening = false;
+  }
+  
+  @override
+  void dispose() {
+    stopRealtimeUpdates();
+    super.dispose();
   }
   
   /// Fetch feedbacks with date range filter

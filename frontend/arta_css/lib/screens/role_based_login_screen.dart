@@ -70,7 +70,7 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
         ),
         // Added a slight dark overlay to ensure the card pops out against the city photo
         child: Container(
-          color: Colors.black.withOpacity(0.1), 
+          color: Colors.black.withValues(alpha: 0.1), 
           child: Center(
             child: SingleChildScrollView(
               child: Container(
@@ -211,7 +211,7 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                disabledBackgroundColor: const Color(0xFF003366).withOpacity(0.6),
+                                disabledBackgroundColor: const Color(0xFF003366).withValues(alpha: 0.6),
                               ),
                               child: _isLoading
                                   ? const SizedBox(

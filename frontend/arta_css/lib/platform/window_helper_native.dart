@@ -1,8 +1,8 @@
-/// Native implementation for desktop window management
-library window_helper_native;
+// Native implementation for desktop window management
 
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+// ignore: depend_on_referenced_packages
 import 'package:window_manager/window_manager.dart';
 
 Future<void> initializeWindow() async {

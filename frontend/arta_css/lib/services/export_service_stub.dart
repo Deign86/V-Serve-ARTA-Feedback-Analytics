@@ -1,6 +1,5 @@
-/// Stub implementation for unsupported platforms
-/// This file is used when neither dart:html nor dart:io is available
-library export_service_stub;
+// Stub implementation for unsupported platforms
+// This file is used when neither dart:html nor dart:io is available
 
 import 'dart:typed_data';
 

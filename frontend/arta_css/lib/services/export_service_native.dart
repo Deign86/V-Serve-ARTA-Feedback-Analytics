@@ -1,5 +1,4 @@
-/// Native implementation using dart:io for file downloads
-library export_service_native;
+// Native implementation using dart:io for file downloads
 
 import 'dart:io';
 import 'dart:typed_data';

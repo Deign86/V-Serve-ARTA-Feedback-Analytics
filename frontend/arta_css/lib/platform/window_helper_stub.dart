@@ -1,5 +1,4 @@
-/// Stub implementation for web platform (no window management)
-library window_helper_stub;
+// Stub implementation for web platform (no window management)
 
 Future<void> initializeWindow() async {
   // No-op on web
