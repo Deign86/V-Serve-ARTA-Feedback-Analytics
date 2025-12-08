@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
-import '../../services/survey_config_service.dart';
 import 'citizen_charter.dart';
-import 'sqd.dart';
-import 'suggestions.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -16,12 +12,18 @@ class UserProfileScreen extends StatefulWidget {
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
   late ScrollController _scrollController;
-  String? clientType = 'CITIZEN';
+  
+  // Default values
+  String clientType = 'CITIZEN';
+  String sex = 'MALE';
+  
   DateTime? selectedDate;
-  String? sex = 'MALE';
   String? age;
   String? region;
   String? serviceAvailed;
+
+  // Validation State for Date (since it's not a text field)
+  bool _showDateError = false;
 
   final _formKey = GlobalKey<FormState>();
 
@@ -37,12 +39,52 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     super.dispose();
   }
 
+  void _validateAndSubmit() {
+    setState(() {
+      // Check if date is missing
+      _showDateError = (selectedDate == null);
+    });
+
+    // 1. Validate Text Fields (Age, Region, Service)
+    bool isTextFormValid = _formKey.currentState?.validate() ?? false;
+
+    // 2. Validate Date
+    bool isDateValid = selectedDate != null;
+
+    if (isTextFormValid && isDateValid) {
+      // Create Data Object
+      final surveyData = SurveyData(
+        clientType: clientType,
+        date: selectedDate,
+        sex: sex,
+        age: int.tryParse(age!), // Safe to parse because validator checked it
+        regionOfResidence: region?.trim(),
+        serviceAvailed: serviceAvailed?.trim(),
+      );
+
+      // Smooth Transition
+      Navigator.push(
+        context,
+        SmoothPageRoute(
+          page: CitizenCharterScreen(surveyData: surveyData),
+        ),
+      );
+    } else {
+      // Show error snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please correct the errors in red before proceeding.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
-    final configService = Provider.of<SurveyConfigService>(context);
     final currentPage = 1;
-    final totalSteps = configService.totalSteps;
+    final totalSteps = 4;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -55,8 +97,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             child: Center(
               child: Container(
                 width: isMobile ? double.infinity : 1200,
-                height:
-                    MediaQuery.of(context).size.height -
+                height: MediaQuery.of(context).size.height -
                     (MediaQuery.of(context).padding.top +
                         MediaQuery.of(context).padding.bottom +
                         50),
@@ -70,7 +111,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     SizedBox(height: isMobile ? 16 : 24),
                     _buildProgressBar(isMobile, currentPage, totalSteps),
                     SizedBox(height: isMobile ? 16 : 24),
-                    Expanded(child: _buildFormCard(isMobile, configService)),
+                    Expanded(child: _buildFormCard(isMobile)),
                   ],
                 ),
               ),
@@ -86,8 +127,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       children: [
         CircleAvatar(
           radius: isMobile ? 16 : 22,
-          backgroundImage: AssetImage('assets/city_logo.png'),
-          onBackgroundImageError: (e, s) {},
+          backgroundImage: const AssetImage('assets/city_logo.png'),
+          backgroundColor: Colors.white,
         ),
         SizedBox(height: isMobile ? 7 : 10),
         Text(
@@ -133,13 +174,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildFormCard(bool isMobile, SurveyConfigService configService) {
+  Widget _buildFormCard(bool isMobile) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.98),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(blurRadius: 14, color: Colors.black12)],
+        boxShadow: const [BoxShadow(blurRadius: 14, color: Colors.black12)],
       ),
       child: Form(
         key: _formKey,
@@ -184,32 +225,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     width: isMobile ? 140 : 160,
                     height: isMobile ? 44 : 50,
                     child: ElevatedButton(
-                      onPressed: () {
-                        if (_formKey.currentState?.validate() ?? false) {
-                          // Collect Part 1 data and pass to next screen
-                          final surveyData = SurveyData(
-                            clientType: clientType,
-                            date: selectedDate,
-                            sex: sex,
-                            age: age != null ? int.tryParse(age!) : null,
-                            regionOfResidence: region,
-                            serviceAvailed: serviceAvailed,
-                          );
-                          
-                          // Navigate based on configuration
-                          _navigateToNextScreen(context, surveyData, configService);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Please fill out all fields correctly.',
-                              ),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      },
-
+                      onPressed: _validateAndSubmit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF003366),
                         shape: RoundedRectangleBorder(
@@ -235,87 +251,63 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  /// Navigate to the next screen based on survey configuration
-  void _navigateToNextScreen(BuildContext context, SurveyData surveyData, SurveyConfigService configService) {
-    Widget nextScreen;
-    
-    if (configService.ccEnabled) {
-      // CC is enabled, go to Citizen Charter
-      nextScreen = CitizenCharterScreen(surveyData: surveyData);
-    } else if (configService.sqdEnabled) {
-      // CC disabled but SQD enabled, skip to SQD
-      nextScreen = SQDScreen(surveyData: surveyData);
-    } else if (configService.suggestionsEnabled) {
-      // Only suggestions enabled, skip to suggestions
-      nextScreen = SuggestionsScreen(surveyData: surveyData);
-    } else {
-      // Nothing else enabled, go directly to thank you
-      nextScreen = const ThankYouScreen();
-    }
-    
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => nextScreen),
+  Widget _buildPart1(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'PART 1. USER PROFILE',
+          style: GoogleFonts.montserrat(
+            fontSize: isMobile ? 18 : 24,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF003366),
+          ),
+        ),
+        SizedBox(height: isMobile ? 24 : 32),
+        _buildClientTypeField(isMobile),
+        SizedBox(height: isMobile ? 24 : 32),
+        // Wrap date, sex, and age fields
+        isMobile
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDateField(isMobile),
+                  SizedBox(height: 16),
+                  _buildSexField(isMobile),
+                  SizedBox(height: 16),
+                  _buildAgeField(isMobile),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(child: _buildDateField(isMobile)),
+                  SizedBox(width: 24),
+                  Expanded(child: _buildSexField(isMobile)),
+                  SizedBox(width: 24),
+                  Expanded(child: _buildAgeField(isMobile)),
+                ],
+              ),
+        SizedBox(height: isMobile ? 24 : 32),
+        // Wrap region and service fields
+        isMobile
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildRegionField(isMobile),
+                  SizedBox(height: 16),
+                  _buildServiceAvailedField(isMobile),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(child: _buildRegionField(isMobile)),
+                  SizedBox(width: 24),
+                  Expanded(child: _buildServiceAvailedField(isMobile)),
+                ],
+              ),
+      ],
     );
   }
-
-  Widget _buildPart1(bool isMobile) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        'PART 1. USER PROFILE',
-        style: GoogleFonts.montserrat(
-          fontSize: isMobile ? 18 : 24,
-          fontWeight: FontWeight.bold,
-          color: const Color(0xFF003366),
-        ),
-      ),
-      SizedBox(height: isMobile ? 16 : 24),
-      _buildClientTypeField(isMobile),
-      SizedBox(height: isMobile ? 16 : 20),
-      // Wrap date, sex, and age fields
-      isMobile
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildDateField(isMobile),
-                SizedBox(height: 12),
-                _buildSexField(isMobile),
-                SizedBox(height: 12),
-                _buildAgeField(isMobile),
-              ],
-            )
-          : Row(
-              children: [
-                Expanded(child: _buildDateField(isMobile)),
-                SizedBox(width: 16),
-                Expanded(child: _buildSexField(isMobile)),
-                SizedBox(width: 16),
-                Expanded(child: _buildAgeField(isMobile)),
-              ],
-            ),
-      SizedBox(height: isMobile ? 16 : 20),
-      // Wrap region and service fields
-      isMobile
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildRegionField(isMobile),
-                SizedBox(height: 12),
-                _buildServiceAvailedField(isMobile),
-              ],
-            )
-          : Row(
-              children: [
-                Expanded(child: _buildRegionField(isMobile)),
-                SizedBox(width: 16),
-                Expanded(child: _buildServiceAvailedField(isMobile)),
-              ],
-            ),
-    ],
-  );
-}
 
   Widget _buildClientTypeField(bool isMobile) {
     return Column(
@@ -348,7 +340,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             activeColor: const Color(0xFF003366),
                             // ignore: deprecated_member_use
                             onChanged: (value) =>
-                                setState(() => clientType = value),
+                                setState(() => clientType = value!),
                           ),
                           Text(
                             type,
@@ -374,63 +366,101 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       Text(
         'DATE:',
         style: GoogleFonts.montserrat(
-          fontSize: isMobile ? 12 : 15, // smaller font on mobile
+          fontSize: isMobile ? 12 : 15, 
           fontWeight: FontWeight.bold,
-          color: const Color(0xFF003366),
+          color: _showDateError ? Colors.red : const Color(0xFF003366),
         ),
       ),
-      SizedBox(height: isMobile ? 6 : 10),  // reduced vertical spacing
+      SizedBox(height: isMobile ? 6 : 10),
       GestureDetector(
         onTap: () async {
-          final picked = await showDatePicker(
+          setState(() => _showDateError = false); // Clear error on tap
+          final picked = await showGeneralDialog<DateTime>(
             context: context,
-            initialDate: DateTime.now(),
-            firstDate: DateTime(2000),
-            lastDate: DateTime.now(),
+            barrierDismissible: true,
+            barrierLabel: 'Dismiss',
+            barrierColor: Colors.black54,
+            transitionDuration: const Duration(milliseconds: 400),
+            pageBuilder: (context, anim1, anim2) {
+              return Theme(
+                data: Theme.of(context).copyWith(
+                  colorScheme: const ColorScheme.light(
+                    primary: Color(0xFF003366),
+                    onPrimary: Colors.white,
+                    onSurface: Colors.black,
+                  ),
+                ),
+                child: DatePickerDialog(
+                  initialDate: selectedDate ?? DateTime.now(),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime.now(),
+                ),
+              );
+            },
+            transitionBuilder: (context, anim1, anim2, child) {
+              return ScaleTransition(
+                scale: CurvedAnimation(
+                  parent: anim1,
+                  curve: Curves.easeOutBack,
+                  reverseCurve: Curves.easeIn,
+                ),
+                child: FadeTransition(
+                  opacity: anim1,
+                  child: child,
+                ),
+              );
+            },
           );
+
           if (picked != null) {
             setState(() => selectedDate = picked);
-          } else {
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Please fill out all fields correctly.'),
-                backgroundColor: Colors.red,
-              ),
-            );
           }
-          return;
         },
         child: Container(
           padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 12 : 16,  // reduced horizontal padding on mobile
-            vertical: isMobile ? 10 : 12,     // reduced vertical padding on mobile
+            horizontal: isMobile ? 12 : 16,
+            vertical: isMobile ? 10 : 12,
           ),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade400),
+            border: Border.all(
+              // TURN RED IF ERROR
+              color: _showDateError ? Colors.red : Colors.grey.shade400,
+              width: _showDateError ? 2.0 : 1.0,
+            ),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Flexible(  // Make text flexible to avoid overflow
+              Flexible(
                 child: Text(
                   selectedDate == null
                       ? 'Select date'
-                      : "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2,'0')}-${selectedDate!.day.toString().padLeft(2,'0')}",  // Short, formatted date
-                  style: GoogleFonts.poppins(fontSize: isMobile ? 8 : 14),
+                      : "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2,'0')}-${selectedDate!.day.toString().padLeft(2,'0')}", 
+                  style: GoogleFonts.poppins(
+                    fontSize: isMobile ? 12 : 14,
+                    color: _showDateError ? Colors.red : Colors.black87,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               Icon(
                 Icons.calendar_today,
-                size: isMobile ? 12 : 18,
-                color: Colors.grey.shade600,
+                size: isMobile ? 18 : 20,
+                color: _showDateError ? Colors.red : Colors.grey.shade600,
               ),
             ],
           ),
         ),
       ),
+      if (_showDateError)
+        Padding(
+          padding: const EdgeInsets.only(top: 6, left: 4),
+          child: Text(
+            'Date is required',
+            style: GoogleFonts.poppins(color: Colors.red, fontSize: 11),
+          ),
+        ),
     ],
   );
 }
@@ -442,12 +472,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       Text(
         'SEX:',
         style: GoogleFonts.montserrat(
-          fontSize: isMobile ? 12 : 15, // slightly smaller for mobile
+          fontSize: isMobile ? 12 : 15,
           fontWeight: FontWeight.bold,
           color: const Color(0xFF003366),
         ),
       ),
-      SizedBox(height: isMobile ? 4 : 10),  // reduced spacing here
+      SizedBox(height: isMobile ? 4 : 10),
       Row(
         children: ['MALE', 'FEMALE']
             .map(
@@ -461,13 +491,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       groupValue: sex,
                       activeColor: const Color(0xFF003366),
                       // ignore: deprecated_member_use
-                      onChanged: (value) => setState(() => sex = value),
+                      onChanged: (value) => setState(() => sex = value!),
                     ),
-                    Flexible(  // Add Flexible here to prevent overflow
+                    Flexible(
                       child: Text(
                         s,
                         style: GoogleFonts.ptSansNarrow(
-                          fontSize: isMobile ? 9 : 13,
+                          fontSize: isMobile ? 11 : 13,
                           color: const Color(0xFF003366),
                         ),
                       ),
@@ -489,30 +519,37 @@ Widget _buildAgeField(bool isMobile) {
       Text(
         'AGE:',
         style: GoogleFonts.montserrat(
-          fontSize: isMobile ? 12 : 15,  // smaller font size for mobile
+          fontSize: isMobile ? 12 : 15,
           fontWeight: FontWeight.bold,
           color: const Color(0xFF003366),
         ),
       ),
-      SizedBox(height: isMobile ? 4 : 8),  // less vertical spacing
+      SizedBox(height: isMobile ? 4 : 8),
       TextFormField(
         keyboardType: TextInputType.number,
         onChanged: (value) => setState(() => age = value),
         validator: (value) {
-          if (value == null || value.trim().isEmpty) return 'Age is required';
+          if (value == null || value.trim().isEmpty) return 'Required';
+          
+          // Strict Number Check (No dots, commas, spaces)
+          if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
+            return 'Numbers only';
+          }
+
           final intAge = int.tryParse(value);
-          if (intAge == null) return 'Must be a valid number';
-          if (intAge < 18) return 'Minimum age is 18';
+          if (intAge == null) return 'Invalid number';
+          if (intAge < 18) return 'Must be 18+';
           if (intAge > 120) return 'Invalid age';
           return null;
         },
         decoration: InputDecoration(
           hintText: 'Age',
           hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 11 : 14),
+          prefixIcon: Icon(Icons.person_outline, color: Colors.grey.shade600, size: 20),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           contentPadding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 12 : 16,  // reduce horizontal padding on mobile
-            vertical: isMobile ? 8 : 12,     // reduce vertical padding on mobile
+            horizontal: isMobile ? 12 : 16,
+            vertical: isMobile ? 8 : 12,
           ),
         ),
       ),
@@ -528,25 +565,26 @@ Widget _buildAgeField(bool isMobile) {
       Text(
         'REGION OF RESIDENCE:',
         style: GoogleFonts.montserrat(
-          fontSize: isMobile ? 11 : 15, // smaller font on mobile
+          fontSize: isMobile ? 11 : 15,
           fontWeight: FontWeight.bold,
           color: const Color(0xFF003366),
         ),
       ),
-      SizedBox(height: isMobile ? 4 : 8), // reduced spacing
+      SizedBox(height: isMobile ? 4 : 8),
       TextFormField(
         onChanged: (value) => setState(() => region = value),
         validator: (value) {
           if (value == null || value.trim().isEmpty) return 'Region is required';
-          if (value.length < 3) return 'Region must be at least 3 characters';
+          if (value.trim().length < 3) return 'Please be more specific';
           return null;
         },
         decoration: InputDecoration(
           hintText: 'Enter your region',
           hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 11 : 14),
+          prefixIcon: Icon(Icons.map_outlined, color: Colors.grey.shade600, size: 20),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           contentPadding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 12 : 16, // less padding on mobile
+            horizontal: isMobile ? 12 : 16,
             vertical: isMobile ? 8 : 12,
           ),
         ),
@@ -562,25 +600,26 @@ Widget _buildServiceAvailedField(bool isMobile) {
       Text(
         'SERVICE AVAILED:',
         style: GoogleFonts.montserrat(
-          fontSize: isMobile ? 10 : 15, // smaller font on mobile
+          fontSize: isMobile ? 10 : 15,
           fontWeight: FontWeight.bold,
           color: const Color(0xFF003366),
         ),
       ),
-      SizedBox(height: isMobile ? 4 : 10), // reduced spacing
+      SizedBox(height: isMobile ? 4 : 10),
       TextFormField(
         onChanged: (value) => setState(() => serviceAvailed = value),
         validator: (value) {
           if (value == null || value.trim().isEmpty) return 'Service is required';
-          if (value.length < 3) return 'Service must be at least 3 characters';
+          if (value.trim().length < 3) return 'Please be more specific';
           return null;
         },
         decoration: InputDecoration(
           hintText: 'Enter the service availed',
           hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 11 : 14),
+          prefixIcon: Icon(Icons.assignment_outlined, color: Colors.grey.shade600, size: 20),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           contentPadding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 12 : 16, // less padding on mobile
+            horizontal: isMobile ? 12 : 16,
             vertical: isMobile ? 8 : 12,
           ),
         ),
@@ -588,4 +627,28 @@ Widget _buildServiceAvailedField(bool isMobile) {
     ],
   );
 }
+}
+
+// === SMOOTH PAGE ROUTE ===
+class SmoothPageRoute extends PageRouteBuilder {
+  final Widget page;
+
+  SmoothPageRoute({required this.page})
+      : super(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            const begin = Offset(1.0, 0.0);
+            const end = Offset.zero;
+            const curve = Curves.easeInOutCubic;
+
+            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+            return SlideTransition(
+              position: animation.drive(tween),
+              child: FadeTransition(opacity: animation, child: child),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 600),
+          reverseTransitionDuration: const Duration(milliseconds: 600),
+        );
 }

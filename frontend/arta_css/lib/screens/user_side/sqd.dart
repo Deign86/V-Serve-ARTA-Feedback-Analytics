@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
-import '../../services/survey_config_service.dart';
 import 'suggestions.dart';
 
 class SQDScreen extends StatefulWidget {
@@ -24,45 +22,45 @@ class _SQDScreenState extends State<SQDScreen> {
 
   final List<Map<String, dynamic>> questions = [
     {
-      'label': 'SQD 0:',
+      'label': 'SQD 0',
       'question': 'I am satisfied with the service that I availed.',
     },
     {
-      'label': 'SQD 1:',
+      'label': 'SQD 1',
       'question': 'I spent a reasonable amount of time for my transaction.',
     },
     {
-      'label': 'SQD 2:',
+      'label': 'SQD 2',
       'question':
           'The office followed the transaction\'s requirements and steps based on the information provided.',
     },
     {
-      'label': 'SQD 3:',
+      'label': 'SQD 3',
       'question':
           'The steps (including payment) I needed to do for my transaction were easy and simple.',
     },
     {
-      'label': 'SQD 4:',
+      'label': 'SQD 4',
       'question':
           'I easily found information about my transaction from the office or its website.',
     },
     {
-      'label': 'SQD 5:',
+      'label': 'SQD 5',
       'question':
           'I paid a reasonable amount of fees for my transaction. (If service was free, mark the \'N/A\' column)',
     },
     {
-      'label': 'SQD 6:',
+      'label': 'SQD 6',
       'question':
           'I feel the office was fair to everyone, or \'walang palakasan\', during my transaction.',
     },
     {
-      'label': 'SQD 7:',
+      'label': 'SQD 7',
       'question':
           'I was treated courteously by the staff, and (if asked for help) the staff was helpful.',
     },
     {
-      'label': 'SQD 8:',
+      'label': 'SQD 8',
       'question':
           'I got what I needed from the government office, or (if denied) denial of request was sufficiently explained to me.',
     },
@@ -98,7 +96,6 @@ class _SQDScreenState extends State<SQDScreen> {
     super.dispose();
   }
 
-  // Validation: All answers must be selected
   bool _isFormValid() {
     for (final ans in answers) {
       if (ans == null) return false;
@@ -107,10 +104,7 @@ class _SQDScreenState extends State<SQDScreen> {
   }
 
   void _onNextPressed() {
-    final configService = Provider.of<SurveyConfigService>(context, listen: false);
-    
     if (_isFormValid()) {
-      // Update survey data with Part 3 SQD responses
       final updatedData = widget.surveyData.copyWith(
         sqd0Rating: answers[0],
         sqd1Rating: answers[1],
@@ -123,21 +117,13 @@ class _SQDScreenState extends State<SQDScreen> {
         sqd8Rating: answers[8],
       );
       
-      // Navigate based on configuration
-      Widget nextScreen;
-      if (configService.suggestionsEnabled) {
-        nextScreen = SuggestionsScreen(surveyData: updatedData);
-      } else {
-        nextScreen = const ThankYouScreen();
-      }
-      
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => nextScreen),
+        SmoothPageRoute(page: SuggestionsScreen(surveyData: updatedData)),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Please answer all questions before proceeding.'),
           backgroundColor: Colors.red,
         ),
@@ -148,10 +134,9 @@ class _SQDScreenState extends State<SQDScreen> {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
-    final configService = Provider.of<SurveyConfigService>(context);
-    final currentStep = configService.getStepNumber(SurveyStep.sqd);
-    final totalSteps = configService.totalSteps;
-    
+    final currentStep = 3; 
+    final totalSteps = 4;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -163,8 +148,7 @@ class _SQDScreenState extends State<SQDScreen> {
             child: Center(
               child: Container(
                 width: isMobile ? double.infinity : 1200,
-                height:
-                    MediaQuery.of(context).size.height -
+                height: MediaQuery.of(context).size.height -
                     (MediaQuery.of(context).padding.top +
                         MediaQuery.of(context).padding.bottom +
                         50),
@@ -194,7 +178,8 @@ class _SQDScreenState extends State<SQDScreen> {
       children: [
         CircleAvatar(
           radius: isMobile ? 16 : 22,
-          backgroundImage: AssetImage('assets/city_logo.png'),
+          backgroundImage: const AssetImage('assets/city_logo.png'),
+          backgroundColor: Colors.white,
         ),
         SizedBox(height: isMobile ? 7 : 10),
         Text(
@@ -203,6 +188,7 @@ class _SQDScreenState extends State<SQDScreen> {
             fontSize: isMobile ? 14 : 16,
             fontWeight: FontWeight.bold,
             color: Colors.white,
+            shadows: [const Shadow(color: Colors.black45, blurRadius: 4)],
           ),
           textAlign: TextAlign.center,
         ),
@@ -210,7 +196,7 @@ class _SQDScreenState extends State<SQDScreen> {
           'HELP US SERVE YOU BETTER!',
           style: GoogleFonts.poppins(
             fontSize: isMobile ? 10 : 12,
-            color: Colors.white70,
+            color: Colors.white.withValues(alpha: 0.9),
           ),
         ),
       ],
@@ -228,9 +214,11 @@ class _SQDScreenState extends State<SQDScreen> {
             margin: EdgeInsets.symmetric(horizontal: isMobile ? 2 : 4),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(4),
-              color: isActive || isCompleted
+              color: isActive
                   ? const Color(0xFF0099FF)
-                  : Colors.grey.shade300,
+                  : isCompleted
+                      ? const Color(0xFF36A0E1)
+                      : Colors.white.withValues(alpha: 0.3),
             ),
           ),
         );
@@ -243,66 +231,157 @@ class _SQDScreenState extends State<SQDScreen> {
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.98),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(blurRadius: 14, color: Colors.black12)],
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [BoxShadow(blurRadius: 20, color: Colors.black26)],
       ),
-      child: SingleChildScrollView(
-        controller: _scrollController,
-        child: Padding(
-          padding: EdgeInsets.all(isMobile ? 20 : 40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'PART 3: SQD',
-                style: GoogleFonts.montserrat(
-                  fontSize: isMobile ? 18 : 24,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF003366),
-                ),
-              ),
-              SizedBox(height: isMobile ? 12 : 16),
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(isMobile ? 12 : 16),
-                decoration: BoxDecoration(
-                  color: Color(0xFF003368).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: RichText(
-                  text: TextSpan(
-                    style: GoogleFonts.poppins(
-                      fontSize: isMobile ? 11 : 13,
-                      fontStyle: FontStyle.italic,
-                      color: Color(0xFF003368),
-                    ),
-                    children: const [
-                      TextSpan(
-                        text: 'INSTRUCTIONS: ',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+      child: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              padding: EdgeInsets.all(isMobile ? 24 : 48),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title Area
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF003366),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'PART 3',
+                          style: GoogleFonts.montserrat(
+                            fontSize: isMobile ? 10 : 12,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFFACF1F),
+                          ),
+                        ),
                       ),
-                      TextSpan(
-                        text: 'For SQD -8',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      TextSpan(
-                        text:
-                            ', please select the best corresponds to your answer. ',
+                      const SizedBox(width: 12),
+                      Text(
+                        'SQD',
+                        style: GoogleFonts.montserrat(
+                          fontSize: isMobile ? 20 : 28,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF003366),
+                        ),
                       ),
                     ],
                   ),
-                ),
+                  
+                  SizedBox(height: isMobile ? 16 : 24),
+                  
+                  // Instruction Box
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(isMobile ? 16 : 24),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE3F2FD),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFBBDEFB)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.info_outline, color: Color(0xFF003366), size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'INSTRUCTIONS',
+                              style: GoogleFonts.montserrat(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF003366),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'For SQD 0-8, please select the option that best corresponds to your answer.',
+                          style: GoogleFonts.poppins(
+                            fontSize: isMobile ? 12 : 14,
+                            color: Colors.black87,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(height: isMobile ? 24 : 32),
+                  
+                  // Questions List
+                  ...List.generate(
+                    questions.length,
+                    (i) => _sqdQuestion(isMobile, i),
+                  ),
+                ],
               ),
-              SizedBox(height: isMobile ? 16 : 24),
-              ...List.generate(
-                questions.length,
-                (i) => _sqdQuestion(isMobile, i),
-              ),
-              SizedBox(height: isMobile ? 24 : 40),
-              _buildNavigationButtons(isMobile),
-            ],
+            ),
           ),
-        ),
+          
+          // Navigation Area
+          Container(
+            padding: EdgeInsets.all(isMobile ? 20 : 40),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: Colors.grey.shade200)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                SizedBox(
+                  width: isMobile ? 140 : 180,
+                  height: isMobile ? 48 : 55,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFF003366), width: 1.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: Text(
+                      'PREVIOUS',
+                      style: GoogleFonts.montserrat(
+                        fontSize: isMobile ? 12 : 14,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF003366),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: isMobile ? 140 : 180,
+                  height: isMobile ? 48 : 55,
+                  child: ElevatedButton(
+                    onPressed: _onNextPressed,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF003366),
+                      elevation: 5,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: Text(
+                      'NEXT PAGE',
+                      style: GoogleFonts.montserrat(
+                        fontSize: isMobile ? 12 : 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -327,187 +406,176 @@ class _SQDScreenState extends State<SQDScreen> {
       Colors.grey.shade100,
     ];
 
+    // 1. DEFINE THE ROW CONTENT
+    Widget emojiRow = Row(
+      // On Desktop: Center the emojis. On Mobile: Start (for scroll).
+      mainAxisAlignment: isMobile ? MainAxisAlignment.start : MainAxisAlignment.center,
+      children: List.generate(emojis.length, (optIdx) {
+        final bool selected = answers[index] == optIdx;
+        final bool isNA = optIdx == 5;
+        
+        return GestureDetector(
+          onTap: () => setState(() => answers[index] = optIdx),
+          child: AnimatedScale(
+            scale: selected ? 1.1 : 1.0,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.elasticOut,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: isMobile ? 55 : 110,
+              height: isMobile ? 75 : 130,
+              margin: EdgeInsets.symmetric(
+                horizontal: isMobile ? 4 : 8,
+                vertical: 10,
+              ),
+              decoration: BoxDecoration(
+                color: selected ? bgColors[optIdx] : Colors.white,
+                borderRadius: BorderRadius.circular(isMobile ? 12 : 16),
+                border: Border.all(
+                  color: selected ? borderColors[optIdx] : Colors.grey.shade300,
+                  width: selected ? 2.5 : 1,
+                ),
+                boxShadow: selected
+                    ? [
+                        BoxShadow(
+                          color: borderColors[optIdx].withValues(alpha: 0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        )
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.grey.withValues(alpha: 0.2),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        )
+                      ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: isNA
+                        ? Center(
+                            child: Text(
+                              'N/A',
+                              style: GoogleFonts.montserrat(
+                                color: Colors.red.shade700,
+                                fontWeight: FontWeight.bold,
+                                fontSize: isMobile ? 14 : 28,
+                              ),
+                            ),
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Image.asset(
+                              emojis[optIdx],
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: Center(
+                        child: Text(
+                          labels[optIdx],
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            fontSize: isMobile ? 8 : 12,
+                            color: isNA ? Colors.red.shade700 : Colors.black87,
+                            fontWeight: isNA || selected ? FontWeight.w600 : FontWeight.w500,
+                            height: 1.1,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+
     return Padding(
-      padding: EdgeInsets.only(bottom: isMobile ? 28 : 34),
+      padding: EdgeInsets.only(bottom: isMobile ? 32 : 48),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Question Header
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 18, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: const Color(0xFF003366),
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  q['label'],
+                  q['label'], 
                   style: GoogleFonts.montserrat(
                     fontWeight: FontWeight.bold,
                     color: const Color(0xFFFACF1F),
-                    fontSize: isMobile ? 13 : 16,
+                    fontSize: 12,
                   ),
                 ),
               ),
               const SizedBox(width: 12),
-              Flexible(
+              Expanded(
                 child: Text(
                   q['question'],
                   style: GoogleFonts.montserrat(
-                    fontSize: isMobile ? 14 : 19,
-                    color: const Color(0xFF133C66),
-                    fontWeight: FontWeight.bold,
+                    fontSize: isMobile ? 14 : 16,
+                    color: const Color(0xFF003366),
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 13),
-          Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: isMobile ? 4 : 0),
-              child: SizedBox(
-                width: double.infinity,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: List.generate(emojis.length, (optIdx) {
-                    final bool selected = answers[index] == optIdx;
-                    final bool isNA = optIdx == 5;
-                    return GestureDetector(
-                      onTap: () => setState(() => answers[index] = optIdx),
-                      child: Container(
-                        width: isMobile ? 50 : 100,
-                        height: isMobile ? 70 : 120,
-                        margin: EdgeInsets.symmetric(
-                          horizontal: isMobile ? 4 : 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: selected ? bgColors[optIdx] : Colors.white,
-                          borderRadius: BorderRadius.circular(
-                            isMobile ? 8 : 16,
-                          ),
-                          border: Border.all(
-                            color: selected
-                                ? borderColors[optIdx]
-                                : Colors.grey.shade300,
-                            width: selected ? 2 : 1.2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: selected ? 5 : 2,
-                              offset: Offset(0, selected ? 2 : 1),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              height: isMobile ? 20 : 60,
-                              child: isNA
-                                  ? Center(
-                                      child: Text(
-                                        'N/A',
-                                        style: GoogleFonts.montserrat(
-                                          color: Colors.red.shade700,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: isMobile ? 12 : 30,
-                                        ),
-                                      ),
-                                    )
-                                  : Center(
-                                      child: Image.asset(
-                                        emojis[optIdx],
-                                        width: isMobile ? 22 : 45,
-                                        height: isMobile ? 22 : 45,
-                                        fit: BoxFit.contain,
-                                      ),
-                                    ),
-                            ),
-                            const SizedBox(height: 2),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 1),
-                              child: Text(
-                                labels[optIdx],
-                                textAlign: TextAlign.center,
-                                softWrap: true,
-                                maxLines: 3,
-                                overflow: TextOverflow.visible,
-                                style: GoogleFonts.poppins(
-                                  fontSize: isMobile ? 8 : 14,
-                                  color: isNA
-                                      ? Colors.red.shade700
-                                      : Colors.black87,
-                                  fontWeight: isNA
-                                      ? FontWeight.bold
-                                      : FontWeight.w500,
-                                  height: 1.2,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
+          const SizedBox(height: 16),
+          
+          // 2. THE RESPONSIVE SELECTION AREA
+          // On Desktop: Just the Row (Centered). On Mobile: Scrollable.
+          isMobile 
+            ? Center(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: emojiRow,
                 ),
-              ),
-            ),
-          ),
+              )
+            : emojiRow,
         ],
       ),
     );
   }
+}
 
-  Widget _buildNavigationButtons(bool isMobile) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        SizedBox(
-          width: isMobile ? 140 : 180,
-          height: isMobile ? 44 : 50,
-          child: OutlinedButton(
-            onPressed: () => Navigator.of(context).maybePop(),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Color(0xFF003366)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-            ),
-            child: Text(
-              'PREVIOUS PAGE',
-              style: GoogleFonts.montserrat(
-                fontSize: isMobile ? 12 : 14,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF003366),
-              ),
-            ),
-          ),
-        ),
-        SizedBox(
-          width: isMobile ? 140 : 160,
-          height: isMobile ? 44 : 50,
-          child: ElevatedButton(
-            onPressed: _onNextPressed,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF003366),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-            ),
-            child: Text(
-              'NEXT PAGE',
-              style: GoogleFonts.montserrat(
-                fontSize: isMobile ? 12 : 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+class SmoothPageRoute extends PageRouteBuilder {
+  final Widget page;
+
+  SmoothPageRoute({required this.page})
+      : super(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            const begin = Offset(1.0, 0.0);
+            const end = Offset.zero;
+            const curve = Curves.easeInOutCubic;
+            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+            return SlideTransition(
+              position: animation.drive(tween),
+              child: FadeTransition(opacity: animation, child: child),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 600),
+          reverseTransitionDuration: const Duration(milliseconds: 600),
+        );
 }

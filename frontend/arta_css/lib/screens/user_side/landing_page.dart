@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'user_profile.dart';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
@@ -9,9 +10,18 @@ class LandingScreen extends StatefulWidget {
   State<LandingScreen> createState() => _LandingScreenState();
 }
 
-class _LandingScreenState extends State<LandingScreen> {
+class _LandingScreenState extends State<LandingScreen> with SingleTickerProviderStateMixin {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  
+  // --- ARTA Text Animation Controllers ---
+  late AnimationController _expandController;
+  late Animation<double> _expandAnimation;
+  Timer? _hoverTimer; 
+
+  // --- Button Hover State ---
+  bool _isHoveringButton = false;
+
   final List<String> _carouselImages = [
     'assets/nai_1.jpg',
     'assets/nai_2.jpg',
@@ -21,9 +31,21 @@ class _LandingScreenState extends State<LandingScreen> {
   @override
   void initState() {
     super.initState();
-    // Auto-slide every 4 seconds
+    
+    // Initialize ARTA Text Animation
+    _expandController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    
+    _expandAnimation = CurvedAnimation(
+      parent: _expandController,
+      curve: Curves.fastOutSlowIn,
+    );
+
+    // Auto-slide carousel
     Timer.periodic(const Duration(seconds: 4), (timer) {
-      if (_pageController.hasClients) {
+      if (_pageController.hasClients && mounted) {
         int nextPage = (_currentPage + 1) % _carouselImages.length;
         _pageController.animateToPage(
           nextPage,
@@ -37,49 +59,53 @@ class _LandingScreenState extends State<LandingScreen> {
   @override
   void dispose() {
     _pageController.dispose();
+    _expandController.dispose();
+    _hoverTimer?.cancel(); 
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 900;
+    final size = MediaQuery.of(context).size;
+    final isMobile = size.width < 900;
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/city_bg2.png'),
-            fit: BoxFit.cover,
+      body: Stack(
+        children: [
+          // 1. Fixed Background Image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/city_bg2.png',
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: isMobile
-              ? LayoutBuilder(
-                  builder: (context, constraints) {
-                    return SingleChildScrollView(
-                      padding: EdgeInsets.zero,
-                      physics: const ClampingScrollPhysics(),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight,
-                        ),
-                        child: IntrinsicHeight(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: _buildMobileLayout(context),
-                          ),
-                        ),
+          
+          // 2. Content
+          Positioned.fill(
+            child: SafeArea(
+              child: isMobile 
+                ? SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                    child: _buildMobileLayout(context),
+                  )
+                : Center(
+                    // === DESKTOP RESPONSIVE FIX ===
+                    // This ensures that if the screen is zoomed (125%), 
+                    // the content scales down to fit instead of scrolling.
+                    child: Container(
+                      padding: const EdgeInsets.all(40),
+                      width: double.infinity,
+                      height: double.infinity,
+                      alignment: Alignment.center,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: _buildDesktopLayout(context),
                       ),
-                    );
-                  },
-                )
-              : SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
-                    child: _buildDesktopLayout(context),
+                    ),
                   ),
-                ),
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -92,33 +118,32 @@ class _LandingScreenState extends State<LandingScreen> {
         _buildImageCarousel(true),
         const SizedBox(height: 20),
         _buildTextCard(context, true),
-        const SizedBox(height: 8), // minimal space, no more huge gap
       ],
     );
   }
 
   // ------------------ DESKTOP LAYOUT ------------------
   Widget _buildDesktopLayout(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 1430,
-        height: 660, // same as before (carousel height alignment)
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 36),
+    // We set a specific width for the FittedBox to calculate aspect ratio against
+    return SizedBox(
+      width: 1300, // Ideal width
+      child: IntrinsicHeight(
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Left side (Text + Button)
             Expanded(
-              child: SizedBox(
-                height: 600, // same fixed height as carousel
-                child: _buildTextCard(context, false),
-              ),
+              flex: 3,
+              child: _buildTextCard(context, false),
             ),
-            const SizedBox(width: 24),
+            const SizedBox(width: 60),
             // Right side (Carousel)
-            SizedBox(
-              width: 400,
-              height: 600,
-              child: _buildImageCarousel(false),
+            Expanded(
+              flex: 2,
+              child: AspectRatio(
+                aspectRatio: 3 / 4,
+                child: _buildImageCarousel(false),
+              ),
             ),
           ],
         ),
@@ -130,7 +155,7 @@ class _LandingScreenState extends State<LandingScreen> {
   Widget _buildTextCard(BuildContext context, bool isMobile) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(isMobile ? 16 : 40),
+      padding: EdgeInsets.all(isMobile ? 24 : 50),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.97),
         borderRadius: BorderRadius.circular(32),
@@ -138,16 +163,16 @@ class _LandingScreenState extends State<LandingScreen> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: isMobile ? MainAxisAlignment.start : MainAxisAlignment.spaceBetween,
-        mainAxisSize: isMobile ? MainAxisSize.min : MainAxisSize.max,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Header
+          // Header Logo & Title
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               CircleAvatar(
-                radius: isMobile ? 22 : 32,
+                radius: isMobile ? 24 : 36,
                 backgroundImage: const AssetImage('assets/city_logo.png'),
+                backgroundColor: Colors.transparent,
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -157,73 +182,140 @@ class _LandingScreenState extends State<LandingScreen> {
                     Text(
                       "CITY GOVERNMENT OF VALENZUELA",
                       style: GoogleFonts.montserrat(
-                        fontSize: isMobile ? 14 : 24,
+                        fontSize: isMobile ? 14 : 20,
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF003366),
+                        height: 1.2,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       "HELP US SERVE YOU BETTER!",
                       style: GoogleFonts.poppins(
-                        fontSize: isMobile ? 10 : 20,
+                        fontSize: isMobile ? 12 : 16,
                         color: Colors.black87,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          SizedBox(height: isMobile ? 20 : 30),
-          Text(
-            "ARTA",
-            style: GoogleFonts.montserrat(
-              fontSize: isMobile ? 48 : 100,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF003366),
+          
+          SizedBox(height: isMobile ? 30 : 50),
+          
+          // --- HOVER ANIMATION FOR ARTA ---
+          MouseRegion(
+            onEnter: (_) {
+              _hoverTimer?.cancel();
+              _expandController.forward();
+            },
+            onExit: (_) {
+              _hoverTimer = Timer(const Duration(milliseconds: 600), () {
+                 if (mounted) {
+                   _expandController.reverse();
+                 }
+              });
+            },
+            cursor: SystemMouseCursors.click,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  "ARTA",
+                  style: GoogleFonts.montserrat(
+                    fontSize: isMobile ? 48 : 90,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF003366),
+                    height: 1.0,
+                  ),
+                ),
+                SizeTransition(
+                  sizeFactor: _expandAnimation,
+                  axis: Axis.horizontal,
+                  axisAlignment: -1.0, 
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 10),
+                    child: Text(
+                      "| Anti-Red Tape Authority",
+                      style: GoogleFonts.montserrat(
+                        fontSize: isMobile ? 18 : 32,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF003366),
+                      ),
+                      softWrap: false,
+                      overflow: TextOverflow.clip,
+                      maxLines: 1,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
+          
           Text(
             "CLIENT SATISFACTION FORM",
             style: GoogleFonts.montserrat(
               fontSize: isMobile ? 18 : 24,
               fontWeight: FontWeight.w600,
               color: Colors.black87,
+              letterSpacing: 1.5,
             ),
           ),
-          SizedBox(height: isMobile ? 8 : 16),
+          
+          SizedBox(height: isMobile ? 16 : 24),
+          
           Text(
             "We want to hear about your recently concluded transaction with us. "
             "Your feedback is valuable to improve our service.",
-            style: GoogleFonts.poppins(fontSize: isMobile ? 12 : 18),
+            style: GoogleFonts.poppins(
+              fontSize: isMobile ? 14 : 18,
+              height: 1.6,
+              color: Colors.grey[800],
+            ),
           ),
-          if (isMobile) const SizedBox(height: 16),
-          if (!isMobile) const Spacer(),
+          
+          SizedBox(height: isMobile ? 30 : 50),
+          
+          // --- TAKE SURVEY BUTTON (With Hover Animation) ---
           Align(
             alignment: isMobile ? Alignment.center : Alignment.centerRight,
-            child: SizedBox(
-              width: isMobile ? double.infinity : 180,
-              height: isMobile ? 44 : 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF003366),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/profile');
-                },
-                child: Text(
-                  "TAKE SURVEY",
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: isMobile ? 14 : 16,
-                    fontWeight: FontWeight.bold,
+            child: MouseRegion(
+              onEnter: (_) => setState(() => _isHoveringButton = true),
+              onExit: (_) => setState(() => _isHoveringButton = false),
+              cursor: SystemMouseCursors.click,
+              child: AnimatedScale(
+                scale: _isHoveringButton ? 1.05 : 1.0, 
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutBack,
+                child: SizedBox(
+                  width: isMobile ? double.infinity : 220,
+                  height: 55,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isHoveringButton 
+                          ? const Color(0xFF004C99) 
+                          : const Color(0xFF003366),
+                      elevation: _isHoveringButton ? 10 : 5,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context, 
+                        SmoothPageRoute(page: const UserProfileScreen())
+                      );
+                    },
+                    child: Text(
+                      "TAKE SURVEY",
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -237,10 +329,10 @@ class _LandingScreenState extends State<LandingScreen> {
   // ------------------ IMAGE CAROUSEL ------------------
   Widget _buildImageCarousel(bool isMobile) {
     return Container(
-      height: isMobile ? 200 : 600,
+      height: isMobile ? 250 : null, 
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
-        boxShadow: const [BoxShadow(blurRadius: 10, color: Colors.black26)],
+        boxShadow: const [BoxShadow(blurRadius: 15, color: Colors.black26)],
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
@@ -258,11 +350,12 @@ class _LandingScreenState extends State<LandingScreen> {
                 _carouselImages[index],
                 fit: BoxFit.cover,
                 width: double.infinity,
+                height: double.infinity,
               );
             },
           ),
           Positioned(
-            bottom: 16,
+            bottom: 20,
             left: 0,
             right: 0,
             child: Row(
@@ -281,13 +374,38 @@ class _LandingScreenState extends State<LandingScreen> {
   Widget _buildDot(bool isActive) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      width: isActive ? 14 : 10,
-      height: isActive ? 14 : 10,
+      margin: const EdgeInsets.symmetric(horizontal: 5),
+      width: isActive ? 16 : 10,
+      height: isActive ? 16 : 10,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isActive ? const Color(0xFF003366) : Colors.grey.shade300,
+        color: isActive ? const Color(0xFF003366) : Colors.white.withValues(alpha: 0.8),
+        boxShadow: const [BoxShadow(blurRadius: 2, color: Colors.black26)],
       ),
     );
   }
+}
+
+// === SMOOTH PAGE ROUTE HELPER ===
+class SmoothPageRoute extends PageRouteBuilder {
+  final Widget page;
+
+  SmoothPageRoute({required this.page})
+      : super(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            const begin = Offset(1.0, 0.0);
+            const end = Offset.zero;
+            const curve = Curves.easeInOutCubic;
+
+            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+            return SlideTransition(
+              position: animation.drive(tween),
+              child: FadeTransition(opacity: animation, child: child),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 600),
+          reverseTransitionDuration: const Duration(milliseconds: 600),
+        );
 }
