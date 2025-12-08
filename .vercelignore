@@ -1,0 +1,44 @@
+# Ignore Flutter SDK - not needed for deployment (pre-built web output is used)
+flutter/
+
+# Ignore backend (if not deploying backend to Vercel)
+backend/
+
+# Ignore docs
+docs/
+
+# Ignore git
+.git/
+.github/
+
+# Ignore frontend source (only the build output is needed)
+frontend/arta_css/android/
+frontend/arta_css/ios/
+frontend/arta_css/linux/
+frontend/arta_css/macos/
+frontend/arta_css/windows/
+frontend/arta_css/lib/
+frontend/arta_css/test/
+frontend/arta_css/.dart_tool/
+frontend/arta_css/build/app/
+frontend/arta_css/build/linux/
+frontend/arta_css/build/windows/
+
+# Ignore config files not needed for deployment
+*.md
+*.yaml
+!vercel.json
+firebase.json
+firestore.rules
+analysis_options.yaml
+
+# Ignore IDE
+.vscode/
+.idea/
+*.iml
+
+# Ignore cache and temp files
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

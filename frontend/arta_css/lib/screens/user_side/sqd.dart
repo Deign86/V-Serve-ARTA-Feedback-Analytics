@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
+import '../../services/survey_config_service.dart';
 import 'suggestions.dart';
 
 class SQDScreen extends StatefulWidget {
   final SurveyData surveyData;
   
   const SQDScreen({
-    Key? key,
+    super.key,
     required this.surveyData,
-  }) : super(key: key);
+  });
 
   @override
   State<SQDScreen> createState() => _SQDScreenState();
@@ -105,6 +107,8 @@ class _SQDScreenState extends State<SQDScreen> {
   }
 
   void _onNextPressed() {
+    final configService = Provider.of<SurveyConfigService>(context, listen: false);
+    
     if (_isFormValid()) {
       // Update survey data with Part 3 SQD responses
       final updatedData = widget.surveyData.copyWith(
@@ -119,13 +123,17 @@ class _SQDScreenState extends State<SQDScreen> {
         sqd8Rating: answers[8],
       );
       
+      // Navigate based on configuration
+      Widget nextScreen;
+      if (configService.suggestionsEnabled) {
+        nextScreen = SuggestionsScreen(surveyData: updatedData);
+      } else {
+        nextScreen = const ThankYouScreen();
+      }
+      
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => SuggestionsScreen(
-            surveyData: updatedData,
-          ),
-        ),
+        MaterialPageRoute(builder: (context) => nextScreen),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -140,6 +148,10 @@ class _SQDScreenState extends State<SQDScreen> {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
+    final configService = Provider.of<SurveyConfigService>(context);
+    final currentStep = configService.getStepNumber(SurveyStep.sqd);
+    final totalSteps = configService.totalSteps;
+    
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -164,7 +176,7 @@ class _SQDScreenState extends State<SQDScreen> {
                   children: [
                     _buildHeader(isMobile),
                     SizedBox(height: isMobile ? 16 : 24),
-                    _buildProgressBar(isMobile, 3, 4),
+                    _buildProgressBar(isMobile, currentStep, totalSteps),
                     SizedBox(height: isMobile ? 16 : 24),
                     Expanded(child: _buildFormCard(isMobile)),
                   ],
@@ -230,7 +242,7 @@ class _SQDScreenState extends State<SQDScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.98),
+        color: Colors.white.withValues(alpha: 0.98),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [BoxShadow(blurRadius: 14, color: Colors.black12)],
       ),
@@ -254,7 +266,7 @@ class _SQDScreenState extends State<SQDScreen> {
                 width: double.infinity,
                 padding: EdgeInsets.all(isMobile ? 12 : 16),
                 decoration: BoxDecoration(
-                  color: Color(0xFF003368).withOpacity(0.1),
+                  color: Color(0xFF003368).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: RichText(

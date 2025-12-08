@@ -80,6 +80,7 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
+      // ignore: avoid_print
       print('Login error: $e');
       return false;
     }

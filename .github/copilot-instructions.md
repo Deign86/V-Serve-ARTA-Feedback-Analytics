@@ -1,63 +1,166 @@
 ## Brief
-This file helps AI coding agents become productive in the V-Serve / ARTA Feedback Analytics repository by calling out the project's structure, important patterns, build/test commands, and integration points discovered in the codebase.
+This file helps AI coding agents become productive in the V-Serve / ARTA Feedback Analytics repository. It documents the project's structure, key patterns, build/test commands, services architecture, and integration points.
 
 ## High-level architecture (what to know fast)
-- Monorepo layout with a Flutter frontend at `frontend/arta_css/` and an (empty) `backend/` folder. Docs live in `docs/`.
-- The Flutter app is the primary deliverable in this repo: UI, routes and screens are under `frontend/arta_css/lib/` (e.g. `lib/main.dart`, `lib/screens/user_side/user_profile.dart`).
-- A bundled Flutter SDK exists at `flutter/` at repo root; CI or local dev may prefer using that to ensure consistent tool versions.
+- **Monorepo layout**: Flutter frontend at `frontend/arta_css/`, backend at `backend/`, docs in `docs/`
+- **Primary deliverable**: Flutter web/desktop app for ARTA Client Satisfaction Survey feedback collection and analytics
+- **State management**: Provider pattern with ChangeNotifier services
+- **Backend**: Firebase/Firestore for data persistence, lightweight Express API under `backend/src/`
+- **Bundled SDK**: A Flutter SDK exists at `flutter/` at repo root for version consistency
 
-## Why things are organized this way
-- The repo keeps a self-contained Flutter app (desktop-friendly) with desktop window control via `window_manager` (see `lib/main.dart`). There is no obvious frontend HTTP client in the Flutter code — integration with backend services is not present in the frontend source tree and appears to be handled elsewhere or not yet implemented.
+## Project structure
+
+```
+frontend/arta_css/lib/
+├── main.dart                    # App entry, routes, providers setup
+├── models/
+│   ├── survey_data.dart         # SurveyData model for feedback
+│   └── user_model.dart          # User/role models
+├── screens/
+│   ├── admin/
+│   │   ├── admin_screens.dart       # Analytics, Feedback Browser, Survey Config, Settings
+│   │   └── role_based_dashboard.dart # Main admin dashboard with role-based access
+│   ├── user_side/
+│   │   ├── landing_page.dart        # Survey entry point
+│   │   ├── user_profile.dart        # Part 1: User demographics
+│   │   ├── citizen_charter.dart     # Part 2: Citizen's Charter awareness
+│   │   ├── sqd.dart                 # Part 3: Service Quality Dimensions
+│   │   └── suggestions.dart         # Part 4: Open feedback & thank you
+│   └── role_based_login_screen.dart # Admin login
+├── services/
+│   ├── auth_services.dart           # Authentication & role management
+│   ├── feedback_service.dart        # Firestore CRUD for survey data
+│   ├── survey_config_service.dart   # Survey section toggles
+│   ├── export_service.dart          # CSV/JSON/PDF export
+│   ├── offline_queue.dart           # Offline-first submission queue
+│   └── qr_code_service.dart         # QR code generation for survey links
+└── widgets/
+    └── role_based_widget.dart       # Role/permission-based UI visibility
+```
 
 ## Developer workflows / quick commands (Windows PowerShell)
-Prefer the included SDK to avoid version drift. From repo root:
+
+From repo root, prefer the bundled SDK:
 
 ```powershell
-# fetch packages
+# Install dependencies
 .\flutter\bin\flutter.bat pub get
 
-# run on connected device / desktop (debug)
-.\flutter\bin\flutter.bat run
+# Run in debug mode (web)
+.\flutter\bin\flutter.bat run -d chrome
 
-# run unit/widget tests
+# Run in debug mode (desktop)
+.\flutter\bin\flutter.bat run -d windows
+
+# Build for production (web)
+.\flutter\bin\flutter.bat build web --release
+
+# Run tests
 .\flutter\bin\flutter.bat test
 
-# static analysis (uses analysis_options.yaml at repo root)
+# Static analysis (should pass with 0 issues)
 .\flutter\bin\flutter.bat analyze frontend\arta_css
 ```
 
-If you use a system-wide Flutter install, replace the path to the bundled `flutter` with `flutter` on your PATH.
+## Key patterns & conventions
 
-## Project-specific conventions & patterns
-- Routing: Named routes are defined in `frontend/arta_css/lib/main.dart`. Examples: `/profile` -> `UserProfileScreen`, `/citizenCharter`, `/sqd`, `/suggestions`.
-- UI patterns: screens are mostly StatefulWidgets using `setState` and `Form`+`GlobalKey` for validation (see `frontend/arta_css/lib/screens/user_side/user_profile.dart`). Use Navigator.pushNamed for navigation.
-- Desktop behavior: `window_manager` is initialized conditionally for Desktop platforms in `main.dart` — treat desktop-specific behavior (fixed window size, center) as intentional.
-- Assets: static assets live in `frontend/arta_css/assets/` and are included via `pubspec.yaml` (top-level `assets:` entry). Use asset paths as in the code (e.g. `assets/city_bg2.png`, `assets/city_logo.png`).
-- Fonts: Google Fonts are used via the `google_fonts` package instead of bundling custom fonts.
-- Linting: `analysis_options.yaml` is present at repo root and in `frontend/arta_css/` — follow those rules for style and lints.
+### State management
+- **Provider + ChangeNotifier**: All services extend `ChangeNotifier` and are provided via `MultiProvider` in `main.dart`
+- **Consumer widgets**: Use `Consumer<ServiceName>` or `context.watch<ServiceName>()` for reactive UI
+- **Service locator**: Access services via `Provider.of<ServiceName>(context)` or `context.read<ServiceName>()`
 
-## Integration points & missing pieces (for an agent to flag)
-- Frontend <> Backend integration: The frontend expects a backend API for feedback ingestion/retrieval. A lightweight Express backend lives under `backend/src/` with endpoints such as `/ping`, `POST /feedback`, `GET /feedback` and `GET /feedback/:id`.
-  - The frontend code currently does not centralize HTTP clients; add a small client wrapper under `frontend/arta_css/lib/services/` when integrating a backend (see `config.dart` for `BASE_API_URL` usage). Prefer dependency injection or a single service to manage retries, timeouts, and error handling.
-  - `frontend/arta_css/lib/services/offline_queue.dart` exists and currently writes directly to Firestore. Consider adapting it to POST to the backend instead of direct Firestore writes for better security and centralized validation.
-  - Backend artifacts and security: the repo contains backend utility scripts and a service account file under `backend/` (e.g., `serviceAccountKey.json`, scripts under `backend/scripts/`). These may be sensitive; avoid committing long-lived service account keys to public branches. Use `git rm --cached` and `.gitignore` for secrets and provide CI secrets for deployments.
-  - Scripts status: Some backend scripts are archived/inert to avoid accidental execution (they may be named like `admin_write_test.js`, `fetch_firestore_rules.js`). Inspect `backend/scripts/` before running — they perform admin operations against Firestore.
+### Navigation
+- Named routes defined in `main.dart`: `/profile`, `/citizenCharter`, `/sqd`, `/suggestions`, `/admin`
+- Survey flow: Landing → User Profile → Citizen Charter → SQD → Suggestions → Thank You
+- Admin flow: Login → Role-based Dashboard (Analytics, Feedback Browser, Survey Config, Settings)
 
-## Examples to reference (concrete snippets)
-- Navigation and routing: `frontend/arta_css/lib/main.dart` — named routes map.
-- Form & UI pattern: `frontend/arta_css/lib/screens/user_side/user_profile.dart` — uses `Form`, `GlobalKey`, `ChoiceChip`, `showDatePicker`, and `Navigator.pushNamed('/citizenCharter')`.
-- Pubspec + plugins: `frontend/arta_css/pubspec.yaml` shows `window_manager` and `google_fonts` as explicit dependencies.
+### UI conventions
+- **Widgets**: StatefulWidget + `setState` for local state; Provider for shared state
+- **Forms**: `Form` + `GlobalKey<FormState>` for validation
+- **Styling**: `GoogleFonts.montserrat()` for headings, `GoogleFonts.poppins()` for body text
+- **Colors**: Brand blue `Color(0xFF003366)`, Brand red `brandRed`, use theme colors
+- **Responsive**: Check `MediaQuery.of(context).size.width < 900` for mobile layouts
+
+### Export functionality
+- `ExportService` provides static methods: `exportCsv()`, `exportJson()`, `exportPdf()`
+- Platform-specific implementations via conditional imports (`export_service_web.dart`, `export_service_native.dart`)
+
+### Async context safety
+- Always check `if (!mounted) return;` after `await` before using `context`
+- Or capture `ScaffoldMessenger.of(context)` before `await` calls
+
+## Dependencies (key packages)
+
+| Package | Purpose |
+|---------|---------|
+| `provider` | State management |
+| `firebase_core`, `cloud_firestore` | Backend data persistence |
+| `fl_chart` | Analytics charts (radar, bar, pie) |
+| `google_fonts` | Typography |
+| `shared_preferences` | Local persistence (settings) |
+| `csv`, `pdf`, `printing` | Data export |
+| `qr_flutter` | QR code generation |
+| `window_manager` | Desktop window control (dev dependency) |
+
+## Integration points
+
+### Firebase/Firestore
+- Collection: `feedbacks` for survey submissions
+- `FeedbackService` handles CRUD with real-time listeners
+- `OfflineQueue` buffers submissions when offline
+
+### Backend API (optional)
+- Express server at `backend/src/index.js`
+- Endpoints: `/ping`, `POST /feedback`, `GET /feedback`, `GET /feedback/:id`
+- Frontend can integrate via `http` package (already in pubspec)
+
+### Security notes
+- `backend/serviceAccountKey.json` is sensitive — never commit to public repos
+- Use `.gitignore` and CI secrets for deployments
+- Scripts in `backend/scripts/` perform admin operations — review before running
 
 ## Guidance for AI code changes
-- Be minimal and repo-consistent: follow `analysis_options.yaml` and existing widget patterns (StatefulWidget + setState). Avoid large architectural rewrites unless requested.
-- When adding networking, add the dependency to `frontend/arta_css/pubspec.yaml` (for example `http` or `dio`), add a small client wrapper under `lib/services/` and wire it via dependency injection or a single top-level service locator. Document created environment variables or constants in `README.md` or `docs/`.
-- For any backend integration changes, create a short TODO in code and add a short note to the PR description referencing the `backend-integration` branch.
 
-## Where to look next
-- UI & routes: `frontend/arta_css/lib/main.dart` and `frontend/arta_css/lib/screens/`.
-- Assets and dependency list: `frontend/arta_css/pubspec.yaml` and `frontend/arta_css/assets/`.
-- Lint rules: root `analysis_options.yaml` and `frontend/arta_css/analysis_options.yaml`.
-- Branching policy: `docs/README.md` — use feature branches with semantic names (e.g. `feature/login`).
+### Do
+- Follow existing patterns (Provider, StatefulWidget, named routes)
+- Run `flutter analyze` before committing — should have 0 issues
+- Use `withValues(alpha:)` instead of deprecated `withOpacity()`
+- Add `mounted` checks after async operations
+- Place new services in `lib/services/`, new widgets in `lib/widgets/`
+
+### Don't
+- Don't use deprecated APIs without `// ignore:` comment and migration note
+- Don't commit sensitive keys or credentials
+- Don't modify survey flow without updating route definitions in `main.dart`
+- Don't add large architectural changes without explicit request
+
+### When adding features
+1. Create service in `lib/services/` if shared state is needed
+2. Add Provider in `main.dart` if service is new
+3. Create screen in appropriate folder (`admin/` or `user_side/`)
+4. Register route in `main.dart` if navigable
+5. Update this file if adding significant patterns
+
+## File reference quick links
+
+| What | Where |
+|------|-------|
+| App entry & routes | `lib/main.dart` |
+| Admin dashboard | `lib/screens/admin/role_based_dashboard.dart` |
+| Admin screens (tabs) | `lib/screens/admin/admin_screens.dart` |
+| Survey screens | `lib/screens/user_side/*.dart` |
+| All services | `lib/services/*.dart` |
+| Data models | `lib/models/*.dart` |
+| Reusable widgets | `lib/widgets/*.dart` |
+| Dependencies | `pubspec.yaml` |
+| Lint rules | `analysis_options.yaml` |
+
+## Branching & deployment
+
+- **Branch naming**: `feature/<name>`, `fix/<name>`, `chore/<name>`
+- **Current branch**: Check with `git branch --show-current`
+- **Deploy**: Vercel for web hosting (see `vercel.json` at repo root)
+- **Build output**: `frontend/arta_css/build/web/`
 
 ---
-If any of the above points are incomplete or you'd like me to include more examples (e.g., service skeletons, a small HTTP client, or VS Code launch configs), tell me which area to expand and I'll update this file.
+*Last updated: December 2024. Ping the maintainer if sections become stale.*

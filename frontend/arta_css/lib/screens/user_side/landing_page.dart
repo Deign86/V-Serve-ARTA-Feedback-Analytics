@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class LandingScreen extends StatefulWidget {
-  const LandingScreen({Key? key}) : super(key: key);
+  const LandingScreen({super.key});
 
   @override
   State<LandingScreen> createState() => _LandingScreenState();
@@ -108,14 +108,14 @@ class _LandingScreenState extends State<LandingScreen> {
           children: [
             // Left side (Text + Button)
             Expanded(
-              child: Container(
+              child: SizedBox(
                 height: 600, // same fixed height as carousel
                 child: _buildTextCard(context, false),
               ),
             ),
             const SizedBox(width: 24),
             // Right side (Carousel)
-            Container(
+            SizedBox(
               width: 400,
               height: 600,
               child: _buildImageCarousel(false),
@@ -132,7 +132,7 @@ class _LandingScreenState extends State<LandingScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 16 : 40),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.97),
+        color: Colors.white.withValues(alpha: 0.97),
         borderRadius: BorderRadius.circular(32),
         boxShadow: const [BoxShadow(blurRadius: 18, color: Colors.black12)],
       ),
