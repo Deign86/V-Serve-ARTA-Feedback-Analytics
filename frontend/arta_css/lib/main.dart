@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:window_manager/window_manager.dart';
-import 'dart:io' show Platform;
+// import 'package:window_manager/window_manager.dart'; // Commented out for Web
+// import 'dart:io' show Platform; // Commented out for Web (Crashes Web Apps)
 
 // Configuration & Services
 import 'firebase_options.dart';
@@ -17,7 +17,7 @@ import 'screens/user_side/user_profile.dart';
 
 // Admin/Auth Side Screens
 import 'screens/role_based_login_screen.dart';
-import 'screens/role_based_dashboard.dart';
+import 'screens/role_based_dashboard.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,8 +28,7 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     debugPrint('Firebase initialized successfully');
-
-    // Attempt to flush offline data
+    
     try {
       final flushed = await OfflineQueue.flush();
       if (flushed > 0) debugPrint('Flushed $flushed pending feedbacks');
@@ -40,7 +39,8 @@ void main() async {
     debugPrint('Firebase initializeApp failed: $e');
   }
 
-  // 2. Initialize Window Manager (For Desktop)
+  // 2. Window Manager (DESKTOP ONLY - Commented out for Web)
+  /* 
   try {
     if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
       await windowManager.ensureInitialized();
@@ -62,14 +62,13 @@ void main() async {
   } catch (e) {
     debugPrint('Window manager not available: $e');
   }
+  */
 
   // 3. Run App with Providers
   runApp(
     MultiProvider(
       providers: [
-        // Handles Login/Auth state
         ChangeNotifierProvider(create: (_) => AuthService()),
-        // Handles Survey/Feedback logic
         ChangeNotifierProvider(create: (_) => FeedbackService()),
       ],
       child: const MyApp(),
@@ -86,24 +85,21 @@ class MyApp extends StatelessWidget {
       title: 'V-Serve',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // Applies Poppins font globally
         textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
         primarySwatch: Colors.blue,
       ),
-
-      // Default route is the Public Landing Page
-      initialRoute: '/',
-
+      
+      // Default route
+      initialRoute: '/', 
+      
       routes: {
         // --- Public User Routes ---
         '/': (context) => const LandingScreen(),
         '/profile': (context) => const UserProfileScreen(),
-
+        
         // --- Admin/Auth Routes ---
         '/login': (context) => const RoleBasedLoginScreen(),
-        // Note: The Dashboard typically requires arguments or Auth check,
-        // but defining the route here helps navigation.
-        '/dashboard': (context) => const DashboardScreen(),
+        '/dashboard': (context) => const DashboardScreen(), 
       },
     );
   }

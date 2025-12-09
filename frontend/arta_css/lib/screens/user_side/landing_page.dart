@@ -40,7 +40,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
     
     _expandAnimation = CurvedAnimation(
       parent: _expandController,
-      curve: Curves.fastOutSlowIn,
+      curve: Curves.easeInOutCubic, 
     );
 
     // Auto-slide carousel
@@ -89,9 +89,6 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                     child: _buildMobileLayout(context),
                   )
                 : Center(
-                    // === DESKTOP RESPONSIVE FIX ===
-                    // This ensures that if the screen is zoomed (125%), 
-                    // the content scales down to fit instead of scrolling.
                     child: Container(
                       padding: const EdgeInsets.all(40),
                       width: double.infinity,
@@ -124,12 +121,12 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
 
   // ------------------ DESKTOP LAYOUT ------------------
   Widget _buildDesktopLayout(BuildContext context) {
-    // We set a specific width for the FittedBox to calculate aspect ratio against
     return SizedBox(
-      width: 1300, // Ideal width
+      width: 1300, 
       child: IntrinsicHeight(
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          // CHANGED: Stretch ensures both the Text Card and Carousel are equal height
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Left side (Text + Button)
             Expanded(
@@ -163,7 +160,9 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+        // CHANGED: MainAxisSize.max allows the card to fill the height provided by 'stretch'
+        mainAxisSize: isMobile ? MainAxisSize.min : MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.center, // Vertically center content
         children: [
           // Header Logo & Title
           Row(
@@ -203,53 +202,64 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
           
           SizedBox(height: isMobile ? 30 : 50),
           
-          // --- HOVER ANIMATION FOR ARTA ---
-          MouseRegion(
-            onEnter: (_) {
-              _hoverTimer?.cancel();
-              _expandController.forward();
-            },
-            onExit: (_) {
-              _hoverTimer = Timer(const Duration(milliseconds: 600), () {
-                 if (mounted) {
-                   _expandController.reverse();
-                 }
-              });
-            },
-            cursor: SystemMouseCursors.click,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  "ARTA",
-                  style: GoogleFonts.montserrat(
-                    fontSize: isMobile ? 48 : 90,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF003366),
-                    height: 1.0,
-                  ),
-                ),
-                SizeTransition(
-                  sizeFactor: _expandAnimation,
-                  axis: Axis.horizontal,
-                  axisAlignment: -1.0, 
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 10),
-                    child: Text(
-                      "| Anti-Red Tape Authority",
-                      style: GoogleFonts.montserrat(
-                        fontSize: isMobile ? 18 : 32,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF003366),
+          // --- HOVER ANIMATION FOR ARTA (FIXED SHRINKING) ---
+          // CHANGED: Wrapped in SizedBox with fixed height to prevent container jump
+          SizedBox(
+            height: isMobile ? 60 : 110, // Fixed height reserved for the text
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: MouseRegion(
+                onEnter: (_) {
+                  _hoverTimer?.cancel();
+                  _expandController.forward();
+                },
+                onExit: (_) {
+                  _hoverTimer = Timer(const Duration(milliseconds: 600), () {
+                     if (mounted) {
+                       _expandController.reverse();
+                     }
+                  });
+                },
+                cursor: SystemMouseCursors.click,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        "ARTA",
+                        style: GoogleFonts.montserrat(
+                          fontSize: isMobile ? 48 : 90,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF003366),
+                          height: 1.0,
+                        ),
                       ),
-                      softWrap: false,
-                      overflow: TextOverflow.clip,
-                      maxLines: 1,
-                    ),
+                      SizeTransition(
+                        sizeFactor: _expandAnimation,
+                        axis: Axis.horizontal,
+                        axisAlignment: -1.0, 
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 10),
+                          child: Text(
+                            "| Anti-Red Tape Authority",
+                            style: GoogleFonts.montserrat(
+                              fontSize: isMobile ? 18 : 32,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF003366),
+                            ),
+                            softWrap: false,
+                            overflow: TextOverflow.clip,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
           
@@ -277,7 +287,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
           
           SizedBox(height: isMobile ? 30 : 50),
           
-          // --- TAKE SURVEY BUTTON (With Hover Animation) ---
+          // --- TAKE SURVEY BUTTON ---
           Align(
             alignment: isMobile ? Alignment.center : Alignment.centerRight,
             child: MouseRegion(
@@ -386,7 +396,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
   }
 }
 
-// === SMOOTH PAGE ROUTE HELPER ===
+// === SMOOTH PAGE TRANSITION ===
 class SmoothPageRoute extends PageRouteBuilder {
   final Widget page;
 
@@ -394,18 +404,19 @@ class SmoothPageRoute extends PageRouteBuilder {
       : super(
           pageBuilder: (context, animation, secondaryAnimation) => page,
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(1.0, 0.0);
-            const end = Offset.zero;
-            const curve = Curves.easeInOutCubic;
-
-            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+            const curve = Curves.easeInOut;
+            var fadeTween = Tween<double>(begin: 0.0, end: 1.0).chain(CurveTween(curve: curve));
+            var slideTween = Tween<Offset>(begin: const Offset(0.0, 0.05), end: Offset.zero).chain(CurveTween(curve: curve));
 
             return SlideTransition(
-              position: animation.drive(tween),
-              child: FadeTransition(opacity: animation, child: child),
+              position: animation.drive(slideTween),
+              child: FadeTransition(
+                opacity: animation.drive(fadeTween),
+                child: child,
+              ),
             );
           },
-          transitionDuration: const Duration(milliseconds: 600),
-          reverseTransitionDuration: const Duration(milliseconds: 600),
+          transitionDuration: const Duration(milliseconds: 500), 
+          reverseTransitionDuration: const Duration(milliseconds: 500),
         );
 }
