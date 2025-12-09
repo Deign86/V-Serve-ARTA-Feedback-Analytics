@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:csv/csv.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
@@ -588,7 +589,7 @@ class ExportService {
       ),
     );
     
-    // Service Satisfaction Chart Page (matching Detailed Analytics bar chart)
+    // Visual Charts Page - Pie Chart and Bar Chart
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -596,40 +597,111 @@ class ExportService {
         build: (context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text(
-              'Satisfaction by Service',
-              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey800),
+            // Two charts side by side
+            pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                // Satisfaction by Service - Bar Chart
+                pw.Expanded(
+                  child: pw.Container(
+                    padding: const pw.EdgeInsets.all(15),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: PdfColors.grey300),
+                      borderRadius: pw.BorderRadius.circular(8),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Row(
+                          children: [
+                            pw.Container(
+                              width: 16,
+                              height: 16,
+                              decoration: const pw.BoxDecoration(color: PdfColors.blue700),
+                            ),
+                            pw.SizedBox(width: 8),
+                            pw.Text('Satisfaction by Service', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                          ],
+                        ),
+                        pw.SizedBox(height: 15),
+                        if (topServices.isEmpty)
+                          pw.Text('No data', style: const pw.TextStyle(color: PdfColors.grey400))
+                        else
+                          ...topServices.map((entry) => _buildPdfServiceBar(entry.key, entry.value)),
+                      ],
+                    ),
+                  ),
+                ),
+                pw.SizedBox(width: 15),
+                // Respondent Profile - Pie Chart
+                pw.Expanded(
+                  child: pw.Container(
+                    padding: const pw.EdgeInsets.all(15),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: PdfColors.grey300),
+                      borderRadius: pw.BorderRadius.circular(8),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Row(
+                          children: [
+                            pw.Container(
+                              width: 16,
+                              height: 16,
+                              decoration: const pw.BoxDecoration(color: PdfColors.red700),
+                            ),
+                            pw.SizedBox(width: 8),
+                            pw.Text('Respondent Profile', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                          ],
+                        ),
+                        pw.SizedBox(height: 15),
+                        // Actual Pie Chart
+                        pw.Center(
+                          child: _buildPdfPieChart(clientTypes, totalResponses),
+                        ),
+                        pw.SizedBox(height: 15),
+                        // Legend
+                        pw.Wrap(
+                          spacing: 10,
+                          runSpacing: 5,
+                          children: clientTypes.entries.map((entry) {
+                            final color = _getClientTypeColor(entry.key);
+                            return pw.Row(
+                              mainAxisSize: pw.MainAxisSize.min,
+                              children: [
+                                pw.Container(width: 10, height: 10, color: color),
+                                pw.SizedBox(width: 4),
+                                pw.Text('${entry.key} (${entry.value})', style: const pw.TextStyle(fontSize: 7)),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-            pw.Divider(thickness: 1, color: PdfColors.grey400),
-            pw.SizedBox(height: 10),
-            pw.Text(
-              'Top performing services based on average satisfaction scores',
-              style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+            pw.SizedBox(height: 25),
+            // Radar Chart for SQD Analysis
+            pw.Container(
+              padding: const pw.EdgeInsets.all(20),
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: PdfColors.grey300),
+                borderRadius: pw.BorderRadius.circular(8),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text('Visual SQD Analysis (Radar)', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                  pw.SizedBox(height: 20),
+                  pw.Center(
+                    child: _buildPdfRadarChart(sqdAverages, sqdLabels),
+                  ),
+                ],
+              ),
             ),
-            pw.SizedBox(height: 20),
-            // Horizontal bar chart for services
-            if (topServices.isEmpty)
-              pw.Center(child: pw.Text('No service data available', style: const pw.TextStyle(color: PdfColors.grey400)))
-            else
-              ...topServices.map((entry) => _buildPdfServiceBar(entry.key, entry.value)),
-            pw.SizedBox(height: 30),
-            // Respondent Profile section
-            pw.Text(
-              'Respondent Profile',
-              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey800),
-            ),
-            pw.Divider(thickness: 1, color: PdfColors.grey400),
-            pw.SizedBox(height: 10),
-            pw.Text(
-              'Distribution of respondents by client type',
-              style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
-            ),
-            pw.SizedBox(height: 15),
-            // Client type visual bars (representing pie chart data)
-            ...clientTypes.entries.map((entry) {
-              final pct = totalResponses > 0 ? (entry.value / totalResponses * 100) : 0.0;
-              return _buildPdfClientTypeBar(entry.key, entry.value, pct);
-            }),
           ],
         ),
       ),
@@ -922,6 +994,198 @@ class ExportService {
           pw.Text('$count (${percentage.toStringAsFixed(1)}%)', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
         ],
       ),
+    );
+  }
+  
+  /// Helper: Get color for client type
+  static PdfColor _getClientTypeColor(String clientType) {
+    final colors = {
+      'CITIZEN': PdfColors.blue600,
+      'Citizen': PdfColors.blue600,
+      'BUSINESS': PdfColors.red600,
+      'Business': PdfColors.red600,
+      'GOVERNMENT': PdfColors.green600,
+      'Government': PdfColors.green600,
+      'GOVERNMENT (EMPLOYEE OR ANOTHER AGENCY)': PdfColors.green600,
+    };
+    return colors[clientType] ?? PdfColors.purple600;
+  }
+  
+  /// Helper: Build actual PDF Pie Chart using custom painting
+  static pw.Widget _buildPdfPieChart(Map<String, int> data, int total) {
+    if (data.isEmpty || total == 0) {
+      return pw.Container(
+        width: 120,
+        height: 120,
+        child: pw.Center(child: pw.Text('No data', style: const pw.TextStyle(color: PdfColors.grey400))),
+      );
+    }
+    
+    return pw.CustomPaint(
+      size: const PdfPoint(140, 140),
+      painter: (canvas, size) {
+        final centerX = size.x / 2;
+        final centerY = size.y / 2;
+        final radius = math.min(centerX, centerY) - 5;
+        final innerRadius = radius * 0.5; // Donut chart
+        
+        double startAngle = -math.pi / 2; // Start from top
+        
+        final entries = data.entries.toList();
+        for (int i = 0; i < entries.length; i++) {
+          final entry = entries[i];
+          final sweepAngle = (entry.value / total) * 2 * math.pi;
+          final color = _getClientTypeColor(entry.key);
+          
+          // Draw pie slice (donut)
+          canvas
+            ..setFillColor(color)
+            ..moveTo(centerX + innerRadius * math.cos(startAngle), centerY + innerRadius * math.sin(startAngle));
+          
+          // Outer arc
+          for (double a = 0; a <= sweepAngle; a += 0.05) {
+            canvas.lineTo(
+              centerX + radius * math.cos(startAngle + a),
+              centerY + radius * math.sin(startAngle + a),
+            );
+          }
+          
+          // Inner arc (reverse)
+          for (double a = sweepAngle; a >= 0; a -= 0.05) {
+            canvas.lineTo(
+              centerX + innerRadius * math.cos(startAngle + a),
+              centerY + innerRadius * math.sin(startAngle + a),
+            );
+          }
+          
+          canvas
+            ..closePath()
+            ..fillPath();
+          
+          startAngle += sweepAngle;
+        }
+      },
+    );
+  }
+  
+  /// Helper: Build actual PDF Radar Chart using custom painting
+  static pw.Widget _buildPdfRadarChart(Map<String, double> sqdAverages, Map<String, String> sqdLabels) {
+    final entries = sqdLabels.entries.toList();
+    final dataPoints = entries.map((e) => sqdAverages[e.key] ?? 0.0).toList();
+    
+    if (dataPoints.isEmpty || dataPoints.every((v) => v == 0)) {
+      return pw.Container(
+        width: 300,
+        height: 300,
+        child: pw.Center(child: pw.Text('No data available', style: const pw.TextStyle(color: PdfColors.grey400))),
+      );
+    }
+    
+    return pw.Column(
+      children: [
+        pw.CustomPaint(
+          size: const PdfPoint(350, 350),
+          painter: (canvas, size) {
+            final centerX = size.x / 2;
+            final centerY = size.y / 2;
+            final radius = math.min(centerX, centerY) - 40;
+            final numPoints = dataPoints.length;
+            final angleStep = (2 * math.pi) / numPoints;
+            
+            // Draw grid lines (5 levels)
+            for (int level = 1; level <= 5; level++) {
+              final levelRadius = (radius / 5) * level;
+              canvas
+                ..setStrokeColor(PdfColors.grey300)
+                ..setLineWidth(0.5);
+              
+              for (int i = 0; i < numPoints; i++) {
+                final angle = -math.pi / 2 + i * angleStep;
+                final nextAngle = -math.pi / 2 + ((i + 1) % numPoints) * angleStep;
+                
+                final x1 = centerX + levelRadius * math.cos(angle);
+                final y1 = centerY + levelRadius * math.sin(angle);
+                final x2 = centerX + levelRadius * math.cos(nextAngle);
+                final y2 = centerY + levelRadius * math.sin(nextAngle);
+                
+                canvas
+                  ..moveTo(x1, y1)
+                  ..lineTo(x2, y2)
+                  ..strokePath();
+              }
+            }
+            
+            // Draw axis lines from center
+            canvas
+              ..setStrokeColor(PdfColors.grey400)
+              ..setLineWidth(0.5);
+            for (int i = 0; i < numPoints; i++) {
+              final angle = -math.pi / 2 + i * angleStep;
+              final x = centerX + radius * math.cos(angle);
+              final y = centerY + radius * math.sin(angle);
+              
+              canvas
+                ..moveTo(centerX, centerY)
+                ..lineTo(x, y)
+                ..strokePath();
+            }
+            
+            // Draw data polygon (filled)
+            final dataPath = <PdfPoint>[];
+            for (int i = 0; i < numPoints; i++) {
+              final angle = -math.pi / 2 + i * angleStep;
+              final value = dataPoints[i].clamp(0, 5);
+              final pointRadius = (radius / 5) * value;
+              dataPath.add(PdfPoint(
+                centerX + pointRadius * math.cos(angle),
+                centerY + pointRadius * math.sin(angle),
+              ));
+            }
+            
+            // Fill polygon
+            canvas.setFillColor(PdfColor.fromInt(0x66C53030)); // Semi-transparent red
+            canvas.moveTo(dataPath[0].x, dataPath[0].y);
+            for (int i = 1; i < dataPath.length; i++) {
+              canvas.lineTo(dataPath[i].x, dataPath[i].y);
+            }
+            canvas
+              ..closePath()
+              ..fillPath();
+            
+            // Stroke polygon
+            canvas.setStrokeColor(PdfColors.red700);
+            canvas.setLineWidth(2);
+            canvas.moveTo(dataPath[0].x, dataPath[0].y);
+            for (int i = 1; i < dataPath.length; i++) {
+              canvas.lineTo(dataPath[i].x, dataPath[i].y);
+            }
+            canvas
+              ..closePath()
+              ..strokePath();
+            
+            // Draw data points
+            canvas.setFillColor(PdfColors.red700);
+            for (final point in dataPath) {
+              canvas
+                ..drawEllipse(point.x, point.y, 3, 3)
+                ..fillPath();
+            }
+          },
+        ),
+        pw.SizedBox(height: 10),
+        // Labels below the chart
+        pw.Wrap(
+          spacing: 15,
+          runSpacing: 5,
+          alignment: pw.WrapAlignment.center,
+          children: entries.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final label = 'SQD$idx';
+            final score = dataPoints[idx];
+            return pw.Text('$label: ${score.toStringAsFixed(1)}', style: const pw.TextStyle(fontSize: 8));
+          }).toList(),
+        ),
+      ],
     );
   }
 }
