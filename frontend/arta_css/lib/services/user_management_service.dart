@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
 
 /// Model representing an admin/system user
 class SystemUser {
@@ -255,13 +257,29 @@ class UserManagementService extends ChangeNotifier {
   }
 
   /// Add a new user
+  /// Hash a password using SHA-256
+  static String _hashPassword(String password) {
+    final bytes = utf8.encode(password);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
+  /// Add a new user to Firestore
   Future<bool> addUser({
     required String name,
     required String email,
     required String role,
     required String department,
+    required String password,
   }) async {
     try {
+      // Validate password
+      if (password.length < 6) {
+        _error = 'Password must be at least 6 characters';
+        notifyListeners();
+        return false;
+      }
+
       // Check if email already exists
       final existing = await _firestore
           .collection('system_users')
@@ -274,11 +292,15 @@ class UserManagementService extends ChangeNotifier {
         return false;
       }
 
+      // Hash the password before storing
+      final passwordHash = _hashPassword(password);
+
       final docRef = await _firestore.collection('system_users').add({
         'name': name,
         'email': email,
         'role': role,
         'department': department,
+        'passwordHash': passwordHash,
         'status': 'Active',
         'createdAt': FieldValue.serverTimestamp(),
         'lastLoginAt': null,

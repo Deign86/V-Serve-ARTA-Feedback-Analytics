@@ -1087,7 +1087,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     String name = '';
     String email = '';
     String department = '';
+    String password = '';
+    String confirmPassword = '';
     String selectedRole = 'Analyst/Viewer';
+    bool obscurePassword = true;
+    bool obscureConfirmPassword = true;
 
     return showDialog(
       context: context,
@@ -1101,34 +1105,75 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 width: 400,
                 child: Form(
                   key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        decoration: InputDecoration(labelText: 'Full Name', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.person)),
-                        validator: (value) => value!.isEmpty ? 'Please enter name' : null,
-                        onSaved: (val) => name = val!,
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        decoration: InputDecoration(labelText: 'Email Address', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.email)),
-                        validator: (value) => !value!.contains('@') ? 'Invalid email' : null,
-                        onSaved: (val) => email = val!,
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        decoration: InputDecoration(labelText: 'Department', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.business)),
-                        validator: (value) => value!.isEmpty ? 'Please enter department' : null,
-                        onSaved: (val) => department = val!,
-                      ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        value: selectedRole,
-                        decoration: InputDecoration(labelText: 'User Role', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.security)),
-                        items: ['Administrator', 'Editor', 'Analyst/Viewer'].map((role) => DropdownMenuItem(value: role, child: Text(role))).toList(),
-                        onChanged: (val) => setState(() => selectedRole = val!),
-                      ),
-                    ],
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextFormField(
+                          decoration: InputDecoration(labelText: 'Full Name', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.person)),
+                          validator: (value) => value!.isEmpty ? 'Please enter name' : null,
+                          onSaved: (val) => name = val!,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          decoration: InputDecoration(labelText: 'Email Address', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.email)),
+                          validator: (value) => !value!.contains('@') ? 'Invalid email' : null,
+                          onSaved: (val) => email = val!,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          obscureText: obscurePassword,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            prefixIcon: const Icon(Icons.lock),
+                            suffixIcon: IconButton(
+                              icon: Icon(obscurePassword ? Icons.visibility : Icons.visibility_off),
+                              onPressed: () => setState(() => obscurePassword = !obscurePassword),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) return 'Please enter password';
+                            if (value.length < 6) return 'Password must be at least 6 characters';
+                            return null;
+                          },
+                          onSaved: (val) => password = val!,
+                          onChanged: (val) => password = val,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          obscureText: obscureConfirmPassword,
+                          decoration: InputDecoration(
+                            labelText: 'Confirm Password',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
+                              onPressed: () => setState(() => obscureConfirmPassword = !obscureConfirmPassword),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) return 'Please confirm password';
+                            if (value != password) return 'Passwords do not match';
+                            return null;
+                          },
+                          onSaved: (val) => confirmPassword = val!,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          decoration: InputDecoration(labelText: 'Department', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.business)),
+                          validator: (value) => value!.isEmpty ? 'Please enter department' : null,
+                          onSaved: (val) => department = val!,
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: selectedRole,
+                          decoration: InputDecoration(labelText: 'User Role', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.security)),
+                          items: ['Administrator', 'Editor', 'Analyst/Viewer'].map((role) => DropdownMenuItem(value: role, child: Text(role))).toList(),
+                          onChanged: (val) => setState(() => selectedRole = val!),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1139,7 +1184,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     if (formKey.currentState!.validate()) {
                       formKey.currentState!.save();
                       Navigator.pop(dialogContext);
-                      final success = await userService.addUser(name: name, email: email, role: selectedRole, department: department);
+                      final success = await userService.addUser(name: name, email: email, role: selectedRole, department: department, password: password);
                       if (success && mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('User "$name" added as $selectedRole'), backgroundColor: Colors.green));
                       } else if (mounted) {

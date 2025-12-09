@@ -43,6 +43,7 @@ dependencies:
   pdf: ^3.11.0
   qr_flutter: ^4.1.0      # For QR code generation
   printing: ^5.13.0       # For printing functionality
+  crypto: ^3.0.3          # For password hashing
 
 
   # The following adds the Cupertino Icons font to your application.
