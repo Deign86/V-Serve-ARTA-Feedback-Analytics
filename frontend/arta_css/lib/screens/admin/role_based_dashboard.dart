@@ -5,7 +5,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'admin_screens.dart';
 import '../../services/export_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 // NOTE: This file provides screens (DashboardScreen, etc.)
 // and no longer contains its own `main()` or a top-level `MaterialApp`.
@@ -1287,32 +1286,13 @@ class DataExportsScreen extends StatefulWidget {
 }
 
 class _DataExportsScreenState extends State<DataExportsScreen> {
-  String _defaultExportFormat = 'csv';
-  bool _isLoadingPrefs = true;
-
   @override
   void initState() {
     super.initState();
-    _loadPrefs();
     // Ensure data is loaded
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<FeedbackService>().fetchAllFeedbacks();
     });
-  }
-
-  Future<void> _loadPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    setState(() {
-      _defaultExportFormat = prefs.getString('exportFormat') ?? 'csv';
-      _isLoadingPrefs = false;
-    });
-  }
-
-  Future<void> _saveDefaultFormat(String format) async {
-    setState(() => _defaultExportFormat = format);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('exportFormat', format);
   }
 
   String _formatDate(DateTime? date) {
@@ -1387,90 +1367,6 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
                      ],
                    );
                 },
-              ),
-              const SizedBox(height: 32),
-
-              // Quick Export & Default Format Section
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
-                color: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.bolt, color: Colors.amber, size: 20),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'QUICK EXPORT',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: brandBlue
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Export all data using your default format',
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                              ),
-                            ],
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () => _quickExport(context, feedbackService),
-                            icon: Icon(_getFormatIcon(_defaultExportFormat), size: 18),
-                            label: Text('Export as ${_defaultExportFormat.toUpperCase()}'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _getFormatColor(_defaultExportFormat),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      const Divider(),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Default Export Format',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: brandBlue,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Select your preferred format for quick exports',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                      ),
-                      const SizedBox(height: 12),
-                      if (_isLoadingPrefs)
-                        const Center(child: CircularProgressIndicator())
-                      else
-                        Row(
-                          children: [
-                            _buildFormatChip('csv', 'CSV', Icons.table_chart, Colors.green),
-                            const SizedBox(width: 12),
-                            _buildFormatChip('json', 'JSON', Icons.code, Colors.blue),
-                            const SizedBox(width: 12),
-                            _buildFormatChip('pdf', 'PDF', Icons.picture_as_pdf, Colors.red),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
               ),
               const SizedBox(height: 32),
 
@@ -1562,75 +1458,6 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
     );
       },
     );
-  }
-
-  IconData _getFormatIcon(String format) {
-    switch (format) {
-      case 'csv': return Icons.table_chart;
-      case 'json': return Icons.code;
-      case 'pdf': return Icons.picture_as_pdf;
-      default: return Icons.file_download;
-    }
-  }
-
-  Color _getFormatColor(String format) {
-    switch (format) {
-      case 'csv': return Colors.green;
-      case 'json': return Colors.blue;
-      case 'pdf': return Colors.red;
-      default: return brandBlue;
-    }
-  }
-
-  Widget _buildFormatChip(String value, String label, IconData icon, Color color) {
-    final isSelected = _defaultExportFormat == value;
-    return InkWell(
-      onTap: () => _saveDefaultFormat(value),
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.15) : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? color : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: isSelected ? color : Colors.grey.shade600, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? color : Colors.grey.shade700,
-              ),
-            ),
-            if (isSelected) ...[
-              const SizedBox(width: 6),
-              Icon(Icons.check_circle, color: color, size: 16),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _quickExport(BuildContext context, FeedbackService feedbackService) async {
-    switch (_defaultExportFormat) {
-      case 'csv':
-        await _exportCsv(context, feedbackService);
-        break;
-      case 'json':
-        await _exportJson(context, feedbackService);
-        break;
-      case 'pdf':
-        _showPdfExportDialog(context, feedbackService);
-        break;
-    }
   }
 
   Widget _buildExportCard(BuildContext context, FeedbackService feedbackService, String title, String sub, IconData icon, Color color, {bool isPdf = false, bool isCsv = false, bool isJson = false}) {
