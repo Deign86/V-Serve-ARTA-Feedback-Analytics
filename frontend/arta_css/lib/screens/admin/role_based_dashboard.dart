@@ -210,10 +210,28 @@ class DashboardOverview extends StatefulWidget {
   State<DashboardOverview> createState() => _DashboardOverviewState();
 }
 
-class _DashboardOverviewState extends State<DashboardOverview> {
+class _DashboardOverviewState extends State<DashboardOverview> with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
   @override
   void initState() {
     super.initState();
+    
+    // Animation setup
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
+    );
+    _animationController.forward();
+    
     // Start real-time listener when widget initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final feedbackService = context.read<FeedbackService>();
@@ -222,6 +240,12 @@ class _DashboardOverviewState extends State<DashboardOverview> {
         feedbackService.startRealtimeUpdates();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   @override
@@ -335,60 +359,70 @@ class _DashboardOverviewState extends State<DashboardOverview> {
                 ],
               ),
             ),
-            // Stats Cards
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final crossAxisCount = constraints.maxWidth > 1200
-                      ? 4
-                      : constraints.maxWidth > 800
-                          ? 2
-                          : 1;
-                  
-                  return GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 2,
-                    children: [
-                      _buildStatCard(
-                        'TOTAL RESPONSES',
-                        stats?.totalResponsesFormatted ?? '0',
-                        'Real-time data from Firestore',
-                        Icons.people,
-                        Colors.blue.shade50,
-                        brandBlue
-                      ),
-                      _buildStatCard(
-                        'AVG. SATISFACTION',
-                        stats?.avgSatisfactionFormatted ?? '0/5',
-                        'Based on SQD0 ratings',
-                        Icons.star,
-                        Colors.amber.shade50,
-                        Colors.amber.shade800
-                      ),
-                      _buildStatCard(
-                        'COMPLETION RATE',
-                        stats?.completionRateFormatted ?? '0%',
-                        'Surveys with all required fields',
-                        Icons.check_circle,
-                        Colors.green.shade50,
-                        Colors.green
-                      ),
-                      _buildStatCard(
-                        'NEGATIVE FEEDBACK',
-                        stats?.negativeRateFormatted ?? '0%',
-                        'Rating ≤ 2 out of 5',
-                        Icons.warning,
-                        Colors.red.shade50,
-                        brandRed
-                      ),
-                    ],
-                  );
-                },
+            // Stats Cards with staggered animation
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final crossAxisCount = constraints.maxWidth > 1200
+                          ? 4
+                          : constraints.maxWidth > 800
+                              ? 2
+                              : 1;
+                      
+                      return GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 2,
+                        children: [
+                          _buildAnimatedStatCard(
+                            'TOTAL RESPONSES',
+                            stats?.totalResponsesFormatted ?? '0',
+                            'Real-time data from Firestore',
+                            Icons.people,
+                            Colors.blue.shade50,
+                            brandBlue,
+                            0,
+                          ),
+                          _buildAnimatedStatCard(
+                            'AVG. SATISFACTION',
+                            stats?.avgSatisfactionFormatted ?? '0/5',
+                            'Based on SQD0 ratings',
+                            Icons.star,
+                            Colors.amber.shade50,
+                            Colors.amber.shade800,
+                            1,
+                          ),
+                          _buildAnimatedStatCard(
+                            'COMPLETION RATE',
+                            stats?.completionRateFormatted ?? '0%',
+                            'Surveys with all required fields',
+                            Icons.check_circle,
+                            Colors.green.shade50,
+                            Colors.green,
+                            2,
+                          ),
+                          _buildAnimatedStatCard(
+                            'NEGATIVE FEEDBACK',
+                            stats?.negativeRateFormatted ?? '0%',
+                            'Rating ≤ 2 out of 5',
+                            Icons.warning,
+                            Colors.red.shade50,
+                            brandRed,
+                            3,
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -429,6 +463,23 @@ class _DashboardOverviewState extends State<DashboardOverview> {
         ),
       ),
     );
+      },
+    );
+  }
+
+  Widget _buildAnimatedStatCard(String title, String value, String change, IconData icon, Color bgColor, Color iconColor, int index) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (index * 100)),
+      curve: Curves.easeOutCubic,
+      builder: (context, animValue, child) {
+        return Transform.translate(
+          offset: Offset(0, 20 * (1 - animValue)),
+          child: Opacity(
+            opacity: animValue,
+            child: _buildStatCard(title, value, change, icon, bgColor, iconColor),
+          ),
+        );
       },
     );
   }
@@ -632,7 +683,7 @@ class _DashboardOverviewState extends State<DashboardOverview> {
             ),
             const SizedBox(height: 24),
             SizedBox(
-              height: 200,
+              height: 180,
               child: !hasData
                   ? Center(
                       child: Text(
@@ -642,64 +693,107 @@ class _DashboardOverviewState extends State<DashboardOverview> {
                     )
                   : PieChart(
                 PieChartData(
-                  sectionsSpace: 2,
-                  centerSpaceRadius: 50,
+                  sectionsSpace: 3,
+                  centerSpaceRadius: 40,
+                  pieTouchData: PieTouchData(
+                    touchCallback: (FlTouchEvent event, pieTouchResponse) {},
+                  ),
                   sections: [
                     if (verySatisfied > 0)
                     PieChartSectionData(
                       value: verySatisfied,
-                      title: 'Very Satisfied\n${verySatisfied.toStringAsFixed(0)}%',
+                      title: '${verySatisfied.toStringAsFixed(0)}%',
                       color: Colors.green,
-                      radius: 60,
+                      radius: 50,
                       titleStyle: const TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
+                      titlePositionPercentageOffset: 0.55,
                     ),
                     if (satisfied > 0)
                     PieChartSectionData(
                       value: satisfied,
-                      title: 'Satisfied\n${satisfied.toStringAsFixed(0)}%',
+                      title: '${satisfied.toStringAsFixed(0)}%',
                       color: Colors.blue,
-                      radius: 60,
+                      radius: 50,
                       titleStyle: const TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
+                      titlePositionPercentageOffset: 0.55,
                     ),
                     if (neutral > 0)
                     PieChartSectionData(
                       value: neutral,
-                      title: 'Neutral\n${neutral.toStringAsFixed(0)}%',
+                      title: '${neutral.toStringAsFixed(0)}%',
                       color: Colors.orange,
-                      radius: 60,
+                      radius: 50,
                       titleStyle: const TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
+                      titlePositionPercentageOffset: 0.55,
                     ),
                     if (dissatisfied > 0)
                     PieChartSectionData(
                       value: dissatisfied,
-                      title: 'Dissatisfied\n${dissatisfied.toStringAsFixed(0)}%',
+                      title: '${dissatisfied.toStringAsFixed(0)}%',
                       color: Colors.red,
-                      radius: 60,
+                      radius: 50,
                       titleStyle: const TextStyle(
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
+                      titlePositionPercentageOffset: 0.55,
                     ),
                   ],
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            // Legend
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              children: [
+                if (verySatisfied > 0) _buildLegendItem('Very Satisfied', Colors.green),
+                if (satisfied > 0) _buildLegendItem('Satisfied', Colors.blue),
+                if (neutral > 0) _buildLegendItem('Neutral', Colors.orange),
+                if (dissatisfied > 0) _buildLegendItem('Dissatisfied', Colors.red),
+              ],
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildLegendItem(String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey.shade700,
+          ),
+        ),
+      ],
     );
   }
 }
