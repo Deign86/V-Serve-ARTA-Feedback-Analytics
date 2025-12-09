@@ -1020,7 +1020,7 @@ class ExportService {
     );
   }
   
-  /// Helper: Build actual PDF Radar Chart using custom painting
+  /// Helper: Build actual PDF Radar Chart using custom painting with labels
   static pw.Widget _buildPdfRadarChart(Map<String, double> sqdAverages, Map<String, String> sqdLabels) {
     final entries = sqdLabels.entries.toList();
     final dataPoints = entries.map((e) => sqdAverages[e.key] ?? 0.0).toList();
@@ -1033,99 +1033,158 @@ class ExportService {
       );
     }
     
+    const double chartSize = 350;
+    const double centerOffset = chartSize / 2;
+    const double radius = centerOffset - 55; // Leave room for labels
+    final numPoints = dataPoints.length;
+    final angleStep = (2 * math.pi) / numPoints;
+    
+    // Calculate label positions for the Stack
+    // Use the same angle calculation as the chart drawing
+    // In Stack widget coordinates: origin is top-left, Y increases downward
+    final labelWidgets = <pw.Widget>[];
+    for (int i = 0; i < numPoints; i++) {
+      // Start from top (negative Y in cartesian = positive angle from -pi/2)
+      // and go clockwise
+      final angle = -math.pi / 2 + i * angleStep;
+      // Position labels outside the chart
+      final labelRadius = radius + 35;
+      
+      // For Stack positioning: cos(angle) for X, sin(angle) for Y
+      // sin(-pi/2) = -1, so the top point has negative Y offset from center
+      // In Stack coordinates, we add to center because top=0 is the top
+      final labelX = centerOffset + labelRadius * math.cos(angle);
+      final labelY = centerOffset + labelRadius * math.sin(angle);
+      
+      final label = 'SQD$i';
+      
+      // Adjust positioning to center the text label
+      // Adjust X offset based on position (left/center/right alignment)
+      double xAdjust = -15; // Default center
+      if (math.cos(angle) < -0.3) {
+        xAdjust = -25; // Left side - shift more left
+      } else if (math.cos(angle) > 0.3) {
+        xAdjust = -5; // Right side - shift less
+      }
+      
+      labelWidgets.add(
+        pw.Positioned(
+          left: labelX + xAdjust,
+          top: labelY - 6, // Center vertically
+          child: pw.Text(
+            label,
+            style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
+          ),
+        ),
+      );
+    }
+    
     return pw.Column(
       children: [
-        pw.CustomPaint(
-          size: const PdfPoint(350, 350),
-          painter: (canvas, size) {
-            final centerX = size.x / 2;
-            final centerY = size.y / 2;
-            final radius = math.min(centerX, centerY) - 40;
-            final numPoints = dataPoints.length;
-            final angleStep = (2 * math.pi) / numPoints;
-            
-            // Draw grid lines (5 levels)
-            for (int level = 1; level <= 5; level++) {
-              final levelRadius = (radius / 5) * level;
-              canvas
-                ..setStrokeColor(PdfColors.grey300)
-                ..setLineWidth(0.5);
-              
-              for (int i = 0; i < numPoints; i++) {
-                final angle = -math.pi / 2 + i * angleStep;
-                final nextAngle = -math.pi / 2 + ((i + 1) % numPoints) * angleStep;
-                
-                final x1 = centerX + levelRadius * math.cos(angle);
-                final y1 = centerY + levelRadius * math.sin(angle);
-                final x2 = centerX + levelRadius * math.cos(nextAngle);
-                final y2 = centerY + levelRadius * math.sin(nextAngle);
-                
-                canvas
-                  ..moveTo(x1, y1)
-                  ..lineTo(x2, y2)
-                  ..strokePath();
-              }
-            }
-            
-            // Draw axis lines from center
-            canvas
-              ..setStrokeColor(PdfColors.grey400)
-              ..setLineWidth(0.5);
-            for (int i = 0; i < numPoints; i++) {
-              final angle = -math.pi / 2 + i * angleStep;
-              final x = centerX + radius * math.cos(angle);
-              final y = centerY + radius * math.sin(angle);
-              
-              canvas
-                ..moveTo(centerX, centerY)
-                ..lineTo(x, y)
-                ..strokePath();
-            }
-            
-            // Draw data polygon (filled)
-            final dataPath = <PdfPoint>[];
-            for (int i = 0; i < numPoints; i++) {
-              final angle = -math.pi / 2 + i * angleStep;
-              final value = dataPoints[i].clamp(0, 5);
-              final pointRadius = (radius / 5) * value;
-              dataPath.add(PdfPoint(
-                centerX + pointRadius * math.cos(angle),
-                centerY + pointRadius * math.sin(angle),
-              ));
-            }
-            
-            // Fill polygon
-            canvas.setFillColor(PdfColor.fromInt(0x66C53030)); // Semi-transparent red
-            canvas.moveTo(dataPath[0].x, dataPath[0].y);
-            for (int i = 1; i < dataPath.length; i++) {
-              canvas.lineTo(dataPath[i].x, dataPath[i].y);
-            }
-            canvas
-              ..closePath()
-              ..fillPath();
-            
-            // Stroke polygon
-            canvas.setStrokeColor(PdfColors.red700);
-            canvas.setLineWidth(2);
-            canvas.moveTo(dataPath[0].x, dataPath[0].y);
-            for (int i = 1; i < dataPath.length; i++) {
-              canvas.lineTo(dataPath[i].x, dataPath[i].y);
-            }
-            canvas
-              ..closePath()
-              ..strokePath();
-            
-            // Draw data points
-            canvas.setFillColor(PdfColors.red700);
-            for (final point in dataPath) {
-              canvas
-                ..drawEllipse(point.x, point.y, 3, 3)
-                ..fillPath();
-            }
-          },
+        pw.SizedBox(
+          width: chartSize,
+          height: chartSize,
+          child: pw.Stack(
+            children: [
+              // The radar chart graphic
+              pw.Positioned.fill(
+                child: pw.CustomPaint(
+                  size: const PdfPoint(chartSize, chartSize),
+                  painter: (canvas, size) {
+                    final centerX = size.x / 2;
+                    final centerY = size.y / 2;
+                    
+                    // Draw grid lines (5 levels)
+                    // Note: In PDF canvas, Y=0 is at bottom and increases upward
+                    // We negate the sin() result to flip the chart so it matches
+                    // the widget Stack coordinates (Y increases downward)
+                    for (int level = 1; level <= 5; level++) {
+                      final levelRadius = (radius / 5) * level;
+                      canvas
+                        ..setStrokeColor(PdfColors.grey300)
+                        ..setLineWidth(0.5);
+                      
+                      for (int i = 0; i < numPoints; i++) {
+                        final angle = -math.pi / 2 + i * angleStep;
+                        final nextAngle = -math.pi / 2 + ((i + 1) % numPoints) * angleStep;
+                        
+                        final x1 = centerX + levelRadius * math.cos(angle);
+                        final y1 = centerY - levelRadius * math.sin(angle); // Negate sin for Y
+                        final x2 = centerX + levelRadius * math.cos(nextAngle);
+                        final y2 = centerY - levelRadius * math.sin(nextAngle); // Negate sin for Y
+                        
+                        canvas
+                          ..moveTo(x1, y1)
+                          ..lineTo(x2, y2)
+                          ..strokePath();
+                      }
+                    }
+                    
+                    // Draw axis lines from center
+                    canvas
+                      ..setStrokeColor(PdfColors.grey400)
+                      ..setLineWidth(0.5);
+                    for (int i = 0; i < numPoints; i++) {
+                      final angle = -math.pi / 2 + i * angleStep;
+                      final x = centerX + radius * math.cos(angle);
+                      final y = centerY - radius * math.sin(angle); // Negate sin for Y
+                      
+                      canvas
+                        ..moveTo(centerX, centerY)
+                        ..lineTo(x, y)
+                        ..strokePath();
+                    }
+                    
+                    // Draw data polygon (filled)
+                    final dataPath = <PdfPoint>[];
+                    for (int i = 0; i < numPoints; i++) {
+                      final angle = -math.pi / 2 + i * angleStep;
+                      final value = dataPoints[i].clamp(0, 5);
+                      final pointRadius = (radius / 5) * value;
+                      dataPath.add(PdfPoint(
+                        centerX + pointRadius * math.cos(angle),
+                        centerY - pointRadius * math.sin(angle), // Negate sin for Y
+                      ));
+                    }
+                    
+                    // Fill polygon
+                    canvas.setFillColor(PdfColor.fromInt(0x66C53030)); // Semi-transparent red
+                    canvas.moveTo(dataPath[0].x, dataPath[0].y);
+                    for (int i = 1; i < dataPath.length; i++) {
+                      canvas.lineTo(dataPath[i].x, dataPath[i].y);
+                    }
+                    canvas
+                      ..closePath()
+                      ..fillPath();
+                    
+                    // Stroke polygon
+                    canvas.setStrokeColor(PdfColors.red700);
+                    canvas.setLineWidth(2);
+                    canvas.moveTo(dataPath[0].x, dataPath[0].y);
+                    for (int i = 1; i < dataPath.length; i++) {
+                      canvas.lineTo(dataPath[i].x, dataPath[i].y);
+                    }
+                    canvas
+                      ..closePath()
+                      ..strokePath();
+                    
+                    // Draw data points
+                    canvas.setFillColor(PdfColors.red700);
+                    for (final point in dataPath) {
+                      canvas
+                        ..drawEllipse(point.x, point.y, 3, 3)
+                        ..fillPath();
+                    }
+                  },
+                ),
+              ),
+              // Labels positioned around the chart
+              ...labelWidgets,
+            ],
+          ),
         ),
         pw.SizedBox(height: 10),
-        // Labels below the chart
+        // Legend with scores below the chart
         pw.Wrap(
           spacing: 15,
           runSpacing: 5,
