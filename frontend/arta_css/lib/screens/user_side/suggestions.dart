@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
 import '../../services/offline_queue.dart';
+import '../../services/survey_config_service.dart';
 import 'landing_page.dart';
 
 class SuggestionsScreen extends StatefulWidget {
@@ -398,15 +400,60 @@ class ThankYouScreen extends StatefulWidget {
 class _ThankYouScreenState extends State<ThankYouScreen> {
   late TextEditingController _commentsController;
   bool _isSubmittingComment = false;
+  bool _hasCommentText = false;
+  
+  // Kiosk Mode
+  bool _isKioskMode = false;
+  int _countdownSeconds = 10;
+  static const int _kioskCountdownDuration = 10; // seconds
 
   @override
   void initState() {
     super.initState();
     _commentsController = TextEditingController();
+    _commentsController.addListener(_onCommentChanged);
+    
+    // Check kiosk mode and start countdown if enabled
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkKioskMode();
+    });
+  }
+
+  void _checkKioskMode() {
+    final configService = context.read<SurveyConfigService>();
+    if (configService.kioskMode) {
+      setState(() {
+        _isKioskMode = true;
+        _countdownSeconds = _kioskCountdownDuration;
+      });
+      _startKioskCountdown();
+    }
+  }
+
+  void _startKioskCountdown() {
+    Future.delayed(const Duration(seconds: 1), () {
+      if (!mounted) return;
+      
+      if (_countdownSeconds > 1) {
+        setState(() => _countdownSeconds--);
+        _startKioskCountdown();
+      } else {
+        // Time's up - navigate to home
+        _goHome();
+      }
+    });
+  }
+
+  void _onCommentChanged() {
+    final hasText = _commentsController.text.trim().isNotEmpty;
+    if (hasText != _hasCommentText) {
+      setState(() => _hasCommentText = hasText);
+    }
   }
 
   @override
   void dispose() {
+    _commentsController.removeListener(_onCommentChanged);
     _commentsController.dispose();
     super.dispose();
   }
@@ -552,6 +599,32 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
             ),
             textAlign: TextAlign.center,
           ),
+          // Kiosk Mode Countdown
+          if (_isKioskMode) ...[
+            const SizedBox(height: 32),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: Colors.white30),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.refresh, color: Colors.white70, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Restarting in $_countdownSeconds seconds...",
+                    style: GoogleFonts.poppins(
+                      color: Colors.white70,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -610,9 +683,10 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
             width: 140,
             height: 45,
             child: ElevatedButton(
-              onPressed: _isSubmittingComment ? null : _submitComment,
+              onPressed: (_isSubmittingComment || !_hasCommentText) ? null : _submitComment,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF003366),
+                disabledBackgroundColor: Colors.grey.shade400,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               ),
               child: _isSubmittingComment 
