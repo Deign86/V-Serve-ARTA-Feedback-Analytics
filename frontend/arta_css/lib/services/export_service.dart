@@ -949,54 +949,6 @@ class ExportService {
     );
   }
   
-  /// Helper: Build PDF client type bar (matching Detailed Analytics Respondent Profile pie chart as bars)
-  static pw.Widget _buildPdfClientTypeBar(String clientType, int count, double percentage) {
-    final barWidthPercent = percentage.clamp(0.0, 100.0);
-    final colors = {
-      'Citizen': PdfColors.blue600,
-      'Business': PdfColors.red600,
-      'Government': PdfColors.green600,
-    };
-    final barColor = colors[clientType] ?? PdfColors.purple600;
-    
-    return pw.Container(
-      margin: const pw.EdgeInsets.only(bottom: 10),
-      child: pw.Row(
-        children: [
-          pw.SizedBox(
-            width: 100,
-            child: pw.Row(
-              children: [
-                pw.Container(width: 12, height: 12, color: barColor),
-                pw.SizedBox(width: 6),
-                pw.Text(clientType, style: const pw.TextStyle(fontSize: 9)),
-              ],
-            ),
-          ),
-          pw.SizedBox(width: 10),
-          pw.Expanded(
-            child: pw.Row(
-              children: [
-                if (barWidthPercent > 0)
-                  pw.Expanded(
-                    flex: barWidthPercent.round().clamp(1, 100),
-                    child: pw.Container(height: 16, decoration: pw.BoxDecoration(color: barColor, borderRadius: pw.BorderRadius.circular(4))),
-                  ),
-                if (barWidthPercent < 100)
-                  pw.Expanded(
-                    flex: (100 - barWidthPercent).round().clamp(1, 100),
-                    child: pw.Container(height: 16, decoration: pw.BoxDecoration(color: PdfColors.grey100, borderRadius: pw.BorderRadius.circular(4))),
-                  ),
-              ],
-            ),
-          ),
-          pw.SizedBox(width: 10),
-          pw.Text('$count (${percentage.toStringAsFixed(1)}%)', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-  
   /// Helper: Get color for client type
   static PdfColor _getClientTypeColor(String clientType) {
     final colors = {

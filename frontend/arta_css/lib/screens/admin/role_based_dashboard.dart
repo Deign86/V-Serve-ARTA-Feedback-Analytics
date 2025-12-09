@@ -900,12 +900,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     }
   }
 
-  String _formatDate(DateTime? date) {
-    if (date == null) return 'Never';
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<UserManagementService>(
@@ -1224,7 +1218,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     String email = '';
     String department = '';
     String password = '';
-    String confirmPassword = '';
     String selectedRole = 'Analyst/Viewer';
     bool obscurePassword = true;
     bool obscureConfirmPassword = true;
@@ -1293,7 +1286,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             if (value != password) return 'Passwords do not match';
                             return null;
                           },
-                          onSaved: (val) => confirmPassword = val!,
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
@@ -1303,7 +1295,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         ),
                         const SizedBox(height: 16),
                         DropdownButtonFormField<String>(
-                          value: selectedRole,
+                          initialValue: selectedRole,
                           decoration: InputDecoration(labelText: 'User Role', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.security)),
                           items: ['Administrator', 'Editor', 'Analyst/Viewer'].map((role) => DropdownMenuItem(value: role, child: Text(role))).toList(),
                           onChanged: (val) => setState(() => selectedRole = val!),
@@ -1320,11 +1312,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     if (formKey.currentState!.validate()) {
                       formKey.currentState!.save();
                       Navigator.pop(dialogContext);
+                      final scaffoldMessenger = ScaffoldMessenger.of(context);
                       final success = await userService.addUser(name: name, email: email, role: selectedRole, department: department, password: password);
-                      if (success && mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('User "$name" added as $selectedRole'), backgroundColor: Colors.green));
-                      } else if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userService.error ?? 'Failed to add user'), backgroundColor: Colors.red));
+                      if (success) {
+                        scaffoldMessenger.showSnackBar(SnackBar(content: Text('User "$name" added as $selectedRole'), backgroundColor: Colors.green));
+                      } else {
+                        scaffoldMessenger.showSnackBar(SnackBar(content: Text(userService.error ?? 'Failed to add user'), backgroundColor: Colors.red));
                       }
                     }
                   },
@@ -1384,14 +1377,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        value: selectedRole,
+                        initialValue: selectedRole,
                         decoration: InputDecoration(labelText: 'User Role', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.security)),
                         items: ['Administrator', 'Editor', 'Analyst/Viewer'].map((role) => DropdownMenuItem(value: role, child: Text(role))).toList(),
                         onChanged: (val) => setState(() => selectedRole = val!),
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        value: selectedStatus,
+                        initialValue: selectedStatus,
                         decoration: InputDecoration(labelText: 'Status', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.check_circle)),
                         items: ['Active', 'Inactive', 'Suspended'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                         onChanged: (val) => setState(() => selectedStatus = val!),
@@ -1407,12 +1400,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     if (formKey.currentState!.validate()) {
                       formKey.currentState!.save();
                       Navigator.pop(dialogContext);
+                      final scaffoldMessenger = ScaffoldMessenger.of(context);
                       final updatedUser = user.copyWith(name: name, email: email, role: selectedRole, department: department, status: selectedStatus);
                       final success = await userService.updateUser(updatedUser);
-                      if (success && mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('User "${name}" updated'), backgroundColor: Colors.green));
-                      } else if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userService.error ?? 'Failed to update user'), backgroundColor: Colors.red));
+                      if (success) {
+                        scaffoldMessenger.showSnackBar(SnackBar(content: Text('User "$name" updated'), backgroundColor: Colors.green));
+                      } else {
+                        scaffoldMessenger.showSnackBar(SnackBar(content: Text(userService.error ?? 'Failed to update user'), backgroundColor: Colors.red));
                       }
                     }
                   },
@@ -1451,7 +1445,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<String>(
-                      value: selectedRole,
+                      initialValue: selectedRole,
                       decoration: InputDecoration(labelText: 'Role', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.security)),
                       items: [
                         const DropdownMenuItem(value: null, child: Text('All Roles')),
@@ -1461,7 +1455,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: selectedStatus,
+                      initialValue: selectedStatus,
                       decoration: InputDecoration(labelText: 'Status', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.check_circle_outline)),
                       items: [
                         const DropdownMenuItem(value: null, child: Text('All Statuses')),
