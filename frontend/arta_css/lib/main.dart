@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'services/auth_services.dart';
 import 'services/feedback_service.dart';
 import 'services/survey_config_service.dart';
+import 'services/user_management_service.dart';
 import 'screens/role_based_login_screen.dart';
 import 'screens/admin/role_based_dashboard.dart';
 
@@ -54,6 +55,11 @@ void main() async {
           configService.loadConfig(); // Load saved configuration
           return configService;
         }),
+        ChangeNotifierProvider(create: (_) {
+          final userService = UserManagementService();
+          userService.seedDemoUsers(); // Seed demo users if empty
+          return userService;
+        }),
       ],
       child: const MyApp(),
     ),
@@ -66,35 +72,34 @@ class AuthRouteObserver extends NavigatorObserver {
   
   AuthRouteObserver(this.authService);
   
+  // DISABLED: Security feature causing unintended logouts
+  // TODO: Re-enable and fix the route detection logic
+  
+  // Helper to check if a route is a dialog/modal (no named route)
+  bool _isDialogRoute(Route<dynamic> route) {
+    final name = route.settings.name;
+    return name == null || name.isEmpty;
+  }
+  
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    _handleRouteChange(route, previousRoute);
+    // Security feature disabled - just call super
     super.didPush(route, previousRoute);
   }
   
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    // Ignore dialog pops - dialogs typically don't have route names
-    // This prevents logout when dismissing dialogs like PDF export dialog
-    if (route.settings.name == null || route.settings.name!.isEmpty) {
-      super.didPop(route, previousRoute);
-      return;
-    }
-    // When popping from admin to public, log out
-    if (previousRoute != null) {
-      _handleRouteChange(previousRoute, route);
-    }
+    // Security feature disabled - just call super
     super.didPop(route, previousRoute);
   }
   
   @override
   void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
-    if (newRoute != null) {
-      _handleRouteChange(newRoute, oldRoute);
-    }
+    // Security feature disabled - just call super
     super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
   }
   
+  // Keeping for future re-enabling
   void _handleRouteChange(Route<dynamic> currentRoute, Route<dynamic>? previousRoute) {
     final currentRouteName = currentRoute.settings.name ?? '';
     final previousRouteName = previousRoute?.settings.name ?? '';

@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'admin_screens.dart';
 import '../../services/export_service.dart';
 import '../../services/auth_services.dart';
+import '../../services/user_management_service.dart';
 
 // NOTE: This file provides screens (DashboardScreen, etc.)
 // and no longer contains its own `main()` or a top-level `MaterialApp`.
@@ -23,8 +24,10 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
 
+  // Note: Removed 'const' from widgets that use Consumer/Provider 
+  // to ensure they rebuild properly on state changes
   final List<Widget> _screens = [
-    const DashboardOverview(),
+    const DashboardOverview(),  // Uses Consumer internally, so const is OK
     const ArtaConfigurationScreen(),
     const UserManagementScreen(),
     const DetailedAnalyticsScreen(),
@@ -707,81 +710,130 @@ class _DashboardOverviewState extends State<DashboardOverview> {
   }
 }
 
-// User Management Screen
-class UserManagementScreen extends StatelessWidget {
+// User Management Screen - Now fully functional with Firestore
+class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
 
   @override
+  State<UserManagementScreen> createState() => _UserManagementScreenState();
+}
+
+class _UserManagementScreenState extends State<UserManagementScreen> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userService = context.read<UserManagementService>();
+      if (!userService.isListening) {
+        userService.startRealtimeUpdates();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Color _getRoleColor(String role) {
+    switch (role) {
+      case 'Administrator':
+        return Colors.red;
+      case 'Editor':
+        return Colors.purple;
+      case 'Analyst/Viewer':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Active':
+        return Colors.green;
+      case 'Inactive':
+        return Colors.grey;
+      case 'Suspended':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Never';
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.transparent,
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              RichText(
-                text: TextSpan(
-                  style: GoogleFonts.montserrat(
-                    textStyle: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
+    return Consumer<UserManagementService>(
+      builder: (context, userService, child) {
+        final users = userService.users;
+        final isLoading = userService.isLoading;
+
+        return Container(
+          color: Colors.transparent,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      style: GoogleFonts.montserrat(
+                        textStyle: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      children: const <TextSpan>[
+                        TextSpan(text: 'USER ', style: TextStyle(color: Colors.amber)),
+                        TextSpan(text: 'MANAGEMENT', style: TextStyle(color: Colors.white)),
+                      ],
                     ),
                   ),
-                  children: const <TextSpan>[
-                    TextSpan(
-                      text: 'USER ',
-                      style: TextStyle(color: Colors.amber),
-                    ),
-                    TextSpan(
-                      text: 'MANAGEMENT',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Manage system access and permissions',
-                style: TextStyle(fontSize: 16, color: Colors.white),
-              ),
-              const SizedBox(height: 32),
-              
-              // Users table
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
-                color: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  const SizedBox(height: 8),
+                  Text(
+                    'Manage system access and permissions',
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                  const SizedBox(height: 32),
+                  
+                  // Users table
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'SYSTEM USERS',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: brandBlue
-                                ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'SYSTEM USERS',
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: brandBlue),
+                                  ),
+                                  Text(
+                                    'Manage admin users and their access permissions',
+                                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                  ),
+                                ],
                               ),
-                              Text(
-                                'Manage admin users and their access permissions',
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                              ),
-                            ],
-                          ),
                               ElevatedButton.icon(
-                                onPressed: () {
-                                  _showAddUserDialog(context);
-                                },
+                                onPressed: () => _showAddUserDialog(context, userService),
                                 icon: const Icon(Icons.add),
                                 label: const Text('Add User'),
                                 style: ElevatedButton.styleFrom(
@@ -789,111 +841,103 @@ class UserManagementScreen extends StatelessWidget {
                                   foregroundColor: Colors.white,
                                 ),
                               ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      // Search
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              decoration: InputDecoration(
-                                hintText: 'Search users...',
-                                prefixIcon: const Icon(Icons.search),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          // Search and filter
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _searchController,
+                                  decoration: InputDecoration(
+                                    hintText: 'Search users...',
+                                    prefixIcon: const Icon(Icons.search),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                                  ),
+                                  onChanged: (value) {
+                                    userService.setSearchQuery(value);
+                                  },
                                 ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                               ),
-                              onChanged: (value) {
-                                // Search functionality - in a real app, this would filter the user list
-                                // For now, just show a snackbar with search term
-                                if (value.length >= 3) {
-                                  ScaffoldMessenger.of(context).clearSnackBars();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Searching for: "$value"'),
-                                      duration: const Duration(seconds: 1),
-                                      behavior: SnackBarBehavior.floating,
+                              const SizedBox(width: 16),
+                              OutlinedButton.icon(
+                                onPressed: () => _showUserFilterDialog(context, userService),
+                                icon: const Icon(Icons.filter_list),
+                                label: Text(userService.filterRole != null || userService.filterStatus != null 
+                                    ? 'Filtered' : 'Filter'),
+                              ),
+                              if (userService.filterRole != null || userService.filterStatus != null || userService.searchQuery.isNotEmpty)
+                                IconButton(
+                                  icon: const Icon(Icons.clear, color: Colors.red),
+                                  tooltip: 'Clear filters',
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    userService.clearFilters();
+                                  },
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          // User list
+                          if (isLoading)
+                            const Center(child: CircularProgressIndicator())
+                          else if (users.isEmpty)
+                            Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  children: [
+                                    Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      userService.searchQuery.isNotEmpty || userService.filterRole != null
+                                          ? 'No users match your search/filter'
+                                          : 'No users found',
+                                      style: TextStyle(color: Colors.grey.shade600),
                                     ),
-                                  );
-                                }
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              _showUserFilterDialog(context);
-                            },
-                            icon: const Icon(Icons.filter_list),
-                            label: const Text('Filter'),
-                          ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          else
+                            ...users.map((user) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildUserItem(context, user, userService),
+                            )),
                         ],
                       ),
-                      const SizedBox(height: 24),
-                      // User list
-                      _buildUserItem(
-                        context,
-                        'JD',
-                        'John Doe',
-                        'john.doe@valenzuela.gov.ph',
-                        'Administrator',
-                        Colors.red,
-                        'IT Administration',
-                        'Active',
-                        Colors.green,
-                        'Jan 22, 2024',
-                        'Nov 15, 2023',
-                      ),
-                      const SizedBox(height: 12),
-                      _buildUserItem(
-                        context,
-                        'MS',
-                        'Maria Santos',
-                        'maria.santos@valenzuela.gov.ph',
-                        'Editor',
-                        Colors.purple,
-                        'Business Licensing',
-                        'Active',
-                        Colors.green,
-                        'Jan 22, 2024',
-                        'Dec 1, 2023',
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-              // Role cards
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final crossAxisCount = constraints.maxWidth > 1200
-                      ? 3
-                      : constraints.maxWidth > 800
-                          ? 2
-                          : 1;
-                  
-                  return GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 2.5,
-                    children: [
-                      _buildRoleCard('ADMINISTRATOR', '3 Active', 'Full System Access', Icons.admin_panel_settings, Colors.red),
-                      _buildRoleCard('EDITOR', '12 Active', 'Manage Surveys & Content', Icons.edit_document, Colors.blue),
-                      _buildRoleCard('ANALYST / VIEWER', '25 Active', 'View Reports & Analytics', Icons.analytics, Colors.green),
-                    ],
-                  );
-                },
+                  // Role cards
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final crossAxisCount = constraints.maxWidth > 1200 ? 3 : constraints.maxWidth > 800 ? 2 : 1;
+                      
+                      return GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 2.5,
+                        children: [
+                          _buildRoleCard('ADMINISTRATOR', '${userService.administratorCount} Active', 'Full System Access', Icons.admin_panel_settings, Colors.red),
+                          _buildRoleCard('EDITOR', '${userService.editorCount} Active', 'Manage Surveys & Content', Icons.edit_document, Colors.blue),
+                          _buildRoleCard('ANALYST / VIEWER', '${userService.analystCount} Active', 'View Reports & Analytics', Icons.analytics, Colors.green),
+                        ],
+                      );
+                    },
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -908,10 +952,7 @@ class UserManagementScreen extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
               child: Icon(icon, color: color, size: 24),
             ),
             const SizedBox(width: 16),
@@ -919,29 +960,9 @@ class UserManagementScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: brandBlue,
-                  ),
-                ),
-                Text(
-                  sub,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade500,
-                  ),
-                ),
+                Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
+                Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: brandBlue)),
+                Text(sub, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
               ],
             ),
           ],
@@ -950,19 +971,10 @@ class UserManagementScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildUserItem(
-    BuildContext context,
-    String initials,
-    String name,
-    String email,
-    String role,
-    Color roleColor,
-    String department,
-    String status,
-    Color statusColor,
-    String lastLogin,
-    String created,
-  ) {
+  Widget _buildUserItem(BuildContext context, SystemUser user, UserManagementService userService) {
+    final roleColor = _getRoleColor(user.role);
+    final statusColor = _getStatusColor(user.status);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -974,14 +986,7 @@ class UserManagementScreen extends StatelessWidget {
           CircleAvatar(
             backgroundColor: brandBlue,
             radius: 20,
-            child: Text(
-              initials,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
+            child: Text(user.initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -989,20 +994,8 @@ class UserManagementScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  email,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
+                Text(user.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                Text(user.email, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
               ],
             ),
           ),
@@ -1010,74 +1003,100 @@ class UserManagementScreen extends StatelessWidget {
           Expanded(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: roleColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                role,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: roleColor,
-                ),
-              ),
+              decoration: BoxDecoration(color: roleColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+              child: Text(user.role, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: roleColor)),
             ),
           ),
           const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              department,
-              style: const TextStyle(fontSize: 13),
-            ),
-          ),
+          Expanded(child: Text(user.department, style: const TextStyle(fontSize: 13))),
           const SizedBox(width: 16),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: statusColor,
-              ),
-            ),
+            decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+            child: Text(user.status, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: statusColor)),
           ),
           const SizedBox(width: 16),
-          IconButton(
+          PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
-            onPressed: () {},
+            onSelected: (action) => _handleUserAction(context, action, user, userService),
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 18), SizedBox(width: 8), Text('Edit')])),
+              PopupMenuItem(
+                value: user.status == 'Active' ? 'deactivate' : 'activate',
+                child: Row(children: [
+                  Icon(user.status == 'Active' ? Icons.block : Icons.check_circle, size: 18),
+                  const SizedBox(width: 8),
+                  Text(user.status == 'Active' ? 'Deactivate' : 'Activate'),
+                ]),
+              ),
+              const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 18, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))])),
+            ],
           ),
         ],
       ),
     );
   }
-  Future<void> _showAddUserDialog(BuildContext context) async {
-    String selectedRole = 'Analyst/Viewer'; // Default
+
+  Future<void> _handleUserAction(BuildContext context, String action, SystemUser user, UserManagementService userService) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
+    switch (action) {
+      case 'edit':
+        _showEditUserDialog(context, user, userService);
+        break;
+      case 'activate':
+        final success = await userService.setUserStatus(user.id, 'Active');
+        if (success) {
+          scaffoldMessenger.showSnackBar(SnackBar(content: Text('${user.name} activated'), backgroundColor: Colors.green));
+        }
+        break;
+      case 'deactivate':
+        final success = await userService.setUserStatus(user.id, 'Inactive');
+        if (success) {
+          scaffoldMessenger.showSnackBar(SnackBar(content: Text('${user.name} deactivated'), backgroundColor: Colors.orange));
+        }
+        break;
+      case 'delete':
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Delete User?'),
+            content: Text('Are you sure you want to delete ${user.name}? This action cannot be undone.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        );
+        if (confirm == true) {
+          final success = await userService.deleteUser(user.id);
+          if (success) {
+            scaffoldMessenger.showSnackBar(SnackBar(content: Text('${user.name} deleted'), backgroundColor: Colors.red));
+          }
+        }
+        break;
+    }
+  }
+
+  Future<void> _showAddUserDialog(BuildContext context, UserManagementService userService) async {
     final formKey = GlobalKey<FormState>();
     String name = '';
-    // ignore: unused_local_variable
     String email = '';
+    String department = '';
+    String selectedRole = 'Analyst/Viewer';
 
     return showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Text(
-                'Add New User',
-                style: GoogleFonts.montserrat(
-                  fontWeight: FontWeight.bold,
-                  color: brandBlue,
-                ),
-              ),
+              title: Text('Add New User', style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: brandBlue)),
               content: SizedBox(
                 width: 400,
                 child: Form(
@@ -1086,38 +1105,27 @@ class UserManagementScreen extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'Full Name',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          prefixIcon: const Icon(Icons.person),
-                        ),
+                        decoration: InputDecoration(labelText: 'Full Name', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.person)),
                         validator: (value) => value!.isEmpty ? 'Please enter name' : null,
                         onSaved: (val) => name = val!,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'Email Address',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          prefixIcon: const Icon(Icons.email),
-                        ),
+                        decoration: InputDecoration(labelText: 'Email Address', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.email)),
                         validator: (value) => !value!.contains('@') ? 'Invalid email' : null,
                         onSaved: (val) => email = val!,
                       ),
                       const SizedBox(height: 16),
+                      TextFormField(
+                        decoration: InputDecoration(labelText: 'Department', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.business)),
+                        validator: (value) => value!.isEmpty ? 'Please enter department' : null,
+                        onSaved: (val) => department = val!,
+                      ),
+                      const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        initialValue: selectedRole,
-                        decoration: InputDecoration(
-                          labelText: 'User Role',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          prefixIcon: const Icon(Icons.security),
-                        ),
-                        items: ['Administrator', 'Editor', 'Analyst/Viewer']
-                            .map((role) => DropdownMenuItem(
-                                  value: role,
-                                  child: Text(role),
-                                ))
-                            .toList(),
+                        value: selectedRole,
+                        decoration: InputDecoration(labelText: 'User Role', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.security)),
+                        items: ['Administrator', 'Editor', 'Analyst/Viewer'].map((role) => DropdownMenuItem(value: role, child: Text(role))).toList(),
                         onChanged: (val) => setState(() => selectedRole = val!),
                       ),
                     ],
@@ -1125,28 +1133,21 @@ class UserManagementScreen extends StatelessWidget {
                 ),
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600)),
-                ),
+                TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600))),
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (formKey.currentState!.validate()) {
                       formKey.currentState!.save();
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('User "$name" added as $selectedRole'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
+                      Navigator.pop(dialogContext);
+                      final success = await userService.addUser(name: name, email: email, role: selectedRole, department: department);
+                      if (success && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('User "$name" added as $selectedRole'), backgroundColor: Colors.green));
+                      } else if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userService.error ?? 'Failed to add user'), backgroundColor: Colors.red));
+                      }
                     }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: brandBlue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
+                  style: ElevatedButton.styleFrom(backgroundColor: brandBlue, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                   child: const Text('Add User'),
                 ),
               ],
@@ -1157,14 +1158,101 @@ class UserManagementScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _showUserFilterDialog(BuildContext context) async {
-    String? selectedRole;
-    String? selectedStatus;
-    String? selectedDepartment;
+  Future<void> _showEditUserDialog(BuildContext context, SystemUser user, UserManagementService userService) async {
+    final formKey = GlobalKey<FormState>();
+    String name = user.name;
+    String email = user.email;
+    String department = user.department;
+    String selectedRole = user.role;
+    String selectedStatus = user.status;
 
     return showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Text('Edit User', style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: brandBlue)),
+              content: SizedBox(
+                width: 400,
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        initialValue: name,
+                        decoration: InputDecoration(labelText: 'Full Name', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.person)),
+                        validator: (value) => value!.isEmpty ? 'Please enter name' : null,
+                        onSaved: (val) => name = val!,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        initialValue: email,
+                        decoration: InputDecoration(labelText: 'Email Address', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.email)),
+                        validator: (value) => !value!.contains('@') ? 'Invalid email' : null,
+                        onSaved: (val) => email = val!,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        initialValue: department,
+                        decoration: InputDecoration(labelText: 'Department', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.business)),
+                        validator: (value) => value!.isEmpty ? 'Please enter department' : null,
+                        onSaved: (val) => department = val!,
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: selectedRole,
+                        decoration: InputDecoration(labelText: 'User Role', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.security)),
+                        items: ['Administrator', 'Editor', 'Analyst/Viewer'].map((role) => DropdownMenuItem(value: role, child: Text(role))).toList(),
+                        onChanged: (val) => setState(() => selectedRole = val!),
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: selectedStatus,
+                        decoration: InputDecoration(labelText: 'Status', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.check_circle)),
+                        items: ['Active', 'Inactive', 'Suspended'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                        onChanged: (val) => setState(() => selectedStatus = val!),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600))),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (formKey.currentState!.validate()) {
+                      formKey.currentState!.save();
+                      Navigator.pop(dialogContext);
+                      final updatedUser = user.copyWith(name: name, email: email, role: selectedRole, department: department, status: selectedStatus);
+                      final success = await userService.updateUser(updatedUser);
+                      if (success && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('User "${name}" updated'), backgroundColor: Colors.green));
+                      } else if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userService.error ?? 'Failed to update user'), backgroundColor: Colors.red));
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: brandBlue, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                  child: const Text('Save Changes'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showUserFilterDialog(BuildContext context, UserManagementService userService) async {
+    String? selectedRole = userService.filterRole;
+    String? selectedStatus = userService.filterStatus;
+
+    return showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
@@ -1173,13 +1261,7 @@ class UserManagementScreen extends StatelessWidget {
                 children: [
                   Icon(Icons.filter_list, color: brandBlue),
                   const SizedBox(width: 12),
-                  Text(
-                    'Filter Users',
-                    style: GoogleFonts.montserrat(
-                      fontWeight: FontWeight.bold,
-                      color: brandBlue,
-                    ),
-                  ),
+                  Text('Filter Users', style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: brandBlue)),
                 ],
               ),
               content: SizedBox(
@@ -1188,48 +1270,23 @@ class UserManagementScreen extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<String>(
-                      initialValue: selectedRole,
-                      decoration: InputDecoration(
-                        labelText: 'Role',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        prefixIcon: const Icon(Icons.security),
-                      ),
+                      value: selectedRole,
+                      decoration: InputDecoration(labelText: 'Role', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.security)),
                       items: [
                         const DropdownMenuItem(value: null, child: Text('All Roles')),
-                        ...['Administrator', 'Editor', 'Analyst/Viewer']
-                            .map((role) => DropdownMenuItem(value: role, child: Text(role))),
+                        ...['Administrator', 'Editor', 'Analyst/Viewer'].map((role) => DropdownMenuItem(value: role, child: Text(role))),
                       ],
                       onChanged: (val) => setState(() => selectedRole = val),
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      initialValue: selectedStatus,
-                      decoration: InputDecoration(
-                        labelText: 'Status',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        prefixIcon: const Icon(Icons.check_circle_outline),
-                      ),
+                      value: selectedStatus,
+                      decoration: InputDecoration(labelText: 'Status', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.check_circle_outline)),
                       items: [
                         const DropdownMenuItem(value: null, child: Text('All Statuses')),
-                        ...['Active', 'Inactive', 'Pending']
-                            .map((status) => DropdownMenuItem(value: status, child: Text(status))),
+                        ...['Active', 'Inactive', 'Suspended'].map((status) => DropdownMenuItem(value: status, child: Text(status))),
                       ],
                       onChanged: (val) => setState(() => selectedStatus = val),
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedDepartment,
-                      decoration: InputDecoration(
-                        labelText: 'Department',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        prefixIcon: const Icon(Icons.business),
-                      ),
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('All Departments')),
-                        ...['IT Administration', 'Business Licensing', 'Civil Registry', 'Treasury', 'Assessor']
-                            .map((dept) => DropdownMenuItem(value: dept, child: Text(dept))),
-                      ],
-                      onChanged: (val) => setState(() => selectedDepartment = val),
                     ),
                   ],
                 ),
@@ -1240,38 +1297,22 @@ class UserManagementScreen extends StatelessWidget {
                     setState(() {
                       selectedRole = null;
                       selectedStatus = null;
-                      selectedDepartment = null;
                     });
                   },
                   child: Text('Clear All', style: TextStyle(color: Colors.red.shade600)),
                 ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600)),
-                ),
+                TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600))),
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(context);
-                    final filters = <String>[];
-                    if (selectedRole != null) filters.add(selectedRole!);
-                    if (selectedStatus != null) filters.add(selectedStatus!);
-                    if (selectedDepartment != null) filters.add(selectedDepartment!);
-                    
-                    if (filters.isNotEmpty) {
+                    Navigator.pop(dialogContext);
+                    userService.setFilters(role: selectedRole, status: selectedStatus);
+                    if (selectedRole != null || selectedStatus != null) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Filter applied: ${filters.join(", ")}'),
-                          backgroundColor: Colors.blue.shade600,
-                          behavior: SnackBarBehavior.floating,
-                        ),
+                        SnackBar(content: Text('Filter applied'), backgroundColor: Colors.blue.shade600, behavior: SnackBarBehavior.floating),
                       );
                     }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: brandBlue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
+                  style: ElevatedButton.styleFrom(backgroundColor: brandBlue, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                   child: const Text('Apply Filter'),
                 ),
               ],

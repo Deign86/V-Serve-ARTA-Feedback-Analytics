@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
 import '../../services/offline_queue.dart';
 import '../../services/survey_config_service.dart';
-import 'suggestions.dart';
+import 'suggestions.dart'; // ThankYouScreen is defined here
 
 class SQDScreen extends StatefulWidget {
   final SurveyData surveyData;
@@ -166,8 +166,10 @@ class _SQDScreenState extends State<SQDScreen> {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
-    final currentStep = 3; 
-    final totalSteps = 4;
+    final configService = context.watch<SurveyConfigService>();
+    // Calculate current step: 1 (profile) + 1 if CC enabled
+    final currentStep = configService.ccEnabled ? 3 : 2;
+    final totalSteps = configService.totalSteps;
 
     return Scaffold(
       backgroundColor: Colors.transparent,

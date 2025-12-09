@@ -14,7 +14,7 @@ import 'export_service_stub.dart'
 /// Service for QR code generation, download, and printing
 class QrCodeService {
   /// The Vercel deployment URL for the survey
-  static const String surveyUrl = 'https://v-serve-arta-feedback-analytics.vercel.app';
+  static const String surveyUrl = 'https://v-serve-arta-feedback.vercel.app';
   
   /// Survey ID for display
   static const String surveyId = 'ARTA-VAL-2024-Q1';

@@ -4,7 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
 import '../../services/survey_config_service.dart';
+import '../../services/offline_queue.dart';
 import 'citizen_charter.dart';
+import 'sqd.dart';
+import 'suggestions.dart'; // ThankYouScreen is defined here
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -68,13 +71,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         serviceAvailed: serviceAvailed?.trim(),
       );
 
-      // Smooth Transition
-      Navigator.push(
-        context,
-        SmoothPageRoute(
-          page: CitizenCharterScreen(surveyData: surveyData),
-        ),
-      );
+      // Navigate based on which sections are enabled
+      _navigateToNextSection(surveyData, configService);
     } else {
       // Show error snackbar
       ScaffoldMessenger.of(context).showSnackBar(
@@ -86,11 +84,51 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
+  Future<void> _navigateToNextSection(SurveyData surveyData, SurveyConfigService configService) async {
+    // Determine the next screen based on enabled sections
+    if (configService.ccEnabled) {
+      // Go to Citizen's Charter
+      Navigator.push(
+        context,
+        SmoothPageRoute(page: CitizenCharterScreen(surveyData: surveyData)),
+      );
+    } else if (configService.sqdEnabled) {
+      // Skip CC, go to SQD
+      Navigator.push(
+        context,
+        SmoothPageRoute(page: SQDScreen(surveyData: surveyData)),
+      );
+    } else if (configService.suggestionsEnabled) {
+      // Skip CC and SQD, go to Suggestions
+      Navigator.push(
+        context,
+        SmoothPageRoute(page: SuggestionsScreen(surveyData: surveyData)),
+      );
+    } else {
+      // All optional sections disabled - submit directly
+      try {
+        await OfflineQueue.enqueue(surveyData.toJson());
+        await OfflineQueue.flush();
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          SmoothPageRoute(page: const ThankYouScreen()),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
+    final configService = context.watch<SurveyConfigService>();
     final currentPage = 1;
-    final totalSteps = 4;
+    final totalSteps = configService.totalSteps;
 
     return Scaffold(
       backgroundColor: Colors.transparent,

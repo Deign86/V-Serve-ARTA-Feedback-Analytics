@@ -129,8 +129,14 @@ class FeedbackService extends ChangeNotifier {
             _lastFetch = DateTime.now();
             _isLoading = false;
             
-            // Recalculate stats
+            // Notify listeners immediately that feedbacks have updated
+            // This ensures total count updates right away
+            notifyListeners();
+            
+            // Recalculate stats (this also calls notifyListeners)
             _calculateDashboardStats();
+            
+            debugPrint('Dashboard stats updated - Total: ${_dashboardStats?.totalResponses}, Avg: ${_dashboardStats?.avgSatisfaction}');
           },
           onError: (error) {
             debugPrint('Real-time listener error: $error');

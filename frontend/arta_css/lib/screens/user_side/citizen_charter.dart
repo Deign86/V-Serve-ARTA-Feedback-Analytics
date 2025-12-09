@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
+import '../../services/survey_config_service.dart';
+import '../../services/offline_queue.dart';
 import 'sqd.dart';
+import 'suggestions.dart'; // ThankYouScreen is defined here
 
 class CitizenCharterScreen extends StatefulWidget {
   final SurveyData surveyData;
@@ -72,7 +76,7 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
     return true;
   }
 
-  void _onNextPressed() {
+  void _onNextPressed() async {
     if (_isFormValid()) {
       final cc0Rating = cc1Answer != null ? int.tryParse(cc1Answer!.substring(0, 1)) : null;
       final cc1Rating = cc2Answer != null ? int.tryParse(cc2Answer!.substring(0, 1)) : null;
@@ -84,10 +88,38 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
         cc2Rating: cc2Rating,
       );
       
-      Navigator.push(
-        context,
-        SmoothPageRoute(page: SQDScreen(surveyData: updatedData)),
-      );
+      // Check which sections are enabled
+      final configService = context.read<SurveyConfigService>();
+      
+      if (configService.sqdEnabled) {
+        // Go to SQD
+        Navigator.push(
+          context,
+          SmoothPageRoute(page: SQDScreen(surveyData: updatedData)),
+        );
+      } else if (configService.suggestionsEnabled) {
+        // Skip SQD, go to Suggestions
+        Navigator.push(
+          context,
+          SmoothPageRoute(page: SuggestionsScreen(surveyData: updatedData)),
+        );
+      } else {
+        // All remaining sections disabled - submit directly
+        try {
+          await OfflineQueue.enqueue(updatedData.toJson());
+          await OfflineQueue.flush();
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            SmoothPageRoute(page: const ThankYouScreen()),
+          );
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -101,8 +133,9 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
-    final currentStep = 2;
-    final totalSteps = 4;
+    final configService = context.watch<SurveyConfigService>();
+    final currentStep = 2; // CC is always step 2 when enabled
+    final totalSteps = configService.totalSteps;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
