@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
+import '../../services/survey_config_service.dart';
 import 'citizen_charter.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -41,25 +43,28 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   void _validateAndSubmit() {
+    final configService = context.read<SurveyConfigService>();
+    final demographicsEnabled = configService.demographicsEnabled;
+    
     setState(() {
       // Check if date is missing
       _showDateError = (selectedDate == null);
     });
 
-    // 1. Validate Text Fields (Age, Region, Service)
+    // 1. Validate Text Fields (Age, Region, Service - only if demographics enabled)
     bool isTextFormValid = _formKey.currentState?.validate() ?? false;
 
     // 2. Validate Date
     bool isDateValid = selectedDate != null;
 
     if (isTextFormValid && isDateValid) {
-      // Create Data Object
+      // Create Data Object - only include demographics if enabled
       final surveyData = SurveyData(
         clientType: clientType,
         date: selectedDate,
-        sex: sex,
-        age: int.tryParse(age!), // Safe to parse because validator checked it
-        regionOfResidence: region?.trim(),
+        sex: demographicsEnabled ? sex : null,
+        age: demographicsEnabled && age != null ? int.tryParse(age!) : null,
+        regionOfResidence: demographicsEnabled ? region?.trim() : null,
         serviceAvailed: serviceAvailed?.trim(),
       );
 
@@ -254,6 +259,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildPart1(bool isMobile) {
+    final configService = context.watch<SurveyConfigService>();
+    final demographicsEnabled = configService.demographicsEnabled;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -268,45 +276,66 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         SizedBox(height: isMobile ? 24 : 32),
         _buildClientTypeField(isMobile),
         SizedBox(height: isMobile ? 24 : 32),
-        // Wrap date, sex, and age fields
-        isMobile
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildDateField(isMobile),
-                  SizedBox(height: 16),
-                  _buildSexField(isMobile),
-                  SizedBox(height: 16),
-                  _buildAgeField(isMobile),
-                ],
-              )
-            : Row(
-                children: [
-                  Expanded(child: _buildDateField(isMobile)),
-                  SizedBox(width: 24),
-                  Expanded(child: _buildSexField(isMobile)),
-                  SizedBox(width: 24),
-                  Expanded(child: _buildAgeField(isMobile)),
-                ],
-              ),
-        SizedBox(height: isMobile ? 24 : 32),
-        // Wrap region and service fields
-        isMobile
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildRegionField(isMobile),
-                  SizedBox(height: 16),
-                  _buildServiceAvailedField(isMobile),
-                ],
-              )
-            : Row(
-                children: [
-                  Expanded(child: _buildRegionField(isMobile)),
-                  SizedBox(width: 24),
-                  Expanded(child: _buildServiceAvailedField(isMobile)),
-                ],
-              ),
+        // Date field is always shown, demographics are conditional
+        if (demographicsEnabled) ...[
+          // Wrap date, sex, and age fields
+          isMobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDateField(isMobile),
+                    SizedBox(height: 16),
+                    _buildSexField(isMobile),
+                    SizedBox(height: 16),
+                    _buildAgeField(isMobile),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(child: _buildDateField(isMobile)),
+                    SizedBox(width: 24),
+                    Expanded(child: _buildSexField(isMobile)),
+                    SizedBox(width: 24),
+                    Expanded(child: _buildAgeField(isMobile)),
+                  ],
+                ),
+          SizedBox(height: isMobile ? 24 : 32),
+          // Wrap region and service fields
+          isMobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildRegionField(isMobile),
+                    SizedBox(height: 16),
+                    _buildServiceAvailedField(isMobile),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(child: _buildRegionField(isMobile)),
+                    SizedBox(width: 24),
+                    Expanded(child: _buildServiceAvailedField(isMobile)),
+                  ],
+                ),
+        ] else ...[
+          // Only show date and service when demographics disabled
+          isMobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDateField(isMobile),
+                    SizedBox(height: 16),
+                    _buildServiceAvailedField(isMobile),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(child: _buildDateField(isMobile)),
+                    SizedBox(width: 24),
+                    Expanded(child: _buildServiceAvailedField(isMobile)),
+                  ],
+                ),
+        ],
       ],
     );
   }

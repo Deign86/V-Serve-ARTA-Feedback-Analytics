@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
+import '../../services/offline_queue.dart';
+import '../../services/survey_config_service.dart';
 import 'suggestions.dart';
 
 class SQDScreen extends StatefulWidget {
@@ -103,7 +106,9 @@ class _SQDScreenState extends State<SQDScreen> {
     return true;
   }
 
-  void _onNextPressed() {
+  bool _isSubmitting = false;
+
+  void _onNextPressed() async {
     if (_isFormValid()) {
       final updatedData = widget.surveyData.copyWith(
         sqd0Rating: answers[0],
@@ -117,10 +122,37 @@ class _SQDScreenState extends State<SQDScreen> {
         sqd8Rating: answers[8],
       );
       
-      Navigator.push(
-        context,
-        SmoothPageRoute(page: SuggestionsScreen(surveyData: updatedData)),
-      );
+      // Check if suggestions are enabled
+      final configService = context.read<SurveyConfigService>();
+      
+      if (configService.suggestionsEnabled) {
+        // Go to suggestions screen
+        Navigator.push(
+          context,
+          SmoothPageRoute(page: SuggestionsScreen(surveyData: updatedData)),
+        );
+      } else {
+        // Skip suggestions - submit directly and go to thank you
+        setState(() => _isSubmitting = true);
+        
+        try {
+          await OfflineQueue.enqueue(updatedData.toJson());
+          await OfflineQueue.flush();
+          
+          if (!mounted) return;
+          
+          Navigator.pushReplacement(
+            context,
+            SmoothPageRoute(page: const ThankYouScreen()),
+          );
+        } catch (e) {
+          if (!mounted) return;
+          setState(() => _isSubmitting = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -361,7 +393,7 @@ class _SQDScreenState extends State<SQDScreen> {
                   width: isMobile ? 140 : 180,
                   height: isMobile ? 48 : 55,
                   child: ElevatedButton(
-                    onPressed: _onNextPressed,
+                    onPressed: _isSubmitting ? null : _onNextPressed,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF003366),
                       elevation: 5,
@@ -369,14 +401,23 @@ class _SQDScreenState extends State<SQDScreen> {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: Text(
-                      'NEXT PAGE',
-                      style: GoogleFonts.montserrat(
-                        fontSize: isMobile ? 12 : 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Text(
+                            'NEXT PAGE',
+                            style: GoogleFonts.montserrat(
+                              fontSize: isMobile ? 12 : 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ],

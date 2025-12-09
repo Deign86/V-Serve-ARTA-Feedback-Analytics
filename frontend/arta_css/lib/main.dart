@@ -74,6 +74,12 @@ class AuthRouteObserver extends NavigatorObserver {
   
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    // Ignore dialog pops - dialogs typically don't have route names
+    // This prevents logout when dismissing dialogs like PDF export dialog
+    if (route.settings.name == null || route.settings.name!.isEmpty) {
+      super.didPop(route, previousRoute);
+      return;
+    }
     // When popping from admin to public, log out
     if (previousRoute != null) {
       _handleRouteChange(previousRoute, route);

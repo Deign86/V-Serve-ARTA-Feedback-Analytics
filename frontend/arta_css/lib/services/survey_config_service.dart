@@ -7,7 +7,6 @@ class SurveyConfigService extends ChangeNotifier {
   static const String _keyCcEnabled = 'survey_cc_enabled';
   static const String _keySqdEnabled = 'survey_sqd_enabled';
   static const String _keyDemographicsEnabled = 'survey_demographics_enabled';
-  static const String _keyCgovQuestionsEnabled = 'survey_cgov_enabled';
   static const String _keySuggestionsEnabled = 'survey_suggestions_enabled';
   static const String _keyKioskMode = 'survey_kiosk_mode';
 
@@ -15,7 +14,6 @@ class SurveyConfigService extends ChangeNotifier {
   bool _ccEnabled = true;
   bool _sqdEnabled = true;
   bool _demographicsEnabled = true;
-  bool _cgovQuestionsEnabled = true;
   bool _suggestionsEnabled = true;
   bool _kioskMode = false;
 
@@ -25,7 +23,6 @@ class SurveyConfigService extends ChangeNotifier {
   bool get ccEnabled => _ccEnabled;
   bool get sqdEnabled => _sqdEnabled;
   bool get demographicsEnabled => _demographicsEnabled;
-  bool get cgovQuestionsEnabled => _cgovQuestionsEnabled;
   bool get suggestionsEnabled => _suggestionsEnabled;
   bool get kioskMode => _kioskMode;
   bool get isLoaded => _isLoaded;
@@ -38,7 +35,6 @@ class SurveyConfigService extends ChangeNotifier {
       _ccEnabled = prefs.getBool(_keyCcEnabled) ?? true;
       _sqdEnabled = prefs.getBool(_keySqdEnabled) ?? true;
       _demographicsEnabled = prefs.getBool(_keyDemographicsEnabled) ?? true;
-      _cgovQuestionsEnabled = prefs.getBool(_keyCgovQuestionsEnabled) ?? true;
       _suggestionsEnabled = prefs.getBool(_keySuggestionsEnabled) ?? true;
       _kioskMode = prefs.getBool(_keyKioskMode) ?? false;
 
@@ -80,12 +76,6 @@ class SurveyConfigService extends ChangeNotifier {
     _demographicsEnabled = value;
     notifyListeners();
     await _saveValue(_keyDemographicsEnabled, value);
-  }
-
-  Future<void> setCgovQuestionsEnabled(bool value) async {
-    _cgovQuestionsEnabled = value;
-    notifyListeners();
-    await _saveValue(_keyCgovQuestionsEnabled, value);
   }
 
   Future<void> setSuggestionsEnabled(bool value) async {

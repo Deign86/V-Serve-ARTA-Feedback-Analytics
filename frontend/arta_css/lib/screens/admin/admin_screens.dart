@@ -114,13 +114,6 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
                         title: 'Custom Modules',
                         children: [
                           _buildToggleItem(
-                            'CGOV Additional Questions',
-                            'Include optional questions specific to Valenzuela City programs.',
-                            configService.cgovQuestionsEnabled,
-                            (v) => configService.setCgovQuestionsEnabled(v),
-                          ),
-                          const Divider(),
-                          _buildToggleItem(
                             'Suggestions Box',
                             'Allow free-text feedback at the end of the survey.',
                             configService.suggestionsEnabled,
