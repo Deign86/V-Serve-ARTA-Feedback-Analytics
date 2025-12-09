@@ -1653,7 +1653,7 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
                     const SnackBar(content: Text('Generating detailed analysis...')),
                   );
                   final data = feedbackService.exportFeedbacks();
-                  final filename = await ExportService.exportPdf('ARTA_Detailed_Analysis', data);
+                  final filename = await ExportService.exportDetailedAnalysisPdf('ARTA_Detailed_Analysis', data);
                   scaffoldMessenger.showSnackBar(
                     SnackBar(content: Text('PDF exported: $filename'), backgroundColor: Colors.green),
                   );

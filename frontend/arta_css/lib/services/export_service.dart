@@ -312,4 +312,335 @@ class ExportService {
     await platform.downloadFileBytes(filename, bytes, 'application/pdf');
     return filename;
   }
+
+  /// Export detailed analysis PDF with SQD breakdown, statistics, and comments
+  static Future<String> exportDetailedAnalysisPdf(String baseName, List<Map<String, dynamic>> rows) async {
+    final doc = pw.Document();
+
+    // Calculate statistics
+    final totalResponses = rows.length;
+    
+    // SQD labels for display
+    const sqdLabels = {
+      'sqd0Rating': 'SQD1: Time Spent',
+      'sqd1Rating': 'SQD2: Steps Followed',
+      'sqd2Rating': 'SQD3: Simplicity',
+      'sqd3Rating': 'SQD4: Info Access',
+      'sqd4Rating': 'SQD5: Fee Amount',
+      'sqd5Rating': 'SQD6: Fee Display',
+      'sqd6Rating': 'SQD7: Fee Equity',
+      'sqd7Rating': 'SQD8: Processing Time',
+      'sqd8Rating': 'SQD9: Accessibility',
+    };
+    
+    const ccLabels = {
+      'cc0Rating': 'CC1: Awareness of CC',
+      'cc1Rating': 'CC2: Visibility',
+      'cc2Rating': 'CC3: Posting',
+      'cc3Rating': 'CC4: Understanding',
+    };
+
+    // Calculate SQD averages
+    Map<String, double> sqdAverages = {};
+    for (final key in sqdLabels.keys) {
+      final values = rows
+          .map((r) => r[key])
+          .where((v) => v != null)
+          .map((v) => v is int ? v.toDouble() : (double.tryParse(v.toString()) ?? 0.0))
+          .toList();
+      if (values.isNotEmpty) {
+        sqdAverages[key] = values.reduce((a, b) => a + b) / values.length;
+      }
+    }
+
+    // Calculate CC averages
+    Map<String, double> ccAverages = {};
+    for (final key in ccLabels.keys) {
+      final values = rows
+          .map((r) => r[key])
+          .where((v) => v != null)
+          .map((v) => v is int ? v.toDouble() : (double.tryParse(v.toString()) ?? 0.0))
+          .toList();
+      if (values.isNotEmpty) {
+        ccAverages[key] = values.reduce((a, b) => a + b) / values.length;
+      }
+    }
+
+    // Calculate overall satisfaction
+    final allSqdScores = sqdAverages.values.toList();
+    final overallSqd = allSqdScores.isNotEmpty 
+        ? allSqdScores.reduce((a, b) => a + b) / allSqdScores.length 
+        : 0.0;
+
+    // Client type breakdown
+    Map<String, int> clientTypes = {};
+    for (final row in rows) {
+      final type = row['clientType']?.toString() ?? 'Unknown';
+      clientTypes[type] = (clientTypes[type] ?? 0) + 1;
+    }
+
+    // Region breakdown
+    Map<String, int> regions = {};
+    for (final row in rows) {
+      final region = row['region']?.toString() ?? 'Unknown';
+      regions[region] = (regions[region] ?? 0) + 1;
+    }
+
+    // Collect all suggestions/comments
+    final suggestions = rows
+        .map((r) => r['suggestions']?.toString())
+        .where((s) => s != null && s.isNotEmpty && s != 'null')
+        .toList();
+
+    // Title page
+    doc.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(40),
+        build: (context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          mainAxisAlignment: pw.MainAxisAlignment.center,
+          children: [
+            pw.Text(
+              'ARTA CLIENT SATISFACTION',
+              style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey800),
+            ),
+            pw.SizedBox(height: 8),
+            pw.Text(
+              'DETAILED ANALYSIS REPORT',
+              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey600),
+            ),
+            pw.SizedBox(height: 40),
+            pw.Container(
+              padding: const pw.EdgeInsets.all(20),
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: PdfColors.blueGrey300, width: 2),
+                borderRadius: pw.BorderRadius.circular(10),
+              ),
+              child: pw.Column(
+                children: [
+                  pw.Text(
+                    'Total Responses: $totalResponses',
+                    style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+                  ),
+                  pw.SizedBox(height: 10),
+                  pw.Text(
+                    'Overall Satisfaction Score',
+                    style: const pw.TextStyle(fontSize: 14, color: PdfColors.grey700),
+                  ),
+                  pw.SizedBox(height: 5),
+                  pw.Text(
+                    '${overallSqd.toStringAsFixed(2)} / 5.00',
+                    style: pw.TextStyle(
+                      fontSize: 32, 
+                      fontWeight: pw.FontWeight.bold,
+                      color: overallSqd >= 4 ? PdfColors.green700 : (overallSqd >= 3 ? PdfColors.orange700 : PdfColors.red700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 40),
+            pw.Text(
+              'Generated: ${DateTime.now().toString().substring(0, 19)}',
+              style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey600),
+            ),
+            pw.SizedBox(height: 10),
+            pw.Text(
+              'V-Serve ARTA Feedback Analytics',
+              style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey500),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    // SQD Analysis Page
+    doc.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(30),
+        build: (context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              'Service Quality Dimensions (SQD) Analysis',
+              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey800),
+            ),
+            pw.Divider(thickness: 1, color: PdfColors.grey400),
+            pw.SizedBox(height: 15),
+            pw.TableHelper.fromTextArray(
+              headers: ['Dimension', 'Average Score', 'Rating'],
+              data: sqdLabels.entries.map((e) {
+                final avg = sqdAverages[e.key] ?? 0.0;
+                String rating;
+                if (avg >= 4.5) rating = 'Excellent';
+                else if (avg >= 4.0) rating = 'Very Good';
+                else if (avg >= 3.0) rating = 'Good';
+                else if (avg >= 2.0) rating = 'Fair';
+                else rating = 'Poor';
+                return [e.value, avg.toStringAsFixed(2), rating];
+              }).toList(),
+              headerStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+              cellStyle: const pw.TextStyle(fontSize: 10),
+              headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey700),
+              cellHeight: 25,
+              border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+              oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
+            ),
+            pw.SizedBox(height: 30),
+            pw.Text(
+              'Citizen\'s Charter (CC) Awareness Analysis',
+              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey800),
+            ),
+            pw.Divider(thickness: 1, color: PdfColors.grey400),
+            pw.SizedBox(height: 15),
+            pw.TableHelper.fromTextArray(
+              headers: ['Dimension', 'Average Score', 'Rating'],
+              data: ccLabels.entries.map((e) {
+                final avg = ccAverages[e.key] ?? 0.0;
+                String rating;
+                if (avg >= 4.5) rating = 'Excellent';
+                else if (avg >= 4.0) rating = 'Very Good';
+                else if (avg >= 3.0) rating = 'Good';
+                else if (avg >= 2.0) rating = 'Fair';
+                else rating = 'Poor';
+                return [e.value, avg.toStringAsFixed(2), rating];
+              }).toList(),
+              headerStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+              cellStyle: const pw.TextStyle(fontSize: 10),
+              headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey700),
+              cellHeight: 25,
+              border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+              oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    // Demographics Page
+    doc.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(30),
+        build: (context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              'Demographic Breakdown',
+              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey800),
+            ),
+            pw.Divider(thickness: 1, color: PdfColors.grey400),
+            pw.SizedBox(height: 15),
+            pw.Text(
+              'Client Type Distribution',
+              style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 10),
+            pw.TableHelper.fromTextArray(
+              headers: ['Client Type', 'Count', 'Percentage'],
+              data: clientTypes.entries.map((e) {
+                final pct = totalResponses > 0 ? (e.value / totalResponses * 100) : 0.0;
+                return [e.key, e.value.toString(), '${pct.toStringAsFixed(1)}%'];
+              }).toList(),
+              headerStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+              cellStyle: const pw.TextStyle(fontSize: 10),
+              headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey700),
+              cellHeight: 22,
+              border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+              oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
+            ),
+            pw.SizedBox(height: 25),
+            pw.Text(
+              'Regional Distribution',
+              style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 10),
+            pw.TableHelper.fromTextArray(
+              headers: ['Region', 'Count', 'Percentage'],
+              data: regions.entries.take(15).map((e) {
+                final pct = totalResponses > 0 ? (e.value / totalResponses * 100) : 0.0;
+                return [e.key, e.value.toString(), '${pct.toStringAsFixed(1)}%'];
+              }).toList(),
+              headerStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+              cellStyle: const pw.TextStyle(fontSize: 10),
+              headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey700),
+              cellHeight: 22,
+              border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+              oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    // Comments/Suggestions Page
+    if (suggestions.isNotEmpty) {
+      final suggestionsPerPage = 20;
+      final totalPages = (suggestions.length / suggestionsPerPage).ceil();
+      
+      for (int page = 0; page < totalPages; page++) {
+        final startIdx = page * suggestionsPerPage;
+        final endIdx = (startIdx + suggestionsPerPage).clamp(0, suggestions.length);
+        final pageSuggestions = suggestions.sublist(startIdx, endIdx);
+        
+        doc.addPage(
+          pw.Page(
+            pageFormat: PdfPageFormat.a4,
+            margin: const pw.EdgeInsets.all(30),
+            build: (context) => pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'Suggestions & Comments${totalPages > 1 ? ' (Page ${page + 1} of $totalPages)' : ''}',
+                  style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey800),
+                ),
+                pw.Divider(thickness: 1, color: PdfColors.grey400),
+                pw.SizedBox(height: 10),
+                pw.Text(
+                  'Total Comments: ${suggestions.length}',
+                  style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+                ),
+                pw.SizedBox(height: 15),
+                ...pageSuggestions.asMap().entries.map((entry) => pw.Container(
+                  margin: const pw.EdgeInsets.only(bottom: 8),
+                  padding: const pw.EdgeInsets.all(10),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.grey300),
+                    borderRadius: pw.BorderRadius.circular(5),
+                    color: entry.key % 2 == 0 ? PdfColors.grey50 : PdfColors.white,
+                  ),
+                  child: pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Container(
+                        width: 25,
+                        child: pw.Text(
+                          '${startIdx + entry.key + 1}.',
+                          style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey600),
+                        ),
+                      ),
+                      pw.Expanded(
+                        child: pw.Text(
+                          entry.value ?? '',
+                          style: const pw.TextStyle(fontSize: 9),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+              ],
+            ),
+          ),
+        );
+      }
+    }
+
+    final bytes = await doc.save();
+    final filename = _safeFileName(baseName, 'pdf');
+    
+    await platform.downloadFileBytes(filename, bytes, 'application/pdf');
+    return filename;
+  }
 }
