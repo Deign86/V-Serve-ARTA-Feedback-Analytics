@@ -7,6 +7,7 @@ import '../../services/feedback_service.dart';
 import '../../services/survey_config_service.dart';
 import '../../services/qr_code_service.dart';
 import '../../models/survey_data.dart';
+import '../user_side/landing_page.dart';
 
 // THEME CONSTANTS
 const String fontHeading = 'Montserrat';
@@ -464,7 +465,7 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const SurveyDetailScreen(title: 'ARTA Client Satisfaction Survey')),
+                    MaterialPageRoute(builder: (context) => const MobilePreviewScreen()),
                   );
                 },
                 style: ElevatedButton.styleFrom(
@@ -618,6 +619,90 @@ class SurveyDetailScreen extends StatelessWidget {
             ),
           )),
         ],
+      ),
+    );
+  }
+}
+
+// Mobile Preview Screen - Shows actual survey in a mobile device frame
+class MobilePreviewScreen extends StatelessWidget {
+  const MobilePreviewScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F7FC),
+      appBar: AppBar(
+        title: Text(
+          'Mobile Preview',
+          style: TextStyle(
+            fontFamily: fontHeading,
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black87),
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              // Open in new tab/window for full experience
+              Navigator.pushNamed(context, '/');
+            },
+            icon: const Icon(Icons.open_in_new, size: 18),
+            label: const Text('Open Full View'),
+          ),
+          const SizedBox(width: 16),
+        ],
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 24),
+            // Mobile device frame
+            Container(
+              width: 375, // iPhone width
+              height: 667, // iPhone height
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(40),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 30,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(12),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(28),
+                child: const LandingScreen(),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'This preview shows exactly how the survey appears on mobile devices.',
+              style: TextStyle(
+                fontFamily: fontBody,
+                color: Colors.grey.shade600,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Interact with it to test the full survey flow.',
+              style: TextStyle(
+                fontFamily: fontBody,
+                color: Colors.grey.shade500,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
