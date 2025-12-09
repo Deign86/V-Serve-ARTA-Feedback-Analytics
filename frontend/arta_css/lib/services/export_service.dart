@@ -695,7 +695,13 @@ class ExportService {
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text('Visual SQD Analysis (Radar)', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                  pw.SizedBox(height: 20),
+                  pw.SizedBox(height: 5),
+                  // Debug: Show calculated values
+                  pw.Text(
+                    'Values: ${sqdAverages.entries.map((e) => "${e.key.replaceAll("Rating", "")}: ${e.value.toStringAsFixed(2)}").join(", ")}',
+                    style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey500),
+                  ),
+                  pw.SizedBox(height: 15),
                   pw.Center(
                     child: _buildPdfRadarChart(sqdAverages, sqdLabels),
                   ),

@@ -1143,12 +1143,27 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                           // ticksBorderData removed
                           radarBorderData: const BorderSide(color: Colors.transparent),
                           radarBackgroundColor: Colors.transparent,
+                          // Fix scale to 0-5 to match PDF chart (prevents auto-scaling)
+                          borderData: FlBorderData(show: false),
                           dataSets: [
                             RadarDataSet(
                               fillColor: brandRed.withValues(alpha: 0.4),
                               borderColor: brandRed,
                               entryRadius: 3,
                               dataEntries: sqdData.map((e) => RadarEntry(value: e['score'] as double)).toList(),
+                            ),
+                            // Add invisible dataset at 0 and 5 to fix the scale
+                            RadarDataSet(
+                              fillColor: Colors.transparent,
+                              borderColor: Colors.transparent,
+                              entryRadius: 0,
+                              dataEntries: List.generate(sqdData.length, (_) => const RadarEntry(value: 0)),
+                            ),
+                            RadarDataSet(
+                              fillColor: Colors.transparent,
+                              borderColor: Colors.transparent,
+                              entryRadius: 0,
+                              dataEntries: List.generate(sqdData.length, (_) => const RadarEntry(value: 5)),
                             ),
                           ],
                           getTitle: (index, angle) {
