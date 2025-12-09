@@ -55,11 +55,7 @@ void main() async {
           configService.loadConfig(); // Load saved configuration
           return configService;
         }),
-        ChangeNotifierProvider(create: (_) {
-          final userService = UserManagementService();
-          userService.seedDemoUsers(); // Seed demo users if empty
-          return userService;
-        }),
+        ChangeNotifierProvider(create: (_) => UserManagementService()),
       ],
       child: const MyApp(),
     ),

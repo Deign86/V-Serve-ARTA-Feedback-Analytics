@@ -5,7 +5,8 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "seed:admins": "node scripts/seed_admin_users.js"
   },
   "author": "",
   "license": "MIT",

@@ -237,7 +237,7 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          // Demo credentials
+                          // Demo credentials (tap to autofill) - FOR DEVELOPERS ONLY
                           SizedBox(
                             width: double.infinity,
                             child: Container(
@@ -249,12 +249,18 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    'Demo Credentials:',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue.shade900,
-                                    ),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.developer_mode, size: 16, color: Colors.blue.shade900),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Demo Credentials:',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blue.shade900,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                   const SizedBox(height: 8),
                                   _buildCredential('Admin', 'admin@valenzuela.gov.ph', 'admin123'),
@@ -278,27 +284,52 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
     );
   }
 
+  /// Autofill credentials into the form fields
+  void _autofillCredentials(String email, String password) {
+    _emailController.text = email;
+    _passwordController.text = password;
+    setState(() {
+      _errorMessage = null;
+    });
+  }
+
   Widget _buildCredential(String role, String email, String password) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            role,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+    return InkWell(
+      onTap: () => _autofillCredentials(email, password),
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        child: Row(
+          children: [
+            Icon(
+              Icons.touch_app,
+              size: 14,
+              color: Colors.blue.shade700,
             ),
-          ),
-          Text(
-            '$email / $password',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade700,
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    role,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '$email / $password',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

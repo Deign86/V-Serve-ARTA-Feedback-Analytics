@@ -379,55 +379,6 @@ class UserManagementService extends ChangeNotifier {
     }
   }
 
-  /// Seed initial demo users if collection is empty
-  Future<void> seedDemoUsers() async {
-    try {
-      final snapshot = await _firestore.collection('system_users').limit(1).get();
-      
-      if (snapshot.docs.isEmpty) {
-        debugPrint('Seeding demo users...');
-        
-        final demoUsers = [
-          {
-            'name': 'John Doe',
-            'email': 'john.doe@valenzuela.gov.ph',
-            'role': 'Administrator',
-            'department': 'IT Administration',
-            'status': 'Active',
-            'createdAt': Timestamp.fromDate(DateTime(2023, 11, 15)),
-            'lastLoginAt': Timestamp.fromDate(DateTime(2024, 1, 22)),
-          },
-          {
-            'name': 'Maria Santos',
-            'email': 'maria.santos@valenzuela.gov.ph',
-            'role': 'Editor',
-            'department': 'Business Licensing',
-            'status': 'Active',
-            'createdAt': Timestamp.fromDate(DateTime(2023, 12, 1)),
-            'lastLoginAt': Timestamp.fromDate(DateTime(2024, 1, 22)),
-          },
-          {
-            'name': 'Pedro Cruz',
-            'email': 'pedro.cruz@valenzuela.gov.ph',
-            'role': 'Analyst/Viewer',
-            'department': 'Planning Office',
-            'status': 'Active',
-            'createdAt': Timestamp.fromDate(DateTime(2024, 1, 5)),
-            'lastLoginAt': null,
-          },
-        ];
-
-        for (final user in demoUsers) {
-          await _firestore.collection('system_users').add(user);
-        }
-
-        debugPrint('Demo users seeded successfully');
-      }
-    } catch (e) {
-      debugPrint('Error seeding demo users: $e');
-    }
-  }
-
   @override
   void dispose() {
     stopRealtimeUpdates();

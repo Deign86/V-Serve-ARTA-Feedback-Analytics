@@ -1,10 +1,15 @@
 // ==================== SERVICES ====================
 
 // lib/services/auth_service.dart
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
 import '../models/user_model.dart';
 
 class AuthService extends ChangeNotifier {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
   UserModel? _currentUser;
   bool _isAuthenticated = false;
 
@@ -12,76 +17,82 @@ class AuthService extends ChangeNotifier {
   bool get isAuthenticated => _isAuthenticated;
   UserRole? get userRole => _currentUser?.role;
 
-  // Demo users for testing
-  final List<Map<String, dynamic>> _demoUsers = [
-    {
-      'email': 'admin@valenzuela.gov.ph',
-      'password': 'admin123',
-      'id': '1',
-      'name': 'John Doe',
-      'role': 'administrator',
-      'department': 'IT Administration',
-    },
-    {
-      'email': 'editor@valenzuela.gov.ph',
-      'password': 'editor123',
-      'id': '2',
-      'name': 'Maria Santos',
-      'role': 'editor',
-      'department': 'Business Licensing',
-    },
-    {
-      'email': 'analyst@valenzuela.gov.ph',
-      'password': 'analyst123',
-      'id': '3',
-      'name': 'Carlos Rodriguez',
-      'role': 'analyst',
-      'department': 'Data Analytics',
-    },
-    {
-      'email': 'viewer@valenzuela.gov.ph',
-      'password': 'viewer123',
-      'id': '4',
-      'name': 'Anna Garcia',
-      'role': 'viewer',
-      'department': 'Building Permits',
-    },
-  ];
+  /// Hash a password using SHA-256 (must match backend seeding)
+  static String _hashPassword(String password) {
+    final bytes = utf8.encode(password);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
+  /// Convert Firestore role string to UserRole enum
+  static UserRole _parseRole(String role) {
+    switch (role.toLowerCase()) {
+      case 'administrator':
+        return UserRole.administrator;
+      case 'editor':
+        return UserRole.editor;
+      case 'analyst':
+      case 'analyst/viewer':
+        return UserRole.analyst;
+      case 'viewer':
+        return UserRole.viewer;
+      default:
+        return UserRole.viewer;
+    }
+  }
 
   Future<bool> login(String email, String password) async {
     try {
-      // Simulate API call delay
-      await Future.delayed(const Duration(seconds: 1));
+      // Hash the provided password
+      final passwordHash = _hashPassword(password);
 
-      // Find user in demo users
-      final userMap = _demoUsers.firstWhere(
-        (u) => u['email'] == email && u['password'] == password,
-        orElse: () => {},
-      );
+      // Query Firestore for user with matching email
+      final querySnapshot = await _firestore
+          .collection('system_users')
+          .where('email', isEqualTo: email.toLowerCase().trim())
+          .where('status', isEqualTo: 'Active')
+          .limit(1)
+          .get();
 
-      if (userMap.isEmpty) {
+      if (querySnapshot.docs.isEmpty) {
+        debugPrint('Login failed: User not found or inactive - $email');
         return false;
       }
 
-      // Create user model
+      final userDoc = querySnapshot.docs.first;
+      final userData = userDoc.data();
+
+      // Verify password hash
+      final storedHash = userData['passwordHash'] as String?;
+      if (storedHash == null || storedHash != passwordHash) {
+        debugPrint('Login failed: Invalid password for $email');
+        return false;
+      }
+
+      // Create user model from Firestore data
       _currentUser = UserModel(
-        id: userMap['id'],
-        name: userMap['name'],
-        email: userMap['email'],
-        role: UserRole.values.firstWhere(
-          (e) => e.toString() == 'UserRole.${userMap['role']}',
-        ),
-        department: userMap['department'],
+        id: userDoc.id,
+        name: userData['name'] ?? 'Unknown',
+        email: userData['email'] ?? email,
+        role: _parseRole(userData['role'] ?? 'viewer'),
+        department: userData['department'] ?? '',
         lastLogin: DateTime.now(),
-        createdAt: DateTime.now().subtract(const Duration(days: 90)),
+        createdAt: userData['createdAt'] is Timestamp
+            ? (userData['createdAt'] as Timestamp).toDate()
+            : DateTime.now().subtract(const Duration(days: 90)),
       );
+
+      // Update last login timestamp in Firestore
+      await _firestore.collection('system_users').doc(userDoc.id).update({
+        'lastLoginAt': FieldValue.serverTimestamp(),
+      });
 
       _isAuthenticated = true;
       notifyListeners();
+      debugPrint('Login successful for ${_currentUser!.name} (${_currentUser!.role})');
       return true;
     } catch (e) {
-      // ignore: avoid_print
-      print('Login error: $e');
+      debugPrint('Login error: $e');
       return false;
     }
   }
@@ -114,23 +125,58 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // Auto-login for testing (optional)
+  // Auto-login for testing (optional) - fetches from Firestore
   Future<void> autoLogin(UserRole role) async {
-    final userMap = _demoUsers.firstWhere(
-      (u) => u['role'] == role.toString().split('.').last,
-    );
+    try {
+      final roleString = role.toString().split('.').last;
+      String firestoreRole;
+      switch (roleString) {
+        case 'administrator':
+          firestoreRole = 'Administrator';
+          break;
+        case 'editor':
+          firestoreRole = 'Editor';
+          break;
+        case 'analyst':
+          firestoreRole = 'Analyst';
+          break;
+        case 'viewer':
+        default:
+          firestoreRole = 'Viewer';
+          break;
+      }
 
-    _currentUser = UserModel(
-      id: userMap['id'],
-      name: userMap['name'],
-      email: userMap['email'],
-      role: role,
-      department: userMap['department'],
-      lastLogin: DateTime.now(),
-      createdAt: DateTime.now().subtract(const Duration(days: 90)),
-    );
+      final querySnapshot = await _firestore
+          .collection('system_users')
+          .where('role', isEqualTo: firestoreRole)
+          .where('status', isEqualTo: 'Active')
+          .limit(1)
+          .get();
 
-    _isAuthenticated = true;
-    notifyListeners();
+      if (querySnapshot.docs.isEmpty) {
+        debugPrint('Auto-login failed: No user found with role $firestoreRole');
+        return;
+      }
+
+      final userDoc = querySnapshot.docs.first;
+      final userData = userDoc.data();
+
+      _currentUser = UserModel(
+        id: userDoc.id,
+        name: userData['name'] ?? 'Unknown',
+        email: userData['email'] ?? '',
+        role: role,
+        department: userData['department'] ?? '',
+        lastLogin: DateTime.now(),
+        createdAt: userData['createdAt'] is Timestamp
+            ? (userData['createdAt'] as Timestamp).toDate()
+            : DateTime.now().subtract(const Duration(days: 90)),
+      );
+
+      _isAuthenticated = true;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Auto-login error: $e');
+    }
   }
 }
