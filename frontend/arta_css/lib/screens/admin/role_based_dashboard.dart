@@ -1531,14 +1531,8 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
         return;
       }
       
-      // Build CSV rows
-      final headers = data.first.keys.toList();
-      final rows = <List<dynamic>>[
-        headers,
-        ...data.map((item) => headers.map((h) => item[h]?.toString() ?? '').toList()),
-      ];
-      
-      final filename = await ExportService.exportCsv('ARTA_Feedback_Data', rows);
+      // Use the new formatted CSV export
+      final filename = await ExportService.exportFeedbackCsv('ARTA_Feedback_Data', data);
       scaffoldMessenger.showSnackBar(
         SnackBar(content: Text('CSV exported: $filename'), backgroundColor: Colors.green),
       );
@@ -1564,7 +1558,8 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
         return;
       }
       
-      final filename = await ExportService.exportJson('ARTA_Feedback_Data', data);
+      // Use the new formatted JSON export
+      final filename = await ExportService.exportFeedbackJson('ARTA_Feedback_Data', data);
       scaffoldMessenger.showSnackBar(
         SnackBar(content: Text('JSON exported: $filename'), backgroundColor: Colors.green),
       );
