@@ -204,6 +204,7 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
           Expanded(
             child: SingleChildScrollView(
               controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.all(isMobile ? 24 : 48),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

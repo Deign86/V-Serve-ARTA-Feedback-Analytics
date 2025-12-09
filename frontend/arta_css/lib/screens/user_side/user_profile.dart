@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/survey_data.dart';
 import 'citizen_charter.dart';
@@ -189,6 +190,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             Expanded(
               child: SingleChildScrollView(
                 controller: _scrollController,
+                physics: const BouncingScrollPhysics(),
                 child: Padding(
                   padding: EdgeInsets.all(isMobile ? 20 : 40),
                   child: _buildPart1(isMobile),
@@ -527,15 +529,14 @@ Widget _buildAgeField(bool isMobile) {
       SizedBox(height: isMobile ? 4 : 8),
       TextFormField(
         keyboardType: TextInputType.number,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(3),
+        ],
         onChanged: (value) => setState(() => age = value),
         validator: (value) {
           if (value == null || value.trim().isEmpty) return 'Required';
           
-          // Strict Number Check (No dots, commas, spaces)
-          if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
-            return 'Numbers only';
-          }
-
           final intAge = int.tryParse(value);
           if (intAge == null) return 'Invalid number';
           if (intAge < 18) return 'Must be 18+';

@@ -134,6 +134,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
         boxShadow: const [BoxShadow(blurRadius: 20, color: Colors.black26)],
       ),
       child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         child: Padding(
           padding: EdgeInsets.all(isMobile ? 24 : 48),
           child: Column(
@@ -190,6 +191,17 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                 icon: Icons.email_outlined,
                 isMobile: isMobile,
                 type: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return null; // Email is optional
+                  }
+                  // Basic email validation
+                  final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                  if (!emailRegex.hasMatch(value.trim())) {
+                    return 'Please enter a valid email address';
+                  }
+                  return null;
+                },
               ),
               
               SizedBox(height: isMobile ? 32 : 48),
@@ -211,6 +223,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
     required bool isMobile,
     TextInputType type = TextInputType.text,
     int maxLines = 1,
+    String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,6 +255,8 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
           controller: controller,
           maxLines: maxLines,
           keyboardType: type,
+          validator: validator,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
           decoration: InputDecoration(
             hintText: hint,
@@ -258,6 +273,14 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: Colors.grey.shade400, width: 1.0),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.red, width: 1.5),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.red, width: 1.5),
             ),
             // =================================
             focusedBorder: OutlineInputBorder(
@@ -452,6 +475,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
 
   Widget _buildMobileLayout() {
     return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       child: Column(
         children: [
           _buildTopSection(),

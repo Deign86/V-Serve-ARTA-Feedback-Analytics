@@ -239,6 +239,7 @@ class _SQDScreenState extends State<SQDScreen> {
           Expanded(
             child: SingleChildScrollView(
               controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.all(isMobile ? 24 : 48),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -549,6 +550,7 @@ class _SQDScreenState extends State<SQDScreen> {
             ? Center(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
                   child: emojiRow,
                 ),
               )

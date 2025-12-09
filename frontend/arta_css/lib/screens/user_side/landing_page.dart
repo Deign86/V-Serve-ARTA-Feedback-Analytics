@@ -85,6 +85,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
             child: SafeArea(
               child: isMobile 
                 ? SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                     child: _buildMobileLayout(context),
                   )
