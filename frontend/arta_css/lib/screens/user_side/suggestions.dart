@@ -406,6 +406,8 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
   bool _isKioskMode = false;
   int _countdownSeconds = 10;
   static const int _kioskCountdownDuration = 10; // seconds
+  DateTime _lastInteractionTime = DateTime.now();
+  static const int _interactionPauseSeconds = 3; // pause countdown for 3 seconds after interaction
 
   @override
   void initState() {
@@ -434,6 +436,14 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
     Future.delayed(const Duration(seconds: 1), () {
       if (!mounted) return;
       
+      // Check if user recently interacted - pause countdown if so
+      final secondsSinceInteraction = DateTime.now().difference(_lastInteractionTime).inSeconds;
+      if (secondsSinceInteraction < _interactionPauseSeconds) {
+        // User is actively interacting, keep countdown at full but continue checking
+        _startKioskCountdown();
+        return;
+      }
+      
       if (_countdownSeconds > 1) {
         setState(() => _countdownSeconds--);
         _startKioskCountdown();
@@ -448,6 +458,17 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
     final hasText = _commentsController.text.trim().isNotEmpty;
     if (hasText != _hasCommentText) {
       setState(() => _hasCommentText = hasText);
+    }
+    // Reset countdown on typing
+    _onUserInteraction();
+  }
+
+  void _onUserInteraction() {
+    if (_isKioskMode) {
+      setState(() {
+        _lastInteractionTime = DateTime.now();
+        _countdownSeconds = _kioskCountdownDuration;
+      });
     }
   }
 
@@ -521,52 +542,60 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
   }
 
   Widget _buildMobileLayout() {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        children: [
-          _buildTopSection(),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            color: Colors.white,
-            child: Column(
-              children: [
-                _buildCommentForm(),
-                const SizedBox(height: 40),
-                _buildHomeButton(),
-              ],
+    return Listener(
+      onPointerDown: (_) => _onUserInteraction(),
+      onPointerMove: (_) => _onUserInteraction(),
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          children: [
+            _buildTopSection(),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              color: Colors.white,
+              child: Column(
+                children: [
+                  _buildCommentForm(),
+                  const SizedBox(height: 40),
+                  _buildHomeButton(),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildDesktopLayout() {
-    return Row(
-      children: [
-        Expanded(
-          flex: 3,
-          child: Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(48),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildCommentForm(),
-                const SizedBox(height: 40),
-                Center(child: _buildHomeButton(width: 220)),
-              ],
+    return Listener(
+      onPointerDown: (_) => _onUserInteraction(),
+      onPointerMove: (_) => _onUserInteraction(),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: Container(
+              color: Colors.white,
+              padding: const EdgeInsets.all(48),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildCommentForm(),
+                  const SizedBox(height: 40),
+                  Center(child: _buildHomeButton(width: 220)),
+                ],
+              ),
             ),
           ),
-        ),
-        Expanded(
-          flex: 2,
-          child: _buildTopSection(isDesktopRightSide: true),
-        ),
-      ],
+          Expanded(
+            flex: 2,
+            child: _buildTopSection(isDesktopRightSide: true),
+          ),
+        ],
+      ),
     );
   }
 
