@@ -625,8 +625,16 @@ class SurveyDetailScreen extends StatelessWidget {
 }
 
 // Mobile Preview Screen - Shows actual survey in a mobile device frame
-class MobilePreviewScreen extends StatelessWidget {
+// Uses a nested Navigator to keep navigation contained within the preview
+class MobilePreviewScreen extends StatefulWidget {
   const MobilePreviewScreen({super.key});
+
+  @override
+  State<MobilePreviewScreen> createState() => _MobilePreviewScreenState();
+}
+
+class _MobilePreviewScreenState extends State<MobilePreviewScreen> {
+  final GlobalKey<NavigatorState> _nestedNavigatorKey = GlobalKey<NavigatorState>();
 
   @override
   Widget build(BuildContext context) {
@@ -647,11 +655,11 @@ class MobilePreviewScreen extends StatelessWidget {
         actions: [
           TextButton.icon(
             onPressed: () {
-              // Open in new tab/window for full experience
-              Navigator.pushNamed(context, '/');
+              // Reset preview to start
+              _nestedNavigatorKey.currentState?.popUntil((route) => route.isFirst);
             },
-            icon: const Icon(Icons.open_in_new, size: 18),
-            label: const Text('Open Full View'),
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Reset Preview'),
           ),
           const SizedBox(width: 16),
         ],
@@ -679,7 +687,19 @@ class MobilePreviewScreen extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(28),
-                child: const LandingScreen(),
+                // Nested Navigator to contain all survey navigation
+                child: MediaQuery(
+                  data: const MediaQueryData(size: Size(351, 643)), // Inner frame size
+                  child: Navigator(
+                    key: _nestedNavigatorKey,
+                    onGenerateRoute: (settings) {
+                      return MaterialPageRoute(
+                        builder: (context) => const LandingScreen(),
+                        settings: settings,
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 24),
