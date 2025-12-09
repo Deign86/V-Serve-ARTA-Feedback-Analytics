@@ -133,8 +133,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 _buildMenuItem(4, Icons.download, 'Data Exports', isDesktop),
                 const Spacer(),
                 // Bottom menu
-                _buildMenuItem(5, Icons.settings, 'Settings', isDesktop),
-                _buildMenuItem(6, Icons.exit_to_app, 'Sign Out', isDesktop),
+                _buildMenuItem(5, Icons.exit_to_app, 'Sign Out', isDesktop),
                 const SizedBox(height: 20),
               ],
             ),
@@ -179,18 +178,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               )
             : null,
         onTap: () {
-          if (index == 6) {
+          if (index == 5) {
             // Sign out - logout and navigate to admin login
             context.read<AuthService>().logout();
             Navigator.pushNamedAndRemoveUntil(
               context, 
               '/admin/login',
               (route) => false, // Clear all routes for security
-            );
-          } else if (index == 5) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SettingsScreen()),
             );
           } else if (index < 5) {
             setState(() {
