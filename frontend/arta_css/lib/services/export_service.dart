@@ -313,24 +313,37 @@ class ExportService {
     return filename;
   }
 
-  /// Export detailed analysis PDF with SQD breakdown, statistics, and comments
+  /// Export detailed analysis PDF with SQD breakdown, statistics, graphs, and comments
   static Future<String> exportDetailedAnalysisPdf(String baseName, List<Map<String, dynamic>> rows) async {
     final doc = pw.Document();
 
     // Calculate statistics
     final totalResponses = rows.length;
     
-    // SQD labels for display
+    // SQD labels for display (matching Detailed Analytics screen)
     const sqdLabels = {
-      'sqd0Rating': 'SQD1: Time Spent',
-      'sqd1Rating': 'SQD2: Steps Followed',
-      'sqd2Rating': 'SQD3: Simplicity',
-      'sqd3Rating': 'SQD4: Info Access',
-      'sqd4Rating': 'SQD5: Fee Amount',
-      'sqd5Rating': 'SQD6: Fee Display',
-      'sqd6Rating': 'SQD7: Fee Equity',
-      'sqd7Rating': 'SQD8: Processing Time',
-      'sqd8Rating': 'SQD9: Accessibility',
+      'sqd0Rating': 'SQD0: Satisfaction',
+      'sqd1Rating': 'SQD1: Time',
+      'sqd2Rating': 'SQD2: Requirements',
+      'sqd3Rating': 'SQD3: Procedure',
+      'sqd4Rating': 'SQD4: Information',
+      'sqd5Rating': 'SQD5: Cost',
+      'sqd6Rating': 'SQD6: Fairness',
+      'sqd7Rating': 'SQD7: Courtesy',
+      'sqd8Rating': 'SQD8: Outcome',
+    };
+    
+    // SQD descriptions for detailed view
+    const sqdDescriptions = {
+      'sqd0Rating': 'I am satisfied with the service that I availed',
+      'sqd1Rating': 'I spent a reasonable amount of time for my transaction',
+      'sqd2Rating': 'The office followed the transaction requirements',
+      'sqd3Rating': 'The steps were easy and simple',
+      'sqd4Rating': 'I easily found information about my transaction',
+      'sqd5Rating': 'I paid a reasonable amount of fees',
+      'sqd6Rating': 'I feel the office was fair to everyone',
+      'sqd7Rating': 'I was treated courteously by the staff',
+      'sqd8Rating': 'I got what I needed from the government office',
     };
     
     const ccLabels = {
@@ -385,6 +398,34 @@ class ExportService {
       final region = row['region']?.toString() ?? 'Unknown';
       regions[region] = (regions[region] ?? 0) + 1;
     }
+    
+    // Service breakdown with averages (for Satisfaction by Service graph)
+    Map<String, List<double>> serviceRatings = {};
+    for (final row in rows) {
+      final service = row['serviceAvailed']?.toString() ?? 'Other';
+      final rating = row['sqd0Rating'];
+      if (rating != null) {
+        serviceRatings.putIfAbsent(service, () => []);
+        final ratingValue = rating is int ? rating.toDouble() : (double.tryParse(rating.toString()) ?? 0.0);
+        serviceRatings[service]!.add(ratingValue);
+      }
+    }
+    Map<String, double> serviceBreakdown = serviceRatings.map((service, ratings) => 
+        MapEntry(service, ratings.reduce((a, b) => a + b) / ratings.length));
+    
+    // Sort services by score and get top 5
+    final sortedServices = serviceBreakdown.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final topServices = sortedServices.take(5).toList();
+    
+    // Get top and bottom performing services
+    final topService = sortedServices.isNotEmpty ? sortedServices.first : null;
+    final needsAttention = sortedServices.isNotEmpty ? sortedServices.last : null;
+    
+    // Get strongest SQD
+    final sortedSqd = sqdAverages.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final strongestSqd = sortedSqd.isNotEmpty ? sortedSqd.first : null;
 
     // Collect all suggestions/comments
     final suggestions = rows
@@ -392,7 +433,7 @@ class ExportService {
         .where((s) => s != null && s.isNotEmpty && s != 'null')
         .toList();
 
-    // Title page
+    // Title page with highlights (matching Detailed Analytics highlight cards)
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -440,6 +481,36 @@ class ExportService {
                 ],
               ),
             ),
+            pw.SizedBox(height: 30),
+            // Performance Highlights (matching Detailed Analytics highlight cards)
+            pw.Text(
+              'PERFORMANCE HIGHLIGHTS',
+              style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey700),
+            ),
+            pw.SizedBox(height: 15),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildPdfHighlightBox(
+                  'Top Performing Service',
+                  topService?.key ?? 'N/A',
+                  'Score: ${topService?.value.toStringAsFixed(1) ?? "0.0"}/5.0',
+                  PdfColors.green700,
+                ),
+                _buildPdfHighlightBox(
+                  'Needs Attention',
+                  needsAttention?.key ?? 'N/A',
+                  'Score: ${needsAttention?.value.toStringAsFixed(1) ?? "0.0"}/5.0',
+                  PdfColors.orange700,
+                ),
+                _buildPdfHighlightBox(
+                  'Strongest Dimension',
+                  strongestSqd != null ? sqdLabels[strongestSqd.key]?.split(':').last.trim() ?? strongestSqd.key : 'N/A',
+                  'Score: ${strongestSqd?.value.toStringAsFixed(1) ?? "0.0"}/5.0',
+                  PdfColors.blue700,
+                ),
+              ],
+            ),
             pw.SizedBox(height: 40),
             pw.Text(
               'Generated: ${DateTime.now().toString().substring(0, 19)}',
@@ -455,7 +526,7 @@ class ExportService {
       ),
     );
 
-    // SQD Analysis Page
+    // SQD Analysis Page with Visual Bars (matching Detailed Analytics SQD Breakdown)
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -464,31 +535,23 @@ class ExportService {
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             pw.Text(
-              'Service Quality Dimensions (SQD) Analysis',
+              'Service Quality Dimensions (SQD) Breakdown',
               style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey800),
             ),
             pw.Divider(thickness: 1, color: PdfColors.grey400),
-            pw.SizedBox(height: 15),
-            pw.TableHelper.fromTextArray(
-              headers: ['Dimension', 'Average Score', 'Rating'],
-              data: sqdLabels.entries.map((e) {
-                final avg = sqdAverages[e.key] ?? 0.0;
-                String rating;
-                if (avg >= 4.5) rating = 'Excellent';
-                else if (avg >= 4.0) rating = 'Very Good';
-                else if (avg >= 3.0) rating = 'Good';
-                else if (avg >= 2.0) rating = 'Fair';
-                else rating = 'Poor';
-                return [e.value, avg.toStringAsFixed(2), rating];
-              }).toList(),
-              headerStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-              cellStyle: const pw.TextStyle(fontSize: 10),
-              headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey700),
-              cellHeight: 25,
-              border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
-              oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
+            pw.SizedBox(height: 10),
+            pw.Text(
+              'Score interpretation: 5 - Strongly Agree, 1 - Strongly Disagree. ARTA compliance requires detailed tracking of all 9 dimensions.',
+              style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
             ),
-            pw.SizedBox(height: 30),
+            pw.SizedBox(height: 15),
+            // SQD cards with visual bars
+            ...sqdLabels.entries.map((e) {
+              final avg = sqdAverages[e.key] ?? 0.0;
+              final desc = sqdDescriptions[e.key] ?? '';
+              return _buildPdfSqdRow(e.value, desc, avg);
+            }),
+            pw.SizedBox(height: 20),
             pw.Text(
               'Citizen\'s Charter (CC) Awareness Analysis',
               style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey800),
@@ -500,11 +563,17 @@ class ExportService {
               data: ccLabels.entries.map((e) {
                 final avg = ccAverages[e.key] ?? 0.0;
                 String rating;
-                if (avg >= 4.5) rating = 'Excellent';
-                else if (avg >= 4.0) rating = 'Very Good';
-                else if (avg >= 3.0) rating = 'Good';
-                else if (avg >= 2.0) rating = 'Fair';
-                else rating = 'Poor';
+                if (avg >= 4.5) {
+                  rating = 'Excellent';
+                } else if (avg >= 4.0) {
+                  rating = 'Very Good';
+                } else if (avg >= 3.0) {
+                  rating = 'Good';
+                } else if (avg >= 2.0) {
+                  rating = 'Fair';
+                } else {
+                  rating = 'Poor';
+                }
                 return [e.value, avg.toStringAsFixed(2), rating];
               }).toList(),
               headerStyle: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
@@ -514,6 +583,53 @@ class ExportService {
               border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
               oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
             ),
+          ],
+        ),
+      ),
+    );
+    
+    // Service Satisfaction Chart Page (matching Detailed Analytics bar chart)
+    doc.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(30),
+        build: (context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              'Satisfaction by Service',
+              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey800),
+            ),
+            pw.Divider(thickness: 1, color: PdfColors.grey400),
+            pw.SizedBox(height: 10),
+            pw.Text(
+              'Top performing services based on average satisfaction scores',
+              style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+            ),
+            pw.SizedBox(height: 20),
+            // Horizontal bar chart for services
+            if (topServices.isEmpty)
+              pw.Center(child: pw.Text('No service data available', style: const pw.TextStyle(color: PdfColors.grey400)))
+            else
+              ...topServices.map((entry) => _buildPdfServiceBar(entry.key, entry.value)),
+            pw.SizedBox(height: 30),
+            // Respondent Profile section
+            pw.Text(
+              'Respondent Profile',
+              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey800),
+            ),
+            pw.Divider(thickness: 1, color: PdfColors.grey400),
+            pw.SizedBox(height: 10),
+            pw.Text(
+              'Distribution of respondents by client type',
+              style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+            ),
+            pw.SizedBox(height: 15),
+            // Client type visual bars (representing pie chart data)
+            ...clientTypes.entries.map((entry) {
+              final pct = totalResponses > 0 ? (entry.value / totalResponses * 100) : 0.0;
+              return _buildPdfClientTypeBar(entry.key, entry.value, pct);
+            }),
           ],
         ),
       ),
@@ -642,5 +758,170 @@ class ExportService {
     
     await platform.downloadFileBytes(filename, bytes, 'application/pdf');
     return filename;
+  }
+  
+  /// Helper: Build PDF highlight box (matching Detailed Analytics highlight cards)
+  static pw.Widget _buildPdfHighlightBox(String label, String value, String sub, PdfColor color) {
+    return pw.Container(
+      width: 150,
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.grey300),
+        borderRadius: pw.BorderRadius.circular(8),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(label, style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+          pw.SizedBox(height: 4),
+          pw.Text(
+            value.length > 18 ? '${value.substring(0, 18)}...' : value, 
+            style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 2),
+          pw.Text(sub, style: pw.TextStyle(fontSize: 8, color: color, fontWeight: pw.FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+  
+  /// Helper: Build PDF SQD row with visual bar (matching Detailed Analytics SQD cards)
+  static pw.Widget _buildPdfSqdRow(String title, String description, double score) {
+    final scoreColor = score >= 4.5 ? PdfColors.green700 : (score >= 4.0 ? PdfColors.amber700 : PdfColors.red700);
+    final barWidthPercent = ((score / 5.0) * 100).clamp(0.0, 100.0);
+    
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(bottom: 8),
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.grey300),
+        borderRadius: pw.BorderRadius.circular(6),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Expanded(child: pw.Text(title, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold))),
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: pw.BoxDecoration(
+                  color: scoreColor.shade(50),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Text(
+                  score.toStringAsFixed(2),
+                  style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: scoreColor),
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 4),
+          pw.Text(description, style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+          pw.SizedBox(height: 6),
+          // Progress bar using Row with flex
+          pw.Row(
+            children: [
+              if (barWidthPercent > 0)
+                pw.Expanded(
+                  flex: barWidthPercent.round(),
+                  child: pw.Container(height: 6, decoration: pw.BoxDecoration(color: PdfColors.blueGrey700, borderRadius: pw.BorderRadius.circular(3))),
+                ),
+              if (barWidthPercent < 100)
+                pw.Expanded(
+                  flex: (100 - barWidthPercent).round(),
+                  child: pw.Container(height: 6, decoration: pw.BoxDecoration(color: PdfColors.grey200, borderRadius: pw.BorderRadius.circular(3))),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// Helper: Build PDF service bar (matching Detailed Analytics Satisfaction by Service chart)
+  static pw.Widget _buildPdfServiceBar(String serviceName, double score) {
+    final barWidthPercent = ((score / 5.0) * 100).clamp(0.0, 100.0);
+    final displayName = serviceName.length > 25 ? '${serviceName.substring(0, 25)}...' : serviceName;
+    
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(bottom: 12),
+      child: pw.Row(
+        children: [
+          pw.SizedBox(
+            width: 120,
+            child: pw.Text(displayName, style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700), textAlign: pw.TextAlign.right),
+          ),
+          pw.SizedBox(width: 10),
+          pw.Expanded(
+            child: pw.Row(
+              children: [
+                if (barWidthPercent > 0)
+                  pw.Expanded(
+                    flex: barWidthPercent.round(),
+                    child: pw.Container(height: 18, decoration: pw.BoxDecoration(color: PdfColors.blueGrey600, borderRadius: pw.BorderRadius.circular(4))),
+                  ),
+                if (barWidthPercent < 100)
+                  pw.Expanded(
+                    flex: (100 - barWidthPercent).round(),
+                    child: pw.Container(height: 18, decoration: pw.BoxDecoration(color: PdfColors.grey100, borderRadius: pw.BorderRadius.circular(4))),
+                  ),
+              ],
+            ),
+          ),
+          pw.SizedBox(width: 10),
+          pw.Text(score.toStringAsFixed(1), style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800)),
+        ],
+      ),
+    );
+  }
+  
+  /// Helper: Build PDF client type bar (matching Detailed Analytics Respondent Profile pie chart as bars)
+  static pw.Widget _buildPdfClientTypeBar(String clientType, int count, double percentage) {
+    final barWidthPercent = percentage.clamp(0.0, 100.0);
+    final colors = {
+      'Citizen': PdfColors.blue600,
+      'Business': PdfColors.red600,
+      'Government': PdfColors.green600,
+    };
+    final barColor = colors[clientType] ?? PdfColors.purple600;
+    
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(bottom: 10),
+      child: pw.Row(
+        children: [
+          pw.SizedBox(
+            width: 100,
+            child: pw.Row(
+              children: [
+                pw.Container(width: 12, height: 12, color: barColor),
+                pw.SizedBox(width: 6),
+                pw.Text(clientType, style: const pw.TextStyle(fontSize: 9)),
+              ],
+            ),
+          ),
+          pw.SizedBox(width: 10),
+          pw.Expanded(
+            child: pw.Row(
+              children: [
+                if (barWidthPercent > 0)
+                  pw.Expanded(
+                    flex: barWidthPercent.round().clamp(1, 100),
+                    child: pw.Container(height: 16, decoration: pw.BoxDecoration(color: barColor, borderRadius: pw.BorderRadius.circular(4))),
+                  ),
+                if (barWidthPercent < 100)
+                  pw.Expanded(
+                    flex: (100 - barWidthPercent).round().clamp(1, 100),
+                    child: pw.Container(height: 16, decoration: pw.BoxDecoration(color: PdfColors.grey100, borderRadius: pw.BorderRadius.circular(4))),
+                  ),
+              ],
+            ),
+          ),
+          pw.SizedBox(width: 10),
+          pw.Text('$count (${percentage.toStringAsFixed(1)}%)', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+        ],
+      ),
+    );
   }
 }
