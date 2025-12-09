@@ -60,11 +60,60 @@ void main() async {
   );
 }
 
+// Route observer to track navigation and handle security
+class AuthRouteObserver extends NavigatorObserver {
+  final AuthService authService;
+  
+  AuthRouteObserver(this.authService);
+  
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _handleRouteChange(route, previousRoute);
+    super.didPush(route, previousRoute);
+  }
+  
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    // When popping from admin to public, log out
+    if (previousRoute != null) {
+      _handleRouteChange(previousRoute, route);
+    }
+    super.didPop(route, previousRoute);
+  }
+  
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    if (newRoute != null) {
+      _handleRouteChange(newRoute, oldRoute);
+    }
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+  }
+  
+  void _handleRouteChange(Route<dynamic> currentRoute, Route<dynamic>? previousRoute) {
+    final currentRouteName = currentRoute.settings.name ?? '';
+    final previousRouteName = previousRoute?.settings.name ?? '';
+    
+    // If navigating FROM admin area TO public area, force logout
+    final wasInAdmin = previousRouteName.startsWith('/admin') || 
+                       previousRouteName == '/dashboard';
+    final nowInPublic = !currentRouteName.startsWith('/admin') && 
+                        currentRouteName != '/dashboard' &&
+                        currentRouteName != '/login';
+    
+    if (wasInAdmin && nowInPublic && authService.isAuthenticated) {
+      debugPrint('Security: Logging out user - navigated from admin to public area');
+      authService.logout();
+    }
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final authService = context.read<AuthService>();
+    
     return MaterialApp(
       scrollBehavior: const MaterialScrollBehavior().copyWith(
         scrollbars: true,
@@ -75,21 +124,117 @@ class MyApp extends StatelessWidget {
       ),
       title: 'V-Serve',
       initialRoute: '/', // Public survey is the default landing page
-      routes: {
-        // Public routes - accessible to everyone (survey/feedback)
-        '/': (context) => const LandingScreen(),
-        '/profile': (context) => const UserProfileScreen(),
-        
-        // Admin routes - accessible via specialized link
-        '/admin': (context) => const RoleBasedLoginScreen(),
-        '/admin/login': (context) => const RoleBasedLoginScreen(),
-        '/admin/dashboard': (context) => const DashboardScreen(),
-        
-        // Legacy routes (for backward compatibility)
-        '/login': (context) => const RoleBasedLoginScreen(),
-        '/dashboard': (context) => const DashboardScreen(),
-      },
+      navigatorObservers: [AuthRouteObserver(authService)],
+      onGenerateRoute: (settings) => _generateRoute(settings, authService),
       debugShowCheckedModeBanner: false,
+    );
+  }
+  
+  Route<dynamic>? _generateRoute(RouteSettings settings, AuthService authService) {
+    final routeName = settings.name ?? '/';
+    
+    // Define which routes require authentication
+    final protectedRoutes = [
+      '/admin/dashboard',
+      '/dashboard',
+    ];
+    
+    // Check if this is a protected route
+    final isProtectedRoute = protectedRoutes.contains(routeName);
+    
+    // If trying to access protected route without authentication, redirect to login
+    if (isProtectedRoute && !authService.isAuthenticated) {
+      debugPrint('Security: Blocked unauthenticated access to $routeName - redirecting to login');
+      return MaterialPageRoute(
+        builder: (context) => const RoleBasedLoginScreen(),
+        settings: const RouteSettings(name: '/admin/login'),
+      );
+    }
+    
+    // Route mapping
+    switch (routeName) {
+      // Public routes - accessible to everyone (survey/feedback)
+      case '/':
+        return MaterialPageRoute(
+          builder: (context) => const LandingScreen(),
+          settings: settings,
+        );
+      case '/profile':
+        return MaterialPageRoute(
+          builder: (context) => const UserProfileScreen(),
+          settings: settings,
+        );
+        
+      // Admin routes
+      case '/admin':
+      case '/admin/login':
+      case '/login':
+        return MaterialPageRoute(
+          builder: (context) => const RoleBasedLoginScreen(),
+          settings: settings,
+        );
+      case '/admin/dashboard':
+      case '/dashboard':
+        // Double-check authentication (belt and suspenders)
+        if (!authService.isAuthenticated) {
+          return MaterialPageRoute(
+            builder: (context) => const RoleBasedLoginScreen(),
+            settings: const RouteSettings(name: '/admin/login'),
+          );
+        }
+        return MaterialPageRoute(
+          builder: (context) => const AuthGuard(child: DashboardScreen()),
+          settings: settings,
+        );
+        
+      // Unknown route - redirect to landing
+      default:
+        return MaterialPageRoute(
+          builder: (context) => const LandingScreen(),
+          settings: const RouteSettings(name: '/'),
+        );
+    }
+  }
+}
+
+// Auth Guard widget - continuously checks authentication status
+class AuthGuard extends StatelessWidget {
+  final Widget child;
+  
+  const AuthGuard({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthService>(
+      builder: (context, authService, _) {
+        // If not authenticated, redirect to login immediately
+        if (!authService.isAuthenticated) {
+          // Schedule navigation after build completes
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/admin/login',
+              (route) => false,
+            );
+          });
+          
+          // Show loading while redirecting
+          return const Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Session expired. Redirecting to login...'),
+                ],
+              ),
+            ),
+          );
+        }
+        
+        // User is authenticated, show the protected content
+        return child;
+      },
     );
   }
 }

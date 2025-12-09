@@ -1,3 +1,5 @@
+// ==================== SCREENS ====================
+
 // lib/screens/role_based_login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -11,12 +13,9 @@ class RoleBasedLoginScreen extends StatefulWidget {
 }
 
 class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
-  // Logic: Controllers
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  
-  // Logic: State variables
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -27,7 +26,6 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
     super.dispose();
   }
 
-  // Logic: Login function
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -48,7 +46,12 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
 
     if (success) {
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/admin/dashboard');
+        // Clear all routes and navigate to dashboard for security
+        Navigator.pushNamedAndRemoveUntil(
+          context, 
+          '/admin/dashboard',
+          (route) => false,
+        );
       }
     } else {
       setState(() {
@@ -60,209 +63,202 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Visual: Background Image
       body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/city_bg2.png'),
-            fit: BoxFit.cover,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.blue.shade400,
+              Colors.blue.shade700,
+            ],
           ),
         ),
-        // Added a slight dark overlay to ensure the card pops out against the city photo
-        child: Container(
-          color: Colors.black.withValues(alpha: 0.1), 
-          child: Center(
-            child: SingleChildScrollView(
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 450),
-                margin: const EdgeInsets.all(24),
-                child: Card(
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(40),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Visual: City Logo Asset
-                          SizedBox(
-                            width: 100,
-                            height: 100,
-                            child: Image.asset(
-                              'assets/city_logo.png',
-                              fit: BoxFit.contain,
-                            ),
+        child: Center(
+          child: SingleChildScrollView(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 450),
+              margin: const EdgeInsets.all(24),
+              child: Card(
+                elevation: 8,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(40),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Logo
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            shape: BoxShape.circle,
                           ),
-                          const SizedBox(height: 24),
-                          
-                          // Visual: Valenzuela Branding Titles
-                          const Text(
-                            'CITY GOVERNMENT OF VALENZUELA',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
+                          child: const Icon(
+                            Icons.person,
+                            size: 50,
+                            color: Colors.blue,
                           ),
-                          const Text(
-                            'HELP US SERVE YOU BETTER!',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.black54,
-                            ),
+                        ),
+                        const SizedBox(height: 24),
+                        // Title
+                        const Text(
+                          'CITY GOVERNMENT OF VALENZUELA',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
                           ),
-                          const SizedBox(height: 32),
-                          
-                          // Visual: Welcome Text
-                          const Text(
-                            'Welcome back!',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
+                        ),
+                        const Text(
+                          'HELP US SERVE YOU BETTER!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.black54,
                           ),
-                          const SizedBox(height: 32),
-
-                          // Logic: Error Message Display
-                          if (_errorMessage != null)
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                color: Colors.red.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.red.shade200),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.error_outline, color: Colors.red.shade700),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      _errorMessage!,
-                                      style: TextStyle(color: Colors.red.shade700),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                          // Visual + Logic: Email Field
-                          TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: InputDecoration(
-                              hintText: 'Enter your email here',
-                              prefixIcon: const Icon(Icons.person_outline),
-                              filled: true,
-                              fillColor: Colors.grey.shade100,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your email';
-                              }
-                              return null;
-                            },
+                        ),
+                        const SizedBox(height: 32),
+                        const Text(
+                          'Welcome back!',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
                           ),
-                          const SizedBox(height: 16),
-
-                          // Visual + Logic: Password Field
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: true,
-                            decoration: InputDecoration(
-                              hintText: 'Enter your password here',
-                              prefixIcon: const Icon(Icons.lock_outline),
-                              filled: true,
-                              fillColor: Colors.grey.shade100,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your password';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Visual + Logic: Login Button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _login,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF003366),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                disabledBackgroundColor: const Color(0xFF003366).withValues(alpha: 0.6),
-                              ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                      ),
-                                    )
-                                  : const Text(
-                                      'LOGIN',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 24),
-                          
-                          // Logic: Demo Credentials
+                        ),
+                        const SizedBox(height: 32),
+                        // Error message
+                        if (_errorMessage != null)
                           Container(
-                            padding: const EdgeInsets.all(16),
-                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(bottom: 16),
                             decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
+                              color: Colors.red.shade50,
                               borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.red.shade200),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            child: Row(
                               children: [
-                                Text(
-                                  'Demo Credentials:',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue.shade900,
+                                Icon(Icons.error_outline, color: Colors.red.shade700),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    _errorMessage!,
+                                    style: TextStyle(color: Colors.red.shade700),
                                   ),
                                 ),
-                                const SizedBox(height: 8),
-                                _buildCredential('Admin', 'admin@valenzuela.gov.ph', 'admin123'),
-                                _buildCredential('Editor', 'editor@valenzuela.gov.ph', 'editor123'),
-                                _buildCredential('Analyst', 'analyst@valenzuela.gov.ph', 'analyst123'),
-                                _buildCredential('Viewer', 'viewer@valenzuela.gov.ph', 'viewer123'),
                               ],
                             ),
                           ),
-                        ],
-                      ),
+                        // Email field
+                        TextFormField(
+                          controller: _emailController,
+                          decoration: InputDecoration(
+                            hintText: 'Enter your email here',
+                            prefixIcon: const Icon(Icons.email_outlined),
+                            filled: true,
+                            fillColor: Colors.grey.shade100,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your email';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        // Password field
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: true,
+                          decoration: InputDecoration(
+                            hintText: 'Enter your password here',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            filled: true,
+                            fillColor: Colors.grey.shade100,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your password';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        // Login button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _login,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF003366),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : const Text(
+                                    'LOGIN',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        // Demo credentials
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Demo Credentials:',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade900,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              _buildCredential('Admin', 'admin@valenzuela.gov.ph', 'admin123'),
+                              _buildCredential('Editor', 'editor@valenzuela.gov.ph', 'editor123'),
+                              _buildCredential('Analyst', 'analyst@valenzuela.gov.ph', 'analyst123'),
+                              _buildCredential('Viewer', 'viewer@valenzuela.gov.ph', 'viewer123'),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -276,20 +272,22 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
 
   Widget _buildCredential(String role, String email, String password) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          RichText(
-            text: TextSpan(
-              style: const TextStyle(fontSize: 12, color: Colors.black87),
-              children: [
-                TextSpan(
-                  text: '$role: ',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                TextSpan(text: '$email / $password'),
-              ],
+          Text(
+            role,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Text(
+            '$email / $password',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey.shade700,
             ),
           ),
         ],

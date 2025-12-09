@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'admin_screens.dart';
 import '../../services/export_service.dart';
+import '../../services/auth_services.dart';
 
 // NOTE: This file provides screens (DashboardScreen, etc.)
 // and no longer contains its own `main()` or a top-level `MaterialApp`.
@@ -176,8 +177,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             : null,
         onTap: () {
           if (index == 6) {
-            // Sign out - navigate to admin login
-            Navigator.pushReplacementNamed(context, '/admin/login');
+            // Sign out - logout and navigate to admin login
+            context.read<AuthService>().logout();
+            Navigator.pushNamedAndRemoveUntil(
+              context, 
+              '/admin/login',
+              (route) => false, // Clear all routes for security
+            );
           } else if (index == 5) {
             Navigator.push(
               context,
