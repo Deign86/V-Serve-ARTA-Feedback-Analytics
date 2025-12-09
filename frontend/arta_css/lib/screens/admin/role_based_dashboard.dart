@@ -155,48 +155,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildMenuItem(int index, IconData icon, String label, bool isDesktop) {
     final isSelected = _selectedIndex == index;
     
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: isSelected ? Colors.white.withValues(alpha: 0.2) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: ListTile(
-        leading: Icon(
-          icon,
-          color: Colors.white,
-          size: 22,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white.withValues(alpha: 0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
         ),
-        title: isDesktop
-            ? Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              )
-            : null,
-        onTap: () {
-          if (index == 5) {
-            // Sign out - logout and navigate to admin login
-            context.read<AuthService>().logout();
-            Navigator.pushNamedAndRemoveUntil(
-              context, 
-              '/admin/login',
-              (route) => false, // Clear all routes for security
-            );
-          } else if (index < 5) {
-            setState(() {
-              _selectedIndex = index;
-            });
-          }
-        },
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: isDesktop ? 16 : 8,
-          vertical: 4,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            hoverColor: Colors.white.withValues(alpha: 0.1),
+            splashColor: Colors.white.withValues(alpha: 0.2),
+            onTap: () {
+              if (index == 5) {
+                // Sign out - logout and navigate to admin login
+                context.read<AuthService>().logout();
+                Navigator.pushNamedAndRemoveUntil(
+                  context, 
+                  '/admin/login',
+                  (route) => false, // Clear all routes for security
+                );
+              } else if (index < 5) {
+                setState(() {
+                  _selectedIndex = index;
+                });
+              }
+            },
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isDesktop ? 16 : 8,
+                vertical: 12,
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    icon,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                  if (isDesktop) ...[
+                    const SizedBox(width: 12),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
         ),
-        minLeadingWidth: 0,
       ),
     );
   }
@@ -485,13 +501,7 @@ class _DashboardOverviewState extends State<DashboardOverview> with SingleTicker
   }
 
   Widget _buildStatCard(String title, String value, String change, IconData icon, Color bgColor, Color iconColor) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      color: Colors.white,
+    return _HoverCard(
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -539,13 +549,7 @@ class _DashboardOverviewState extends State<DashboardOverview> with SingleTicker
         ? 10.0 
         : (weeklyTrends.values.reduce((a, b) => a > b ? a : b) * 1.2).toDouble();
     
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      color: Colors.white,
+    return _HoverCard(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -653,13 +657,7 @@ class _DashboardOverviewState extends State<DashboardOverview> with SingleTicker
     
     final hasData = verySatisfied > 0 || satisfied > 0 || neutral > 0 || dissatisfied > 0;
     
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      color: Colors.white,
+    return _HoverCard(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -794,6 +792,56 @@ class _DashboardOverviewState extends State<DashboardOverview> with SingleTicker
           ),
         ),
       ],
+    );
+  }
+}
+
+// Hover Card Widget with elevation and scale animation
+class _HoverCard extends StatefulWidget {
+  final Widget child;
+  
+  const _HoverCard({required this.child});
+  
+  @override
+  State<_HoverCard> createState() => _HoverCardState();
+}
+
+class _HoverCardState extends State<_HoverCard> {
+  bool _isHovered = false;
+  
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        transform: Matrix4.translationValues(0.0, _isHovered ? -4.0 : 0.0, 0.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _isHovered ? Colors.blue.shade200 : Colors.grey.shade200,
+          ),
+          boxShadow: _isHovered
+              ? [
+                  BoxShadow(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.grey.withValues(alpha: 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: widget.child,
+      ),
     );
   }
 }
