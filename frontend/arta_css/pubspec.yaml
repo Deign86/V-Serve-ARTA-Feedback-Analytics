@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
   google_fonts: ^6.1.0
   http: ^1.5.0
   provider: ^6.1.5

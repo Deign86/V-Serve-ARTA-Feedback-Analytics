@@ -170,10 +170,16 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              CircleAvatar(
-                radius: isMobile ? 24 : 36,
-                backgroundImage: const AssetImage('assets/city_logo.png'),
-                backgroundColor: Colors.transparent,
+              // Long-press on logo to access admin login (hidden feature)
+              GestureDetector(
+                onLongPress: () {
+                  Navigator.pushNamed(context, '/admin/login');
+                },
+                child: CircleAvatar(
+                  radius: isMobile ? 24 : 36,
+                  backgroundImage: const AssetImage('assets/city_logo.png'),
+                  backgroundColor: Colors.transparent,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(

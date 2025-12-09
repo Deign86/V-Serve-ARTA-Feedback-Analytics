@@ -18,8 +18,15 @@ import 'screens/admin/role_based_dashboard.dart';
 import 'platform/window_helper_stub.dart'
     if (dart.library.io) 'platform/window_helper_native.dart' as window_helper;
 
+// Conditional import for web URL strategy
+import 'platform/url_strategy_stub.dart'
+    if (dart.library.js_interop) 'platform/url_strategy_web.dart' as url_strategy;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Set URL strategy for web (removes # from URLs and enables proper history handling)
+  url_strategy.configureUrlStrategy();
 
   try {
     await Firebase.initializeApp(
@@ -63,52 +70,98 @@ void main() async {
 }
 
 // Route observer to track navigation and handle security
+// This implementation properly ignores dialogs/modals to prevent unintended logouts
 class AuthRouteObserver extends NavigatorObserver {
   final AuthService authService;
   
+  // Track the last known "real" page route (not dialogs/modals)
+  String? _lastPageRoute;
+  
   AuthRouteObserver(this.authService);
   
-  // DISABLED: Security feature causing unintended logouts
-  // TODO: Re-enable and fix the route detection logic
-  
-  // Helper to check if a route is a dialog/modal (no named route)
-  bool _isDialogRoute(Route<dynamic> route) {
+  // Helper to check if a route is a dialog/modal overlay
+  // Dialogs use DialogRoute, ModalBottomSheetRoute, PopupRoute, etc.
+  bool _isOverlayRoute(Route<dynamic>? route) {
+    if (route == null) return true;
+    
+    // Check by route type - these are overlay routes that should be ignored
+    if (route is PopupRoute) return true;
+    if (route is DialogRoute) return true;
+    
+    // Check by route name - null/empty names are typically overlays
     final name = route.settings.name;
-    return name == null || name.isEmpty;
+    if (name == null || name.isEmpty) return true;
+    
+    // RawDialogRoute and similar don't always have null names
+    // but they have the 'isFullscreenDialog' property
+    if (route is PageRoute && route.fullscreenDialog) {
+      // Fullscreen dialogs are still "real" pages in our context
+      return false;
+    }
+    
+    return false;
+  }
+  
+  // Helper to check if a route is an admin route
+  bool _isAdminRoute(String? routeName) {
+    if (routeName == null) return false;
+    return routeName.startsWith('/admin') || routeName == '/dashboard';
+  }
+  
+  // Helper to check if a route is a public survey route
+  bool _isPublicRoute(String? routeName) {
+    if (routeName == null) return false;
+    const publicRoutes = ['/', '/profile', '/citizenCharter', '/sqd', '/suggestions'];
+    return publicRoutes.contains(routeName);
   }
   
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    // Security feature disabled - just call super
     super.didPush(route, previousRoute);
+    
+    // Ignore overlay routes (dialogs, modals, popups)
+    if (_isOverlayRoute(route)) {
+      debugPrint('RouteObserver: Ignoring overlay push: ${route.runtimeType}');
+      return;
+    }
+    
+    _handlePageNavigation(route.settings.name, _lastPageRoute);
+    _lastPageRoute = route.settings.name;
   }
   
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    // Security feature disabled - just call super
     super.didPop(route, previousRoute);
+    
+    // Ignore overlay routes being dismissed
+    if (_isOverlayRoute(route)) {
+      debugPrint('RouteObserver: Ignoring overlay pop: ${route.runtimeType}');
+      return;
+    }
+    
+    // When a real page is popped, check if we're going back to a public route
+    final previousRouteName = previousRoute?.settings.name;
+    if (!_isOverlayRoute(previousRoute)) {
+      _handlePageNavigation(previousRouteName, route.settings.name);
+      _lastPageRoute = previousRouteName;
+    }
   }
   
   @override
   void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
-    // Security feature disabled - just call super
     super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    
+    // Ignore overlay replacements
+    if (_isOverlayRoute(newRoute)) return;
+    
+    _handlePageNavigation(newRoute?.settings.name, oldRoute?.settings.name);
+    _lastPageRoute = newRoute?.settings.name;
   }
   
-  // Keeping for future re-enabling
-  void _handleRouteChange(Route<dynamic> currentRoute, Route<dynamic>? previousRoute) {
-    final currentRouteName = currentRoute.settings.name ?? '';
-    final previousRouteName = previousRoute?.settings.name ?? '';
-    
-    // If navigating FROM admin area TO public area, force logout
-    final wasInAdmin = previousRouteName.startsWith('/admin') || 
-                       previousRouteName == '/dashboard';
-    final nowInPublic = !currentRouteName.startsWith('/admin') && 
-                        currentRouteName != '/dashboard' &&
-                        currentRouteName != '/login';
-    
-    if (wasInAdmin && nowInPublic && authService.isAuthenticated) {
-      debugPrint('Security: Logging out user - navigated from admin to public area');
+  void _handlePageNavigation(String? toRoute, String? fromRoute) {
+    // Security check: if navigating FROM admin TO public while authenticated, logout
+    if (_isAdminRoute(fromRoute) && _isPublicRoute(toRoute) && authService.isAuthenticated) {
+      debugPrint('Security: User navigated from admin ($fromRoute) to public ($toRoute) - logging out');
       authService.logout();
     }
   }
@@ -204,24 +257,36 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Auth Guard widget - continuously checks authentication status
-class AuthGuard extends StatelessWidget {
+// Auth Guard widget - protects admin routes with continuous authentication check
+// Uses StatefulWidget to properly track mounted state and avoid redirect loops
+class AuthGuard extends StatefulWidget {
   final Widget child;
   
   const AuthGuard({super.key, required this.child});
 
   @override
+  State<AuthGuard> createState() => _AuthGuardState();
+}
+
+class _AuthGuardState extends State<AuthGuard> {
+  bool _isRedirecting = false;
+
+  @override
   Widget build(BuildContext context) {
     return Consumer<AuthService>(
       builder: (context, authService, _) {
-        // If not authenticated, redirect to login immediately
-        if (!authService.isAuthenticated) {
+        // If not authenticated and not already redirecting, schedule redirect
+        if (!authService.isAuthenticated && !_isRedirecting) {
+          _isRedirecting = true;
+          
           // Schedule navigation after build completes
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.of(context).pushNamedAndRemoveUntil(
-              '/admin/login',
-              (route) => false,
-            );
+            if (mounted) {
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                '/admin/login',
+                (route) => false,
+              );
+            }
           });
           
           // Show loading while redirecting
@@ -240,7 +305,7 @@ class AuthGuard extends StatelessWidget {
         }
         
         // User is authenticated, show the protected content
-        return child;
+        return widget.child;
       },
     );
   }
