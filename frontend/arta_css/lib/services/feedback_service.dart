@@ -2,9 +2,10 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../models/survey_data.dart';
+import 'cache_service.dart';
 
 /// Service for fetching and aggregating feedback data from Firestore
-class FeedbackService extends ChangeNotifier {
+class FeedbackService extends ChangeNotifier with CachingMixin {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   
   // Cached data
@@ -15,6 +16,53 @@ class FeedbackService extends ChangeNotifier {
   
   // Dashboard statistics
   DashboardStats? _dashboardStats;
+  
+  // Cache keys
+  static const String _feedbacksCacheKey = 'feedbacks_list';
+  static const String _statsCacheKey = 'dashboard_stats';
+  
+  // Constructor - try to load from persistent cache
+  FeedbackService() {
+    _loadFromPersistentCache();
+  }
+  
+  /// Load cached data from persistent storage on startup
+  Future<void> _loadFromPersistentCache() async {
+    try {
+      final cachedData = await cacheService.loadFromPersistent<List<dynamic>>(
+        CacheConfig.feedbacksCacheKey,
+        timestampKey: CacheConfig.feedbacksTimestampKey,
+        maxAge: CacheConfig.longTTL,
+      );
+      
+      if (cachedData != null && cachedData.isNotEmpty) {
+        _feedbacks = cachedData
+            .map((json) => SurveyData.fromJson(Map<String, dynamic>.from(json)))
+            .toList();
+        _lastFetch = DateTime.now();
+        _calculateDashboardStats();
+        debugPrint('FeedbackService: Loaded ${_feedbacks.length} feedbacks from persistent cache');
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('FeedbackService: Error loading from persistent cache: $e');
+    }
+  }
+  
+  /// Save current feedbacks to persistent cache
+  Future<void> _saveToPersistentCache() async {
+    try {
+      final jsonList = _feedbacks.map((f) => f.toJson()).toList();
+      await cacheService.saveToPersistent(
+        CacheConfig.feedbacksCacheKey,
+        jsonList,
+        timestampKey: CacheConfig.feedbacksTimestampKey,
+      );
+      debugPrint('FeedbackService: Saved ${_feedbacks.length} feedbacks to persistent cache');
+    } catch (e) {
+      debugPrint('FeedbackService: Error saving to persistent cache: $e');
+    }
+  }
   
   // Real-time stream subscription
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _feedbackSubscription;
@@ -29,11 +77,20 @@ class FeedbackService extends ChangeNotifier {
   
   /// Fetch all feedbacks from Firestore
   Future<List<SurveyData>> fetchAllFeedbacks({bool forceRefresh = false}) async {
-    // Return cached if available and not forcing refresh
-    if (!forceRefresh && _feedbacks.isNotEmpty && _lastFetch != null) {
-      final diff = DateTime.now().difference(_lastFetch!);
-      if (diff.inMinutes < 5) {
+    // Check memory cache first
+    if (!forceRefresh) {
+      final cachedFeedbacks = cacheService.getFromMemory<List<SurveyData>>(_feedbacksCacheKey);
+      if (cachedFeedbacks != null) {
+        _feedbacks = cachedFeedbacks;
         return _feedbacks;
+      }
+      
+      // Fallback to instance cache with time check
+      if (_feedbacks.isNotEmpty && _lastFetch != null) {
+        final diff = DateTime.now().difference(_lastFetch!);
+        if (diff.inMinutes < 5) {
+          return _feedbacks;
+        }
       }
     }
     
@@ -80,6 +137,13 @@ class FeedbackService extends ChangeNotifier {
       
       _lastFetch = DateTime.now();
       _isLoading = false;
+      
+      // Cache in memory
+      cacheService.setInMemory(_feedbacksCacheKey, _feedbacks, ttl: CacheConfig.defaultTTL);
+      
+      // Persist to storage for offline access
+      _saveToPersistentCache();
+      
       notifyListeners();
       
       // Calculate stats after fetching
@@ -407,14 +471,34 @@ class FeedbackService extends ChangeNotifier {
         });
   }
   
-  /// Get feedback by ID
+  /// Get feedback by ID with caching
   Future<SurveyData?> getFeedbackById(String id) async {
+    final cacheKey = 'feedback_$id';
+    
+    // Check memory cache first
+    final cached = cacheService.getFromMemory<SurveyData>(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+    
+    // Check local feedbacks list
+    final local = _feedbacks.where((f) => f.id == id).firstOrNull;
+    if (local != null) {
+      cacheService.setInMemory(cacheKey, local, ttl: CacheConfig.defaultTTL);
+      return local;
+    }
+    
     try {
       final doc = await _firestore.collection('feedbacks').doc(id).get();
       if (doc.exists) {
         final data = doc.data()!;
         data['id'] = doc.id;
-        return SurveyData.fromJson(data);
+        final feedback = SurveyData.fromJson(data);
+        
+        // Cache the result
+        cacheService.setInMemory(cacheKey, feedback, ttl: CacheConfig.defaultTTL);
+        
+        return feedback;
       }
       return null;
     } catch (e) {
@@ -431,6 +515,32 @@ class FeedbackService extends ChangeNotifier {
   /// Refresh data
   Future<void> refresh() async {
     await fetchAllFeedbacks(forceRefresh: true);
+  }
+  
+  /// Clear all cached feedback data
+  Future<void> clearCache() async {
+    cacheService.removeFromMemory(_feedbacksCacheKey);
+    cacheService.removeFromMemory(_statsCacheKey);
+    await cacheService.removeFromPersistent(
+      CacheConfig.feedbacksCacheKey,
+      timestampKey: CacheConfig.feedbacksTimestampKey,
+    );
+    _feedbacks = [];
+    _dashboardStats = null;
+    _lastFetch = null;
+    notifyListeners();
+    debugPrint('FeedbackService: Cache cleared');
+  }
+  
+  /// Get cache statistics
+  Map<String, dynamic> getCacheStats() {
+    return {
+      'feedbacksCount': _feedbacks.length,
+      'lastFetch': _lastFetch?.toIso8601String(),
+      'hasDashboardStats': _dashboardStats != null,
+      'isListening': _isListening,
+      'globalCacheStats': cacheService.getStatistics(),
+    };
   }
 }
 

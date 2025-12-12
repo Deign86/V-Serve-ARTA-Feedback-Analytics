@@ -277,126 +277,148 @@ class _DashboardOverviewState extends State<DashboardOverview> with SingleTicker
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(32),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            // Header - responsive layout
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isSmallScreen = constraints.maxWidth < 600;
+                final isMediumScreen = constraints.maxWidth < 900;
+                
+                return Container(
+                  padding: EdgeInsets.all(isSmallScreen ? 16 : 32),
+                  child: Wrap(
+                    spacing: 16,
+                    runSpacing: 16,
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                       RichText(
-                        text: TextSpan(
-                          style: GoogleFonts.montserrat(
-                            textStyle: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                           RichText(
+                            text: TextSpan(
+                              style: GoogleFonts.montserrat(
+                                textStyle: TextStyle(
+                                  fontSize: isSmallScreen ? 24 : 32,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              children: const <TextSpan>[
+                                TextSpan(
+                                  text: 'ARTA ',
+                                  style: TextStyle(color: Colors.amber),
+                                ),
+                                TextSpan(
+                                  text: 'DASHBOARD',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ],
                             ),
                           ),
-                          children: const <TextSpan>[
-                            TextSpan(
-                              text: 'ARTA ',
-                              style: TextStyle(color: Colors.amber),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Client Satisfaction Measurement Overview',
+                            style: TextStyle(
+                              fontSize: isSmallScreen ? 14 : 16,
+                              color: Colors.white,
                             ),
-                            TextSpan(
-                              text: 'DASHBOARD',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Client Satisfaction Measurement Overview',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white,
-                        ),
+                      // Real-time status indicator
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          // Real-time indicator
+                          if (feedbackService.isListening)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.greenAccent,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    isMediumScreen ? 'Live' : 'Live Updates',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          // Refresh button (manual refresh)
+                          ElevatedButton.icon(
+                            onPressed: isLoading ? null : () {
+                              feedbackService.refresh();
+                            },
+                            icon: isLoading 
+                                ? const SizedBox(
+                                    width: 16, 
+                                    height: 16, 
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+                                  )
+                                : const Icon(Icons.refresh),
+                            label: Text(isLoading ? 'Loading...' : 'Refresh'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white.withValues(alpha: 0.2),
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  // Real-time status indicator
-                  Row(
-                    children: [
-                      // Real-time indicator
-                      if (feedbackService.isListening)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          margin: const EdgeInsets.only(right: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: Colors.greenAccent,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Live Updates',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      // Refresh button (manual refresh)
-                      ElevatedButton.icon(
-                        onPressed: isLoading ? null : () {
-                          feedbackService.refresh();
-                        },
-                        icon: isLoading 
-                            ? const SizedBox(
-                                width: 16, 
-                                height: 16, 
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
-                              )
-                            : const Icon(Icons.refresh),
-                        label: Text(isLoading ? 'Loading...' : 'Refresh'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.2),
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                );
+              },
             ),
             // Stats Cards with staggered animation
             FadeTransition(
               opacity: _fadeAnimation,
               child: SlideTransition(
                 position: _slideAnimation,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final crossAxisCount = constraints.maxWidth > 1200
-                          ? 4
-                          : constraints.maxWidth > 800
-                              ? 2
-                              : 1;
-                      
-                      return GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 2,
+                child: LayoutBuilder(
+                  builder: (context, outerConstraints) {
+                    final isSmallScreen = outerConstraints.maxWidth < 600;
+                    final horizontalPadding = isSmallScreen ? 16.0 : 32.0;
+                    
+                    return Padding(
+                      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final crossAxisCount = constraints.maxWidth > 1200
+                              ? 4
+                              : constraints.maxWidth > 800
+                                  ? 2
+                                  : 1;
+                          
+                          // Calculate aspect ratio based on available width and column count
+                          final cardWidth = (constraints.maxWidth - (crossAxisCount - 1) * 16) / crossAxisCount;
+                          // Target card height of ~140px for good proportions
+                          final targetHeight = 140.0;
+                          final aspectRatio = cardWidth / targetHeight;
+                          
+                          return GridView.count(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisCount: crossAxisCount,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: aspectRatio.clamp(1.5, 3.5),
                         children: [
                           _buildAnimatedStatCard(
                             'TOTAL RESPONSES',
@@ -434,45 +456,56 @@ class _DashboardOverviewState extends State<DashboardOverview> with SingleTicker
                             brandRed,
                             3,
                           ),
-                        ],
-                      );
-                    },
-                  ),
+                          ],
+                        );
+                      },
+                    ),
+                  );
+                  },
                 ),
               ),
             ),
             const SizedBox(height: 24),
-            // Charts
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  if (constraints.maxWidth > 800) {
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: _buildWeeklyTrendsCard(stats?.weeklyTrends ?? {}),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          flex: 2,
-                          child: _buildSatisfactionDistribution(stats?.satisfactionDistribution ?? {}),
-                        ),
-                      ],
-                    );
-                  } else {
-                    return Column(
-                      children: [
-                        _buildWeeklyTrendsCard(stats?.weeklyTrends ?? {}),
-                        const SizedBox(height: 16),
-                        _buildSatisfactionDistribution(stats?.satisfactionDistribution ?? {}),
-                      ],
-                    );
-                  }
-                },
-              ),
+            // Charts - responsive layout
+            LayoutBuilder(
+              builder: (context, outerConstraints) {
+                final isSmallScreen = outerConstraints.maxWidth < 600;
+                final horizontalPadding = isSmallScreen ? 16.0 : 32.0;
+                
+                return Padding(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      if (constraints.maxWidth > 800) {
+                        return IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: _buildWeeklyTrendsCard(stats?.weeklyTrends ?? {}),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                flex: 2,
+                                child: _buildSatisfactionDistribution(stats?.satisfactionDistribution ?? {}),
+                              ),
+                            ],
+                          ),
+                        );
+                      } else {
+                        return Column(
+                          children: [
+                            _buildWeeklyTrendsCard(stats?.weeklyTrends ?? {}),
+                            const SizedBox(height: 16),
+                            _buildSatisfactionDistribution(stats?.satisfactionDistribution ?? {}),
+                          ],
+                        );
+                      }
+                    },
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 24),
           ],
@@ -912,29 +945,34 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  RichText(
-                    text: TextSpan(
-                      style: GoogleFonts.montserrat(
-                        textStyle: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isSmallScreen = constraints.maxWidth < 600;
+                  final isMediumScreen = constraints.maxWidth < 900;
+                  
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RichText(
+                        text: TextSpan(
+                          style: GoogleFonts.montserrat(
+                            textStyle: TextStyle(
+                              fontSize: isSmallScreen ? 24 : 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          children: const <TextSpan>[
+                            TextSpan(text: 'USER ', style: TextStyle(color: Colors.amber)),
+                            TextSpan(text: 'MANAGEMENT', style: TextStyle(color: Colors.white)),
+                          ],
                         ),
                       ),
-                      children: const <TextSpan>[
-                        TextSpan(text: 'USER ', style: TextStyle(color: Colors.amber)),
-                        TextSpan(text: 'MANAGEMENT', style: TextStyle(color: Colors.white)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Manage system access and permissions',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
-                  ),
-                  const SizedBox(height: 32),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Manage system access and permissions',
+                        style: TextStyle(fontSize: isSmallScreen ? 14 : 16, color: Colors.white),
+                      ),
+                      const SizedBox(height: 32),
                   
                   // Users table
                   Card(
@@ -949,23 +987,26 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'SYSTEM USERS',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: brandBlue),
-                                  ),
-                                  Text(
-                                    'Manage admin users and their access permissions',
-                                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                                  ),
-                                ],
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'SYSTEM USERS',
+                                      style: TextStyle(fontSize: isSmallScreen ? 14 : 16, fontWeight: FontWeight.bold, color: brandBlue),
+                                    ),
+                                    if (!isSmallScreen)
+                                      Text(
+                                        'Manage admin users and their access permissions',
+                                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                      ),
+                                  ],
+                                ),
                               ),
                               ElevatedButton.icon(
                                 onPressed: () => _showAddUserDialog(context, userService),
-                                icon: const Icon(Icons.add),
-                                label: const Text('Add User'),
+                                icon: Icon(Icons.add, size: isSmallScreen ? 16 : 20),
+                                label: Text(isSmallScreen ? 'Add' : 'Add User'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: brandBlue,
                                   foregroundColor: Colors.white,
@@ -1034,7 +1075,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           else
                             ...users.map((user) => Padding(
                               padding: const EdgeInsets.only(bottom: 12),
-                              child: _buildUserItem(context, user, userService),
+                              child: isMediumScreen 
+                                  ? _buildUserItemCompact(context, user, userService)
+                                  : _buildUserItem(context, user, userService),
                             )),
                         ],
                       ),
@@ -1042,10 +1085,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Role cards
+                  // Role cards - use LayoutBuilder from parent constraints
                   LayoutBuilder(
-                    builder: (context, constraints) {
-                      final crossAxisCount = constraints.maxWidth > 1200 ? 3 : constraints.maxWidth > 800 ? 2 : 1;
+                    builder: (context, roleConstraints) {
+                      final crossAxisCount = roleConstraints.maxWidth > 1200 ? 3 : roleConstraints.maxWidth > 600 ? 2 : 1;
+                      // Calculate aspect ratio dynamically
+                      final cardWidth = (roleConstraints.maxWidth - (crossAxisCount - 1) * 16) / crossAxisCount;
+                      final targetHeight = 100.0;
+                      final aspectRatio = (cardWidth / targetHeight).clamp(2.0, 4.0);
                       
                       return GridView.count(
                         shrinkWrap: true,
@@ -1053,7 +1100,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         crossAxisCount: crossAxisCount,
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
-                        childAspectRatio: 2.5,
+                        childAspectRatio: aspectRatio,
                         children: [
                           _buildRoleCard('ADMINISTRATOR', '${userService.administratorCount} Active', 'Full System Access', Icons.admin_panel_settings, Colors.red),
                           _buildRoleCard('EDITOR', '${userService.editorCount} Active', 'Manage Surveys & Content', Icons.edit_document, Colors.blue),
@@ -1062,7 +1109,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       );
                     },
                   ),
-                ],
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -1160,6 +1209,85 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 ]),
               ),
               const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 18, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))])),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Compact version of user item for smaller screens
+  Widget _buildUserItemCompact(BuildContext context, SystemUser user, UserManagementService userService) {
+    final roleColor = _getRoleColor(user.role);
+    final statusColor = _getStatusColor(user.status);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top row: Avatar, Name, Menu
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: brandBlue,
+                radius: 18,
+                child: Text(user.initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(user.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    Text(user.email, style: TextStyle(fontSize: 11, color: Colors.grey.shade600), overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, size: 20),
+                onSelected: (action) => _handleUserAction(context, action, user, userService),
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 18), SizedBox(width: 8), Text('Edit')])),
+                  PopupMenuItem(
+                    value: user.status == 'Active' ? 'deactivate' : 'activate',
+                    child: Row(children: [
+                      Icon(user.status == 'Active' ? Icons.block : Icons.check_circle, size: 18),
+                      const SizedBox(width: 8),
+                      Text(user.status == 'Active' ? 'Deactivate' : 'Activate'),
+                    ]),
+                  ),
+                  const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 18, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red))])),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Bottom row: Role, Department, Status badges
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: roleColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                child: Text(user.role, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: roleColor)),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8)),
+                child: Text(user.department, style: TextStyle(fontSize: 10, color: Colors.grey.shade700)),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                child: Text(user.status, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: statusColor)),
+              ),
             ],
           ),
         ],
@@ -1541,47 +1669,57 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              RichText(
-                text: TextSpan(
-                  style: GoogleFonts.montserrat(
-                    textStyle: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isSmallScreen = constraints.maxWidth < 600;
+              final isMediumScreen = constraints.maxWidth < 900;
+              
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      style: GoogleFonts.montserrat(
+                        textStyle: TextStyle(
+                          fontSize: isSmallScreen ? 24 : 32,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      children: const <TextSpan>[
+                        TextSpan(
+                          text: 'DATA ',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        TextSpan(
+                          text: 'EXPORTS',
+                          style: TextStyle(color: Colors.amber),
+                        ),
+                      ],
                     ),
                   ),
-                  children: const <TextSpan>[
-                    TextSpan(
-                      text: 'DATA ',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    TextSpan(
-                      text: 'EXPORTS',
-                      style: TextStyle(color: Colors.amber),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Download survey data and reports',
-                style: TextStyle(fontSize: 16, color: Colors.white),
-              ),
-              const SizedBox(height: 32),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Download survey data and reports',
+                    style: TextStyle(fontSize: isSmallScreen ? 14 : 16, color: Colors.white),
+                  ),
+                  const SizedBox(height: 32),
               
-              // Export Cards
+              // Export Cards - responsive grid
               LayoutBuilder(
-                builder: (context, constraints) {
-                   final crossAxisCount = constraints.maxWidth > 1000 ? 3 : 1;
+                builder: (context, cardConstraints) {
+                   final crossAxisCount = cardConstraints.maxWidth > 900 ? 3 : cardConstraints.maxWidth > 500 ? 2 : 1;
+                   // Calculate dynamic aspect ratio
+                   final cardWidth = (cardConstraints.maxWidth - (crossAxisCount - 1) * 16) / crossAxisCount;
+                   final targetHeight = 180.0;
+                   final aspectRatio = (cardWidth / targetHeight).clamp(1.2, 2.5);
+                   
                    return GridView.count(
                      shrinkWrap: true,
                      physics: const NeverScrollableScrollPhysics(),
                      crossAxisCount: crossAxisCount,
                      crossAxisSpacing: 16,
                      mainAxisSpacing: 16,
-                     childAspectRatio: 1.8,
+                     childAspectRatio: aspectRatio,
                      children: [
                        _buildExportCard(context, feedbackService, 'ARTA Compliance Report', 'PDF Format', Icons.picture_as_pdf, Colors.red, isPdf: true),
                        _buildExportCard(context, feedbackService, 'Raw Data Export', 'CSV Format', Icons.table_chart, Colors.green, isCsv: true),
@@ -1592,18 +1730,22 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Recent Respondents Table
+              // Recent Respondents Table - responsive
               Card(
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
                 color: Colors.white,
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      // Header row - responsive
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 12,
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1611,15 +1753,16 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
                               Text(
                                 'RECENT RESPONDENTS',
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: isSmallScreen ? 14 : 16,
                                   fontWeight: FontWeight.bold,
                                   color: brandBlue
                                 ),
                               ),
-                              Text(
-                                'Latest survey submissions from Firestore',
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                              ),
+                              if (!isSmallScreen)
+                                Text(
+                                  'Latest survey submissions from Firestore',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                ),
                             ],
                           ),
                           OutlinedButton.icon(
@@ -1628,57 +1771,162 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
                             },
                             icon: isLoading 
                                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                                : const Icon(Icons.refresh),
+                                : const Icon(Icons.refresh, size: 16),
                             label: Text(isLoading ? 'Loading...' : 'Refresh'),
                           ),
                         ],
                       ),
                       const SizedBox(height: 24),
-                      // Table Header
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Row(
+                      // Table - use different layouts based on screen size
+                      if (isMediumScreen)
+                        // Compact card layout for smaller screens
+                        _buildCompactRespondentsList(recentFeedbacks, isLoading)
+                      else
+                        // Full table layout for larger screens
+                        Column(
                           children: [
-                            Expanded(flex: 1, child: Text('ID', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
-                            Expanded(flex: 2, child: Text('DATE', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
-                            Expanded(flex: 2, child: Text('CLIENT TYPE', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
-                            Expanded(flex: 3, child: Text('SERVICE AVAILED', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
-                            Expanded(flex: 2, child: Text('CC AWARENESS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
-                            Expanded(flex: 2, child: Text('SATISFACTION', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
+                            // Table Header
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              child: Row(
+                                children: [
+                                  Expanded(flex: 1, child: Text('ID', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
+                                  Expanded(flex: 2, child: Text('DATE', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
+                                  Expanded(flex: 2, child: Text('CLIENT TYPE', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
+                                  Expanded(flex: 3, child: Text('SERVICE AVAILED', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
+                                  Expanded(flex: 2, child: Text('CC AWARENESS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
+                                  Expanded(flex: 2, child: Text('SATISFACTION', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 12))),
+                                ],
+                              ),
+                            ),
+                            const Divider(),
+                            // Table Rows
+                            if (recentFeedbacks.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.all(32.0),
+                                child: Center(
+                                  child: Text(
+                                    isLoading ? 'Loading data...' : 'No feedback data available',
+                                    style: TextStyle(color: Colors.grey.shade400),
+                                  ),
+                                ),
+                              )
+                            else
+                              ...recentFeedbacks.map((feedback) => _buildRespondentRow(
+                                feedback.id?.substring(0, 6) ?? 'N/A',
+                                _formatDate(feedback.submittedAt ?? feedback.date),
+                                feedback.clientType ?? 'N/A',
+                                feedback.serviceAvailed ?? 'N/A',
+                                _getCCAwareness(feedback.cc0Rating),
+                                feedback.sqd0Rating ?? 0,
+                              )),
                           ],
                         ),
-                      ),
-                      const Divider(),
-                      // Table Rows from real data
-                      if (recentFeedbacks.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.all(32.0),
-                          child: Center(
-                            child: Text(
-                              isLoading ? 'Loading data...' : 'No feedback data available',
-                              style: TextStyle(color: Colors.grey.shade400),
-                            ),
-                          ),
-                        )
-                      else
-                        ...recentFeedbacks.map((feedback) => _buildRespondentRow(
-                          feedback.id?.substring(0, 6) ?? 'N/A',
-                          _formatDate(feedback.submittedAt ?? feedback.date),
-                          feedback.clientType ?? 'N/A',
-                          feedback.serviceAvailed ?? 'N/A',
-                          _getCCAwareness(feedback.cc0Rating),
-                          feedback.sqd0Rating ?? 0,
-                        )),
                     ],
                   ),
                 ),
               ),
-            ],
+                ],
+              );
+            },
           ),
         ),
       ),
     );
       },
+    );
+  }
+
+  // Compact respondents list for smaller screens
+  Widget _buildCompactRespondentsList(List<dynamic> feedbacks, bool isLoading) {
+    if (feedbacks.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Center(
+          child: Text(
+            isLoading ? 'Loading data...' : 'No feedback data available',
+            style: TextStyle(color: Colors.grey.shade400),
+          ),
+        ),
+      );
+    }
+    
+    return Column(
+      children: feedbacks.map((feedback) {
+        final score = feedback.sqd0Rating ?? 0;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade200),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top row: ID, Date, Score
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '#${feedback.id?.substring(0, 6) ?? "N/A"}',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    _formatDate(feedback.submittedAt ?? feedback.date),
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  ),
+                  Row(
+                    children: [
+                      Icon(Icons.star, size: 14, color: Colors.amber),
+                      const SizedBox(width: 4),
+                      Text('$score/5', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Service availed
+              Text(
+                feedback.serviceAvailed ?? 'N/A',
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              // Bottom row: Client type, CC Awareness
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      feedback.clientType ?? 'N/A',
+                      style: TextStyle(fontSize: 10, color: Colors.blue.shade700),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      _getCCAwareness(feedback.cc0Rating),
+                      style: TextStyle(fontSize: 10, color: Colors.green.shade700),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 

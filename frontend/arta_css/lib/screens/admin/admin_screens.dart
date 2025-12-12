@@ -32,57 +32,58 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
       backgroundColor: Colors.transparent, // Transparent to show dashboard background
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Card
-            // Header Card
-            Container(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        fontFamily: 'Montserrat',
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      children: const <TextSpan>[
-                        TextSpan(
-                          text: 'ARTA Survey ',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        TextSpan(
-                          text: 'Configuration',
-                          style: TextStyle(color: Colors.amber),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Manage the standard Client Satisfaction Measurement (CSM) form.',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 14,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            Row(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isSmallScreen = constraints.maxWidth < 600;
+            final isMediumScreen = constraints.maxWidth < 900;
+            
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Left Column: Configuration
-                Expanded(
-                  flex: 3,
+                // Header Card - responsive padding
+                Container(
+                  padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                       RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontFamily: 'Montserrat',
+                            fontSize: isSmallScreen ? 20 : 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          children: const <TextSpan>[
+                            TextSpan(
+                              text: 'ARTA Survey ',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            TextSpan(
+                              text: 'Configuration',
+                              style: TextStyle(color: Colors.amber),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Manage the standard Client Satisfaction Measurement (CSM) form.',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: isSmallScreen ? 12 : 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Responsive layout - stack on small/medium screens
+                if (isMediumScreen)
+                  Column(
+                    children: [
+                      // Configuration sections
                       _buildSectionCard(
                         title: 'Core Survey Sections',
                         isMandatory: true,
@@ -135,24 +136,93 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 24),
-                // Right Column: Preview & Access
-                Expanded(
-                  flex: 2,
-                  child: Column(
-                    children: [
+                      const SizedBox(height: 24),
                       _buildAccessPointCard(context),
                       const SizedBox(height: 24),
                       _buildLivePreviewCard(context),
                     ],
+                  )
+                else
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Left Column: Configuration
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          children: [
+                            _buildSectionCard(
+                              title: 'Core Survey Sections',
+                              isMandatory: true,
+                              children: [
+                                _buildToggleItem(
+                                  'Citizen\'s Charter (CC) Questions',
+                                  'CC1 (Awareness), CC2 (Visibility), CC3 (Helpfulness)',
+                                  configService.ccEnabled,
+                                  (v) => configService.setCcEnabled(v),
+                                ),
+                                const Divider(),
+                                _buildToggleItem(
+                                  'Service Quality Dimensions (SQD)',
+                                  'SQD0 to SQD8 (Likert Scale Rating)',
+                                  configService.sqdEnabled,
+                                  (v) => configService.setSqdEnabled(v),
+                                ),
+                                const Divider(),
+                                _buildToggleItem(
+                                  'Client Demographics',
+                                  'Client Type, Gender, Age, Region, Service Availed',
+                                  configService.demographicsEnabled,
+                                  (v) => configService.setDemographicsEnabled(v),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            _buildSectionCard(
+                              title: 'Custom Modules',
+                              children: [
+                                _buildToggleItem(
+                                  'Suggestions Box',
+                                  'Allow free-text feedback at the end of the survey.',
+                                  configService.suggestionsEnabled,
+                                  (v) => configService.setSuggestionsEnabled(v),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            _buildSectionCard(
+                              title: 'Deployment Settings',
+                              children: [
+                                _buildToggleItem(
+                                  'Kiosk Mode',
+                                  'Auto-reset survey after submission (for tablets at City Hall).',
+                                  configService.kioskMode,
+                                  (v) => configService.setKioskMode(v),
+                                  icon: Icons.tablet_mac,
+                                  activeColor: Colors.purple,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      // Right Column: Preview & Access
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          children: [
+                            _buildAccessPointCard(context),
+                            const SizedBox(height: 24),
+                            _buildLivePreviewCard(context),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ),
               ],
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -880,119 +950,157 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
         padding: const EdgeInsets.all(32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                   Expanded( // Added Expanded to allow column to take space
-                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                       RichText(
-                          text: TextSpan(
-                            style: TextStyle(
-                              fontFamily: 'Montserrat',
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            children: const <TextSpan>[
-                              TextSpan(
-                                text: 'DETAILED ',
-                                style: TextStyle(color: Colors.white),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isSmallScreen = constraints.maxWidth < 600;
+            
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header - responsive
+                Container(
+                  padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 16,
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              RichText(
+                                text: TextSpan(
+                                  style: TextStyle(
+                                    fontFamily: 'Montserrat',
+                                    fontSize: isSmallScreen ? 20 : 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  children: const <TextSpan>[
+                                    TextSpan(
+                                      text: 'DETAILED ',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    TextSpan(
+                                      text: 'ANALYTICS',
+                                      style: TextStyle(color: Colors.amber),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              TextSpan(
-                                text: 'ANALYTICS',
-                                style: TextStyle(color: Colors.amber),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Deep dive into customer satisfaction metrics and segmentation.',
+                                style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: isSmallScreen ? 12 : 14,
+                                  color: Colors.white,
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Deep dive into customer satisfaction metrics and segmentation.',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 14,
-                            color: Colors.white,
+                          // Filter buttons - wrap on smaller screens
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              // Clear filter button (shows when filter is active)
+                              if (_activeFilter != 'all')
+                                IconButton(
+                                  onPressed: _clearFilters,
+                                  icon: const Icon(Icons.close, size: 18),
+                                  tooltip: 'Clear filter',
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Colors.red.shade100,
+                                    foregroundColor: Colors.red.shade700,
+                                  ),
+                                ),
+                              // This Month button
+                              OutlinedButton.icon(
+                                onPressed: _setThisMonthFilter,
+                                icon: const Icon(Icons.calendar_today, size: 16),
+                                label: Text(
+                                  _activeFilter == 'thisMonth' 
+                                      ? (isSmallScreen ? '✓' : 'This Month ✓') 
+                                      : (isSmallScreen ? 'Month' : 'This Month')
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: _activeFilter == 'thisMonth' ? Colors.blue.shade50 : Colors.white,
+                                  foregroundColor: _activeFilter == 'thisMonth' ? Colors.blue.shade700 : null,
+                                  side: _activeFilter == 'thisMonth' ? BorderSide(color: Colors.blue.shade400, width: 2) : null,
+                                  padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 12 : 16, vertical: isSmallScreen ? 12 : 16),
+                                ),
+                              ),
+                              // This Week button
+                              OutlinedButton.icon(
+                                onPressed: _setThisWeekFilter,
+                                icon: const Icon(Icons.date_range, size: 16),
+                                label: Text(
+                                  _activeFilter == 'thisWeek' 
+                                      ? (isSmallScreen ? '✓' : 'This Week ✓') 
+                                      : (isSmallScreen ? 'Week' : 'This Week')
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: _activeFilter == 'thisWeek' ? Colors.blue.shade50 : Colors.white,
+                                  foregroundColor: _activeFilter == 'thisWeek' ? Colors.blue.shade700 : null,
+                                  side: _activeFilter == 'thisWeek' ? BorderSide(color: Colors.blue.shade400, width: 2) : null,
+                                  padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 12 : 16, vertical: isSmallScreen ? 12 : 16),
+                                ),
+                              ),
+                              // Advanced Filter button
+                              ElevatedButton.icon(
+                                onPressed: _showAdvancedFilterDialog,
+                                icon: const Icon(Icons.filter_list, size: 16),
+                                label: Text(
+                                  _activeFilter == 'custom' 
+                                      ? (isSmallScreen ? 'Custom' : _getFilterButtonText()) 
+                                      : (isSmallScreen ? 'Custom' : 'Custom Range')
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _activeFilter == 'custom' ? Colors.green.shade600 : Colors.blue.shade600,
+                                  foregroundColor: Colors.white,
+                                  padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 12 : 20, vertical: isSmallScreen ? 12 : 16),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                  ),),
-                  Row(
-                    children: [
-                      // Clear filter button (shows when filter is active)
-                      if (_activeFilter != 'all') ...[                        
-                        IconButton(
-                          onPressed: _clearFilters,
-                          icon: const Icon(Icons.close, size: 18),
-                          tooltip: 'Clear filter',
-                          style: IconButton.styleFrom(
-                            backgroundColor: Colors.red.shade100,
-                            foregroundColor: Colors.red.shade700,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      // This Month button
-                      OutlinedButton.icon(
-                        onPressed: _setThisMonthFilter,
-                        icon: const Icon(Icons.calendar_today, size: 16),
-                        label: Text(_activeFilter == 'thisMonth' ? 'This Month ✓' : 'This Month'),
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: _activeFilter == 'thisMonth' ? Colors.blue.shade50 : Colors.white,
-                          foregroundColor: _activeFilter == 'thisMonth' ? Colors.blue.shade700 : null,
-                          side: _activeFilter == 'thisMonth' ? BorderSide(color: Colors.blue.shade400, width: 2) : null,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // This Week button
-                      OutlinedButton.icon(
-                        onPressed: _setThisWeekFilter,
-                        icon: const Icon(Icons.date_range, size: 16),
-                        label: Text(_activeFilter == 'thisWeek' ? 'This Week ✓' : 'This Week'),
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: _activeFilter == 'thisWeek' ? Colors.blue.shade50 : Colors.white,
-                          foregroundColor: _activeFilter == 'thisWeek' ? Colors.blue.shade700 : null,
-                          side: _activeFilter == 'thisWeek' ? BorderSide(color: Colors.blue.shade400, width: 2) : null,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Advanced Filter button
-                      ElevatedButton.icon(
-                        onPressed: _showAdvancedFilterDialog,
-                        icon: const Icon(Icons.filter_list, size: 16),
-                        label: Text(_activeFilter == 'custom' ? _getFilterButtonText() : 'Custom Range'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _activeFilter == 'custom' ? Colors.green.shade600 : Colors.blue.shade600,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                        ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
+                ),
+                const SizedBox(height: 32),
             
-            // Highlights
-            Row(
-              children: [
-                Expanded(child: _buildHighlightCard('Top Performing Service', topService, 'Score: ${topServiceScore.toStringAsFixed(1)}/5.0', Colors.green)),
-                const SizedBox(width: 16),
-                Expanded(child: _buildHighlightCard('Needs Attention', needsAttention, 'Score: ${needsAttentionScore.toStringAsFixed(1)}/5.0', Colors.amber)),
-                const SizedBox(width: 16),
-                Expanded(child: _buildHighlightCard('Strongest Dimension', strongestSQD, 'Score: ${strongestSQDScore.toStringAsFixed(1)}/5.0', Colors.blue)),
-              ],
-            ),
-            const SizedBox(height: 24),
+                // Highlights - responsive grid
+                LayoutBuilder(
+                  builder: (context, highlightConstraints) {
+                    if (highlightConstraints.maxWidth > 900) {
+                      return Row(
+                        children: [
+                          Expanded(child: _buildHighlightCard('Top Performing Service', topService, 'Score: ${topServiceScore.toStringAsFixed(1)}/5.0', Colors.green)),
+                          const SizedBox(width: 16),
+                          Expanded(child: _buildHighlightCard('Needs Attention', needsAttention, 'Score: ${needsAttentionScore.toStringAsFixed(1)}/5.0', Colors.amber)),
+                          const SizedBox(width: 16),
+                          Expanded(child: _buildHighlightCard('Strongest Dimension', strongestSQD, 'Score: ${strongestSQDScore.toStringAsFixed(1)}/5.0', Colors.blue)),
+                        ],
+                      );
+                    } else {
+                      return Column(
+                        children: [
+                          _buildHighlightCard('Top Performing Service', topService, 'Score: ${topServiceScore.toStringAsFixed(1)}/5.0', Colors.green),
+                          const SizedBox(height: 16),
+                          _buildHighlightCard('Needs Attention', needsAttention, 'Score: ${needsAttentionScore.toStringAsFixed(1)}/5.0', Colors.amber),
+                          const SizedBox(height: 16),
+                          _buildHighlightCard('Strongest Dimension', strongestSQD, 'Score: ${strongestSQDScore.toStringAsFixed(1)}/5.0', Colors.blue),
+                        ],
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 24),
 
             // Automated Analysis
             Card(
@@ -1051,8 +1159,13 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                   ),
                   const SizedBox(height: 24),
                   LayoutBuilder(
-                    builder: (context, constraints) {
-                      final crossAxisCount = constraints.maxWidth > 1200 ? 3 : constraints.maxWidth > 800 ? 2 : 1;
+                    builder: (context, sqdConstraints) {
+                      final crossAxisCount = sqdConstraints.maxWidth > 1200 ? 3 : sqdConstraints.maxWidth > 700 ? 2 : 1;
+                      // Calculate aspect ratio dynamically
+                      final cardWidth = (sqdConstraints.maxWidth - (crossAxisCount - 1) * 16) / crossAxisCount;
+                      final targetHeight = 130.0; // Target height for SQD cards
+                      final aspectRatio = (cardWidth / targetHeight).clamp(1.8, 3.5);
+                      
                       return GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -1060,7 +1173,7 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                           crossAxisCount: crossAxisCount,
                           crossAxisSpacing: 16,
                           mainAxisSpacing: 16,
-                          childAspectRatio: 2.2, // Adjusted for card content
+                          childAspectRatio: aspectRatio,
                         ),
                         itemCount: sqdData.length,
                         itemBuilder: (context, index) {
@@ -1176,7 +1289,9 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                 ),
               ),
             ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
