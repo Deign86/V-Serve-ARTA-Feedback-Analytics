@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/survey_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
@@ -7,12 +8,7 @@ import '../../services/survey_config_service.dart';
 import 'landing_page.dart';
 
 class SuggestionsScreen extends StatefulWidget {
-  final SurveyData surveyData;
-  
-  const SuggestionsScreen({
-    super.key,
-    required this.surveyData,
-  });
+  const SuggestionsScreen({super.key});
 
   @override
   State<SuggestionsScreen> createState() => _SuggestionsScreenState();
@@ -28,6 +24,16 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
     super.initState();
     _suggestionsController = TextEditingController();
     _emailController = TextEditingController();
+    
+    // Initialize from provider
+    final surveyData = context.read<SurveyProvider>().surveyData;
+      
+    if (surveyData.suggestions != null) {
+      _suggestionsController.text = surveyData.suggestions!;
+    }
+    if (surveyData.email != null) {
+      _emailController.text = surveyData.email!;
+    }
   }
 
   @override
@@ -305,7 +311,14 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
           width: isMobile ? 140 : 180,
           height: isMobile ? 48 : 55,
           child: OutlinedButton(
-            onPressed: () => Navigator.of(context).maybePop(),
+            onPressed: () {
+              // Save current state before going back
+              context.read<SurveyProvider>().updateSuggestions(
+                suggestions: _suggestionsController.text.trim(),
+                email: _emailController.text.trim(),
+              );
+              Navigator.of(context).maybePop();
+            },
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: Color(0xFF003366), width: 1.5),
               shape: RoundedRectangleBorder(
@@ -327,26 +340,27 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
           height: isMobile ? 48 : 55,
           child: ElevatedButton(
             onPressed: _isSubmitting ? null : () async {
-              final finalData = widget.surveyData.copyWith(
-                suggestions: _suggestionsController.text.trim().isEmpty 
-                    ? null 
-                    : _suggestionsController.text.trim(),
-                email: _emailController.text.trim().isEmpty 
-                    ? null 
-                    : _emailController.text.trim(),
+              // Update Provider
+              context.read<SurveyProvider>().updateSuggestions(
+                suggestions: _suggestionsController.text.trim(),
+                email: _emailController.text.trim(),
               );
+              
+              final surveyData = context.read<SurveyProvider>().surveyData;
               
               setState(() => _isSubmitting = true);
               
               try {
-                await OfflineQueue.enqueue(finalData.toJson());
+                await OfflineQueue.enqueue(surveyData.toJson());
                 await OfflineQueue.flush();
                 
                 if (!mounted) return;
                 
+                context.read<SurveyProvider>().resetSurvey();
+                
                 Navigator.pushReplacement(
                   context,
-                  SmoothPageRoute(page: const ThankYouScreen()),
+                  MaterialPageRoute(builder: (_) => const ThankYouScreen()),
                 );
 
               } catch (e) {
@@ -499,7 +513,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
 
   void _goHome() {
     Navigator.of(context).pushAndRemoveUntil(
-      SmoothPageRoute(page: const LandingScreen()),
+      MaterialPageRoute(builder: (_) => const LandingScreen()),
       (Route<dynamic> route) => false,
     );
   }
@@ -763,24 +777,3 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
   }
 }
 
-// === SMOOTH PAGE ROUTE HELPER ===
-class SmoothPageRoute extends PageRouteBuilder {
-  final Widget page;
-
-  SmoothPageRoute({required this.page})
-      : super(
-          pageBuilder: (context, animation, secondaryAnimation) => page,
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(1.0, 0.0);
-            const end = Offset.zero;
-            const curve = Curves.easeInOutCubic;
-            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-            return SlideTransition(
-              position: animation.drive(tween),
-              child: FadeTransition(opacity: animation, child: child),
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 600),
-          reverseTransitionDuration: const Duration(milliseconds: 600),
-        );
-}

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/survey_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
@@ -7,12 +8,7 @@ import '../../services/survey_config_service.dart';
 import 'suggestions.dart'; // ThankYouScreen is defined here
 
 class SQDScreen extends StatefulWidget {
-  final SurveyData surveyData;
-  
-  const SQDScreen({
-    super.key,
-    required this.surveyData,
-  });
+  const SQDScreen({super.key});
 
   @override
   State<SQDScreen> createState() => _SQDScreenState();
@@ -91,6 +87,19 @@ class _SQDScreenState extends State<SQDScreen> {
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    
+    // Initialize from provider
+    final surveyData = context.read<SurveyProvider>().surveyData;
+      
+    answers[0] = surveyData.sqd0Rating;
+    answers[1] = surveyData.sqd1Rating;
+    answers[2] = surveyData.sqd2Rating;
+    answers[3] = surveyData.sqd3Rating;
+    answers[4] = surveyData.sqd4Rating;
+    answers[5] = surveyData.sqd5Rating;
+    answers[6] = surveyData.sqd6Rating;
+    answers[7] = surveyData.sqd7Rating;
+    answers[8] = surveyData.sqd8Rating;
   }
 
   @override
@@ -110,17 +119,20 @@ class _SQDScreenState extends State<SQDScreen> {
 
   void _onNextPressed() async {
     if (_isFormValid()) {
-      final updatedData = widget.surveyData.copyWith(
-        sqd0Rating: answers[0],
-        sqd1Rating: answers[1],
-        sqd2Rating: answers[2],
-        sqd3Rating: answers[3],
-        sqd4Rating: answers[4],
-        sqd5Rating: answers[5],
-        sqd6Rating: answers[6],
-        sqd7Rating: answers[7],
-        sqd8Rating: answers[8],
+      // Update Provider
+      context.read<SurveyProvider>().updateSQD(
+        sqd0: answers[0],
+        sqd1: answers[1],
+        sqd2: answers[2],
+        sqd3: answers[3],
+        sqd4: answers[4],
+        sqd5: answers[5],
+        sqd6: answers[6],
+        sqd7: answers[7],
+        sqd8: answers[8],
       );
+      
+      final surveyData = context.read<SurveyProvider>().surveyData;
       
       // Check if suggestions are enabled
       final configService = context.read<SurveyConfigService>();
@@ -129,21 +141,23 @@ class _SQDScreenState extends State<SQDScreen> {
         // Go to suggestions screen
         Navigator.push(
           context,
-          SmoothPageRoute(page: SuggestionsScreen(surveyData: updatedData)),
+          MaterialPageRoute(builder: (_) => const SuggestionsScreen()),
         );
       } else {
         // Skip suggestions - submit directly and go to thank you
         setState(() => _isSubmitting = true);
         
         try {
-          await OfflineQueue.enqueue(updatedData.toJson());
+          await OfflineQueue.enqueue(surveyData.toJson());
           await OfflineQueue.flush();
           
           if (!mounted) return;
           
+          context.read<SurveyProvider>().resetSurvey();
+          
           Navigator.pushReplacement(
             context,
-            SmoothPageRoute(page: const ThankYouScreen()),
+            MaterialPageRoute(builder: (_) => const ThankYouScreen()),
           );
         } catch (e) {
           if (!mounted) return;
@@ -219,7 +233,7 @@ class _SQDScreenState extends State<SQDScreen> {
         Text(
           'CITY GOVERNMENT OF VALENZUELA',
           style: GoogleFonts.montserrat(
-            fontSize: isMobile ? 14 : 16,
+            fontSize: isMobile ? 14 : 20,
             fontWeight: FontWeight.bold,
             color: Colors.white,
             shadows: [const Shadow(color: Colors.black45, blurRadius: 4)],
@@ -229,7 +243,7 @@ class _SQDScreenState extends State<SQDScreen> {
         Text(
           'HELP US SERVE YOU BETTER!',
           style: GoogleFonts.poppins(
-            fontSize: isMobile ? 10 : 12,
+            fontSize: isMobile ? 10 : 14,
             color: Colors.white.withValues(alpha: 0.9),
           ),
         ),
@@ -374,7 +388,21 @@ class _SQDScreenState extends State<SQDScreen> {
                   width: isMobile ? 140 : 180,
                   height: isMobile ? 48 : 55,
                   child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
+                    onPressed: () {
+                      // Save current state before going back
+                      context.read<SurveyProvider>().updateSQD(
+                        sqd0: answers[0],
+                        sqd1: answers[1],
+                        sqd2: answers[2],
+                        sqd3: answers[3],
+                        sqd4: answers[4],
+                        sqd5: answers[5],
+                        sqd6: answers[6],
+                        sqd7: answers[7],
+                        sqd8: answers[8],
+                      );
+                      Navigator.of(context).maybePop();
+                    },
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0xFF003366), width: 1.5),
                       shape: RoundedRectangleBorder(
@@ -604,23 +632,3 @@ class _SQDScreenState extends State<SQDScreen> {
   }
 }
 
-class SmoothPageRoute extends PageRouteBuilder {
-  final Widget page;
-
-  SmoothPageRoute({required this.page})
-      : super(
-          pageBuilder: (context, animation, secondaryAnimation) => page,
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(1.0, 0.0);
-            const end = Offset.zero;
-            const curve = Curves.easeInOutCubic;
-            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-            return SlideTransition(
-              position: animation.drive(tween),
-              child: FadeTransition(opacity: animation, child: child),
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 600),
-          reverseTransitionDuration: const Duration(milliseconds: 600),
-        );
-}

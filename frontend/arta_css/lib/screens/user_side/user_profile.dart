@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/survey_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -37,6 +38,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    
+    // Initialize from provider if data exists
+    final surveyData = context.read<SurveyProvider>().surveyData;
+    if (surveyData.clientType != null) clientType = surveyData.clientType!;
+    if (surveyData.date != null) selectedDate = surveyData.date;
+    if (surveyData.sex != null) sex = surveyData.sex!;
+    if (surveyData.age != null) age = surveyData.age.toString();
+    if (surveyData.regionOfResidence != null) region = surveyData.regionOfResidence;
+    if (surveyData.serviceAvailed != null) serviceAvailed = surveyData.serviceAvailed;
   }
 
   @override
@@ -61,15 +71,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     bool isDateValid = selectedDate != null;
 
     if (isTextFormValid && isDateValid) {
-      // Create Data Object - only include demographics if enabled
-      final surveyData = SurveyData(
+      // Update Provider
+      context.read<SurveyProvider>().updateProfile(
         clientType: clientType,
         date: selectedDate,
         sex: demographicsEnabled ? sex : null,
         age: demographicsEnabled && age != null ? int.tryParse(age!) : null,
-        regionOfResidence: demographicsEnabled ? region?.trim() : null,
+        region: demographicsEnabled ? region?.trim() : null,
         serviceAvailed: serviceAvailed?.trim(),
       );
+      
+      final surveyData = context.read<SurveyProvider>().surveyData;
 
       // Navigate based on which sections are enabled
       _navigateToNextSection(surveyData, configService);
@@ -90,29 +102,33 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       // Go to Citizen's Charter
       Navigator.push(
         context,
-        SmoothPageRoute(page: CitizenCharterScreen(surveyData: surveyData)),
+        MaterialPageRoute(builder: (_) => const CitizenCharterScreen()),
       );
     } else if (configService.sqdEnabled) {
       // Skip CC, go to SQD
       Navigator.push(
         context,
-        SmoothPageRoute(page: SQDScreen(surveyData: surveyData)),
+        MaterialPageRoute(builder: (_) => const SQDScreen()),
       );
     } else if (configService.suggestionsEnabled) {
       // Skip CC and SQD, go to Suggestions
       Navigator.push(
         context,
-        SmoothPageRoute(page: SuggestionsScreen(surveyData: surveyData)),
+        MaterialPageRoute(builder: (_) => const SuggestionsScreen()),
       );
     } else {
       // All optional sections disabled - submit directly
       try {
         await OfflineQueue.enqueue(surveyData.toJson());
         await OfflineQueue.flush();
+        
+        // Reset survey after submission
         if (!mounted) return;
+        context.read<SurveyProvider>().resetSurvey();
+        
         Navigator.pushReplacement(
           context,
-          SmoothPageRoute(page: const ThankYouScreen()),
+          MaterialPageRoute(builder: (_) => const ThankYouScreen()),
         );
       } catch (e) {
         if (!mounted) return;
@@ -249,7 +265,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     width: isMobile ? 150 : 180,
                     height: isMobile ? 44 : 50,
                     child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).maybePop(),
+                      onPressed: () {
+                        // Update Provider before going back
+                        final configService = context.read<SurveyConfigService>();
+                        final demographicsEnabled = configService.demographicsEnabled;
+                        context.read<SurveyProvider>().updateProfile(
+                          clientType: clientType,
+                          date: selectedDate,
+                          sex: demographicsEnabled ? sex : null,
+                          age: demographicsEnabled && age != null ? int.tryParse(age!) : null,
+                          region: demographicsEnabled ? region?.trim() : null,
+                          serviceAvailed: serviceAvailed?.trim(),
+                        );
+                        Navigator.of(context).maybePop();
+                      },
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: Colors.grey.shade400),
                         shape: RoundedRectangleBorder(
@@ -697,26 +726,3 @@ Widget _buildServiceAvailedField(bool isMobile) {
 }
 }
 
-// === SMOOTH PAGE ROUTE ===
-class SmoothPageRoute extends PageRouteBuilder {
-  final Widget page;
-
-  SmoothPageRoute({required this.page})
-      : super(
-          pageBuilder: (context, animation, secondaryAnimation) => page,
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(1.0, 0.0);
-            const end = Offset.zero;
-            const curve = Curves.easeInOutCubic;
-
-            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-
-            return SlideTransition(
-              position: animation.drive(tween),
-              child: FadeTransition(opacity: animation, child: child),
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 600),
-          reverseTransitionDuration: const Duration(milliseconds: 600),
-        );
-}

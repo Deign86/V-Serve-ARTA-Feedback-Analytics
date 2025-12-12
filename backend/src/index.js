@@ -1,22 +1,18 @@
 // Server setup for feedback API
 const express = require('express');
-// This file contains the server setup and API endpoints
-
-const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
 
 // Load dotenv so PORT and other env vars can be set from .env
 try {
   require('dotenv').config();
-} catch (e) {}
+} catch (e) { }
 
 const db = require('./firestore');
 
 const app = express();
 // Allow CORS from local dev origins; adjust as needed for production
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
 const FEEDBACK_COLLECTION = 'feedbacks';
 

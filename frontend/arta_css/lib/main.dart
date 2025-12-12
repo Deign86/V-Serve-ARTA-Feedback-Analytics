@@ -11,8 +11,10 @@ import 'services/auth_services.dart';
 import 'services/feedback_service.dart';
 import 'services/survey_config_service.dart';
 import 'services/user_management_service.dart';
+import 'services/survey_provider.dart';
 import 'screens/role_based_login_screen.dart';
 import 'screens/admin/role_based_dashboard.dart';
+import 'utils/app_transitions.dart';
 
 // Conditional import for window_manager (desktop only)
 import 'platform/window_helper_stub.dart'
@@ -63,6 +65,7 @@ void main() async {
           return configService;
         }),
         ChangeNotifierProvider(create: (_) => UserManagementService()),
+        ChangeNotifierProvider(create: (_) => SurveyProvider()),
       ],
       child: const MyApp(),
     ),
@@ -181,6 +184,15 @@ class MyApp extends StatelessWidget {
       ),
       theme: ThemeData(
         textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: GenericPageTransitionsBuilder(),
+            TargetPlatform.iOS: GenericPageTransitionsBuilder(),
+            TargetPlatform.windows: GenericPageTransitionsBuilder(),
+            TargetPlatform.macOS: GenericPageTransitionsBuilder(),
+            TargetPlatform.linux: GenericPageTransitionsBuilder(),
+          },
+        ),
       ),
       title: 'V-Serve',
       initialRoute: '/', // Public survey is the default landing page

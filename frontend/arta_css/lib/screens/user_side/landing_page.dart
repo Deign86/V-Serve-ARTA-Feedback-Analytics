@@ -125,25 +125,32 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
 
   // ------------------ DESKTOP LAYOUT ------------------
   Widget _buildDesktopLayout(BuildContext context) {
-    // We set a specific width for the FittedBox to calculate aspect ratio against
-    return SizedBox(
-      width: 1300, // Ideal width
+    // New Split-Card Layout
+    return Container(
+      width: 1200,
+      constraints: const BoxConstraints(minHeight: 600),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: const [BoxShadow(blurRadius: 20, color: Colors.black26)],
+      ),
+      clipBehavior: Clip.antiAlias, // Clips content to rounded corners
       child: IntrinsicHeight(
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Left side (Text + Button)
             Expanded(
-              flex: 3,
-              child: _buildTextCard(context, false),
+              flex: 5,
+              child: _buildTextCard(context, false, withCardDecoration: false),
             ),
-            const SizedBox(width: 60),
+            
             // Right side (Carousel)
             Expanded(
-              flex: 2,
-              child: AspectRatio(
-                aspectRatio: 3 / 4,
-                child: _buildImageCarousel(false),
+              flex: 4,
+              child: Container(
+                 color: const Color(0xFF003366), // Fallback/Basic background
+                 child: _buildImageCarousel(false, withCardDecoration: false),
               ),
             ),
           ],
@@ -153,30 +160,41 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
   }
 
   // ------------------ TEXT CARD ------------------
-  Widget _buildTextCard(BuildContext context, bool isMobile) {
+  Widget _buildTextCard(BuildContext context, bool isMobile, {bool withCardDecoration = true}) {
+    // If we want card decoration, we use the white container style.
+    // If not (merged layout), we just use transparent or minimal styling.
+    
+    // Desktop in new layout has no internal decoration, just padding.
+    // Mobile keeps the card look.
+    
+    final decoration = withCardDecoration 
+      ? BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.97),
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: const [BoxShadow(blurRadius: 18, color: Colors.black12)],
+        )
+      : null;
+
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(isMobile ? 24 : 50),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.97),
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: const [BoxShadow(blurRadius: 18, color: Colors.black12)],
-      ),
+      padding: EdgeInsets.all(isMobile ? 24 : 40), // Reduced padding to prevent clipping
+      decoration: decoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center, // Center vertically in split view
         mainAxisSize: MainAxisSize.min,
         children: [
           // Header Logo & Title
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Long-press on logo to access admin login (hidden feature)
+              // Long-press on logo to access admin login
               GestureDetector(
                 onLongPress: () {
                   Navigator.pushNamed(context, '/admin/login');
                 },
                 child: CircleAvatar(
-                  radius: isMobile ? 24 : 36,
+                  radius: isMobile ? 24 : 32,
                   backgroundImage: const AssetImage('assets/city_logo.png'),
                   backgroundColor: Colors.transparent,
                 ),
@@ -189,7 +207,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                     Text(
                       "CITY GOVERNMENT OF VALENZUELA",
                       style: GoogleFonts.montserrat(
-                        fontSize: isMobile ? 14 : 20,
+                        fontSize: isMobile ? 14 : 18,
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF003366),
                         height: 1.2,
@@ -198,7 +216,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                     Text(
                       "HELP US SERVE YOU BETTER!",
                       style: GoogleFonts.poppins(
-                        fontSize: isMobile ? 12 : 16,
+                        fontSize: isMobile ? 12 : 14,
                         color: Colors.black87,
                       ),
                     ),
@@ -208,8 +226,8 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
             ],
           ),
           
-          SizedBox(height: isMobile ? 30 : 50),
-          
+          SizedBox(height: isMobile ? 30 : 60),
+
           // --- HOVER ANIMATION FOR ARTA ---
           MouseRegion(
             onEnter: (_) {
@@ -224,69 +242,71 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
               });
             },
             cursor: SystemMouseCursors.click,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  "ARTA",
-                  style: GoogleFonts.montserrat(
-                    fontSize: isMobile ? 48 : 90,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF003366),
-                    height: 1.0,
-                  ),
-                ),
-                SizeTransition(
-                  sizeFactor: _expandAnimation,
-                  axis: Axis.horizontal,
-                  axisAlignment: -1.0, 
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 10),
-                    child: Text(
-                      "| Anti-Red Tape Authority",
-                      style: GoogleFonts.montserrat(
-                        fontSize: isMobile ? 18 : 32,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF003366),
-                      ),
-                      softWrap: false,
-                      overflow: TextOverflow.clip,
-                      maxLines: 1,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    "ARTA",
+                    style: GoogleFonts.montserrat(
+                      fontSize: isMobile ? 48 : 80,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF003366),
+                      height: 1.0,
                     ),
                   ),
-                ),
-              ],
+                  SizeTransition(
+                    sizeFactor: _expandAnimation,
+                    axis: Axis.horizontal,
+                    axisAlignment: -1.0, 
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 10),
+                      child: Text(
+                        "| Anti-Red Tape Authority",
+                        style: GoogleFonts.montserrat(
+                          fontSize: isMobile ? 16 : 24,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF003366),
+                        ),
+                        softWrap: false,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           
           Text(
             "CLIENT SATISFACTION FORM",
             style: GoogleFonts.montserrat(
-              fontSize: isMobile ? 18 : 24,
+              fontSize: isMobile ? 18 : 22,
               fontWeight: FontWeight.w600,
               color: Colors.black87,
               letterSpacing: 1.5,
             ),
           ),
           
-          SizedBox(height: isMobile ? 16 : 24),
+          SizedBox(height: isMobile ? 16 : 30),
           
           Text(
             "We want to hear about your recently concluded transaction with us. "
             "Your feedback is valuable to improve our service.",
             style: GoogleFonts.poppins(
-              fontSize: isMobile ? 14 : 18,
+              fontSize: isMobile ? 14 : 16,
               height: 1.6,
               color: Colors.grey[800],
             ),
           ),
           
-          SizedBox(height: isMobile ? 30 : 50),
+          SizedBox(height: isMobile ? 30 : 60),
           
-          // --- TAKE SURVEY BUTTON (With Hover Animation) ---
+          // --- TAKE SURVEY BUTTON ---
           Align(
-            alignment: isMobile ? Alignment.center : Alignment.centerRight,
+            alignment: isMobile ? Alignment.center : Alignment.centerLeft,
             child: MouseRegion(
               onEnter: (_) => setState(() => _isHoveringButton = true),
               onExit: (_) => setState(() => _isHoveringButton = false),
@@ -311,7 +331,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                     onPressed: () {
                       Navigator.push(
                         context, 
-                        SmoothPageRoute(page: const UserProfileScreen())
+                        MaterialPageRoute(builder: (_) => const UserProfileScreen())
                       );
                     },
                     child: Text(
@@ -334,32 +354,38 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
   }
 
   // ------------------ IMAGE CAROUSEL ------------------
-  Widget _buildImageCarousel(bool isMobile) {
+  Widget _buildImageCarousel(bool isMobile, {bool withCardDecoration = true}) {
+    final decoration = withCardDecoration
+      ? BoxDecoration(
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: const [BoxShadow(blurRadius: 15, color: Colors.black26)],
+        )
+      : null;
+
     return Container(
       height: isMobile ? 250 : null, 
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: const [BoxShadow(blurRadius: 15, color: Colors.black26)],
-      ),
-      clipBehavior: Clip.antiAlias,
+      decoration: decoration,
+      clipBehavior: withCardDecoration ? Clip.antiAlias : Clip.none,
       child: Stack(
         children: [
-          PageView.builder(
-            controller: _pageController,
-            itemCount: _carouselImages.length,
-            onPageChanged: (index) {
-              setState(() {
-                _currentPage = index;
-              });
-            },
-            itemBuilder: (context, index) {
-              return Image.asset(
-                _carouselImages[index],
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-              );
-            },
+          Positioned.fill(
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: _carouselImages.length,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentPage = index;
+                });
+              },
+              itemBuilder: (context, index) {
+                return Image.asset(
+                  _carouselImages[index],
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                );
+              },
+            ),
           ),
           Positioned(
             bottom: 20,
@@ -393,26 +419,4 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
   }
 }
 
-// === SMOOTH PAGE ROUTE HELPER ===
-class SmoothPageRoute extends PageRouteBuilder {
-  final Widget page;
 
-  SmoothPageRoute({required this.page})
-      : super(
-          pageBuilder: (context, animation, secondaryAnimation) => page,
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(1.0, 0.0);
-            const end = Offset.zero;
-            const curve = Curves.easeInOutCubic;
-
-            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-
-            return SlideTransition(
-              position: animation.drive(tween),
-              child: FadeTransition(opacity: animation, child: child),
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 600),
-          reverseTransitionDuration: const Duration(milliseconds: 600),
-        );
-}

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/survey_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
@@ -8,12 +9,7 @@ import 'sqd.dart';
 import 'suggestions.dart'; // ThankYouScreen is defined here
 
 class CitizenCharterScreen extends StatefulWidget {
-  final SurveyData surveyData;
-  
-  const CitizenCharterScreen({
-    super.key,
-    required this.surveyData,
-  });
+  const CitizenCharterScreen({super.key});
 
   @override
   State<CitizenCharterScreen> createState() => _CitizenCharterScreenState();
@@ -52,6 +48,34 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    
+    // Initialize from provider
+    final surveyData = context.read<SurveyProvider>().surveyData;
+    
+    // CC1
+    print("DEBUG: CitizenCharterScreen initState. SurveyData cc0Rating: ${surveyData.cc0Rating}");
+    if (surveyData.cc0Rating != null) {
+      // Find the option string that corresponds to the rating
+      // 1-based index in options
+      if (surveyData.cc0Rating! >= 1 && surveyData.cc0Rating! <= 4) {
+        cc1Answer = cc1Options[surveyData.cc0Rating! - 1];
+        print("DEBUG: Restored cc1Answer: $cc1Answer");
+      }
+    }
+    
+    // CC2
+    if (surveyData.cc1Rating != null) {
+       if (surveyData.cc1Rating! >= 1 && surveyData.cc1Rating! <= 5) {
+        cc2Answer = cc2Options[surveyData.cc1Rating! - 1];
+      }
+    }
+    
+    // CC3
+    if (surveyData.cc2Rating != null) {
+       if (surveyData.cc2Rating! >= 1 && surveyData.cc2Rating! <= 4) {
+        cc3Answer = cc3Options[surveyData.cc2Rating! - 1];
+      }
+    }
   }
 
   @override
@@ -82,11 +106,14 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
       final cc1Rating = cc2Answer != null ? int.tryParse(cc2Answer!.substring(0, 1)) : null;
       final cc2Rating = cc3Answer != null ? int.tryParse(cc3Answer!.substring(0, 1)) : null;
       
-      final updatedData = widget.surveyData.copyWith(
-        cc0Rating: cc0Rating,
-        cc1Rating: cc1Rating,
-        cc2Rating: cc2Rating,
+      // Update Provider
+      context.read<SurveyProvider>().updateCC(
+        cc0: cc0Rating,
+        cc1: cc1Rating,
+        cc2: cc2Rating,
       );
+      
+      final surveyData = context.read<SurveyProvider>().surveyData;
       
       // Check which sections are enabled
       final configService = context.read<SurveyConfigService>();
@@ -95,23 +122,26 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
         // Go to SQD
         Navigator.push(
           context,
-          SmoothPageRoute(page: SQDScreen(surveyData: updatedData)),
+          MaterialPageRoute(builder: (_) => const SQDScreen()),
         );
       } else if (configService.suggestionsEnabled) {
         // Skip SQD, go to Suggestions
         Navigator.push(
           context,
-          SmoothPageRoute(page: SuggestionsScreen(surveyData: updatedData)),
+          MaterialPageRoute(builder: (_) => const SuggestionsScreen()),
         );
       } else {
         // All remaining sections disabled - submit directly
         try {
-          await OfflineQueue.enqueue(updatedData.toJson());
+          await OfflineQueue.enqueue(surveyData.toJson());
           await OfflineQueue.flush();
           if (!mounted) return;
+          
+          context.read<SurveyProvider>().resetSurvey();
+          
           Navigator.pushReplacement(
             context,
-            SmoothPageRoute(page: const ThankYouScreen()),
+            MaterialPageRoute(builder: (_) => const ThankYouScreen()),
           );
         } catch (e) {
           if (!mounted) return;
@@ -199,6 +229,18 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildDebugInfo(BuildContext context) {
+    try {
+      final surveyData = context.watch<SurveyProvider>().surveyData;
+      return Text(
+        "DEBUG: CC0=${surveyData.cc0Rating}",
+        style: const TextStyle(color: Colors.red, fontSize: 12, decoration: TextDecoration.none),
+      );
+    } catch (_) {
+      return const SizedBox.shrink();
+    }
   }
 
   Widget _buildProgressBar(bool isMobile, int currentStep, int totalSteps) {
@@ -365,7 +407,19 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
                   width: isMobile ? 140 : 180,
                   height: isMobile ? 48 : 55,
                   child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
+                    onPressed: () {
+                      // Save current state before going back
+                      final cc0Rating = cc1Answer != null ? int.tryParse(cc1Answer!.substring(0, 1)) : null;
+                      final cc1Rating = cc2Answer != null ? int.tryParse(cc2Answer!.substring(0, 1)) : null;
+                      final cc2Rating = cc3Answer != null ? int.tryParse(cc3Answer!.substring(0, 1)) : null;
+                      
+                      context.read<SurveyProvider>().updateCC(
+                        cc0: cc0Rating,
+                        cc1: cc1Rating,
+                        cc2: cc2Rating,
+                      );
+                      Navigator.of(context).maybePop();
+                    },
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0xFF003366), width: 1.5),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
@@ -522,24 +576,3 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
   }
 }
 
-// === SMOOTH PAGE ROUTE ===
-class SmoothPageRoute extends PageRouteBuilder {
-  final Widget page;
-
-  SmoothPageRoute({required this.page})
-      : super(
-          pageBuilder: (context, animation, secondaryAnimation) => page,
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(1.0, 0.0);
-            const end = Offset.zero;
-            const curve = Curves.easeInOutCubic;
-            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-            return SlideTransition(
-              position: animation.drive(tween),
-              child: FadeTransition(opacity: animation, child: child),
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 600),
-          reverseTransitionDuration: const Duration(milliseconds: 600),
-        );
-}
