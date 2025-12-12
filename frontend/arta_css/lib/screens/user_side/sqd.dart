@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
 import '../../services/offline_queue.dart';
+import '../../widgets/smooth_scroll_view.dart';
 import '../../services/survey_config_service.dart';
 import 'suggestions.dart'; // ThankYouScreen is defined here
 
@@ -16,6 +17,8 @@ class SQDScreen extends StatefulWidget {
 
 class _SQDScreenState extends State<SQDScreen> {
   late ScrollController _scrollController;
+  final Set<int> _errorIndices = {};
+  final Map<int, GlobalKey> _questionKeys = {};
 
   List<int?> answers = List<int?>.filled(9, null);
 
@@ -108,17 +111,40 @@ class _SQDScreenState extends State<SQDScreen> {
     super.dispose();
   }
 
-  bool _isFormValid() {
-    for (final ans in answers) {
-      if (ans == null) return false;
+  bool _validateForm() {
+    _errorIndices.clear();
+    for (int i = 0; i < answers.length; i++) {
+      if (answers[i] == null) {
+        _errorIndices.add(i);
+      }
     }
-    return true;
+    return _errorIndices.isEmpty;
+  }
+  
+  void _scrollToFirstError() {
+    if (_errorIndices.isNotEmpty) {
+      final firstErrorIndex = _errorIndices.first;
+      final key = _questionKeys[firstErrorIndex];
+      if (key?.currentContext != null) {
+        Scrollable.ensureVisible(
+          key!.currentContext!,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
+          alignment: 0.2, // Position slightly below the top
+        );
+      }
+    }
   }
 
   bool _isSubmitting = false;
 
-  void _onNextPressed() async {
-    if (_isFormValid()) {
+    void _onNextPressed() async {
+    if (_validateForm()) {
+      // Clear errors
+      setState(() {
+        _errorIndices.clear();
+      });
+
       // Update Provider
       context.read<SurveyProvider>().updateSQD(
         sqd0: answers[0],
@@ -168,9 +194,11 @@ class _SQDScreenState extends State<SQDScreen> {
         }
       }
     } else {
+      setState(() {}); // Trigger rebuild to show errors
+      _scrollToFirstError();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please answer all questions before proceeding.'),
+          content: Text('Please answer the highlighted questions before proceeding.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -285,9 +313,8 @@ class _SQDScreenState extends State<SQDScreen> {
       child: Column(
         children: [
           Expanded(
-            child: SingleChildScrollView(
+            child: SmoothScrollView(
               controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.all(isMobile ? 24 : 48),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -459,6 +486,12 @@ class _SQDScreenState extends State<SQDScreen> {
   }
 
   Widget _sqdQuestion(bool isMobile, int index) {
+    // Generate key if needed
+    if (!_questionKeys.containsKey(index)) {
+      _questionKeys[index] = GlobalKey();
+    }
+    
+    final bool hasError = _errorIndices.contains(index);
     final q = questions[index];
 
     final List<Color> borderColors = [
@@ -487,7 +520,12 @@ class _SQDScreenState extends State<SQDScreen> {
         final bool isNA = optIdx == 5;
         
         return GestureDetector(
-          onTap: () => setState(() => answers[index] = optIdx),
+          onTap: () {
+            setState(() {
+              answers[index] = optIdx;
+              _errorIndices.remove(index); // Clear error on select
+            });
+          },
           child: AnimatedScale(
             scale: selected ? 1.1 : 1.0,
             duration: const Duration(milliseconds: 300),
@@ -576,8 +614,17 @@ class _SQDScreenState extends State<SQDScreen> {
     );
 
     return Padding(
+      key: _questionKeys[index],
       padding: EdgeInsets.only(bottom: isMobile ? 32 : 48),
-      child: Column(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: EdgeInsets.all(hasError ? 12 : 0),
+        decoration: BoxDecoration(
+          color: hasError ? Colors.red.withValues(alpha: 0.05) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: hasError ? Border.all(color: Colors.red, width: 2) : null,
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Question Header
@@ -621,12 +668,13 @@ class _SQDScreenState extends State<SQDScreen> {
             ? Center(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
+
                   child: emojiRow,
                 ),
               )
             : emojiRow,
         ],
+      ),
       ),
     );
   }

@@ -9,6 +9,7 @@ import '../../services/offline_queue.dart';
 import 'citizen_charter.dart';
 import 'sqd.dart';
 import 'suggestions.dart'; // ThankYouScreen is defined here
+import '../../widgets/smooth_scroll_view.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -33,6 +34,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   bool _showDateError = false;
 
   final _formKey = GlobalKey<FormState>();
+  
+  // Keys for auto-scrolling
+  final _dateKey = GlobalKey();
+  final _ageKey = GlobalKey();
+  final _regionKey = GlobalKey();
+  final _serviceKey = GlobalKey();
 
   @override
   void initState() {
@@ -55,20 +62,27 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     super.dispose();
   }
 
+  void _scrollToKey(GlobalKey key) {
+    if (key.currentContext != null) {
+      Scrollable.ensureVisible(
+        key.currentContext!,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOut,
+        alignment: 0.2,
+      );
+    }
+  }
+
   void _validateAndSubmit() {
     final configService = context.read<SurveyConfigService>();
     final demographicsEnabled = configService.demographicsEnabled;
     
-    setState(() {
-      // Check if date is missing
-      _showDateError = (selectedDate == null);
-    });
+    // Check Date Validity
+    final isDateValid = selectedDate != null;
+    setState(() => _showDateError = !isDateValid);
 
-    // 1. Validate Text Fields (Age, Region, Service - only if demographics enabled)
-    bool isTextFormValid = _formKey.currentState?.validate() ?? false;
-
-    // 2. Validate Date
-    bool isDateValid = selectedDate != null;
+    // Check Text Fields Validity
+    final isTextFormValid = _formKey.currentState?.validate() ?? false;
 
     if (isTextFormValid && isDateValid) {
       // Update Provider
@@ -86,10 +100,34 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       // Navigate based on which sections are enabled
       _navigateToNextSection(surveyData, configService);
     } else {
+      // Determine invalid field to scroll to (in order)
+      if (!isDateValid) {
+         _scrollToKey(_dateKey);
+      } else if (demographicsEnabled) {
+         // Check Age
+         final intAge = age == null ? null : int.tryParse(age!);
+         if (age == null || age!.trim().isEmpty || intAge == null || intAge < 18 || intAge > 120) {
+           _scrollToKey(_ageKey);
+         }
+         // Check Region
+         else if (region == null || region!.trim().length < 3) {
+           _scrollToKey(_regionKey);
+         }
+         // Check Service
+         else if (serviceAvailed == null || serviceAvailed!.trim().length < 3) {
+           _scrollToKey(_serviceKey);
+         }
+      } else {
+         // Demographics disabled, check Service
+         if (serviceAvailed == null || serviceAvailed!.trim().length < 3) {
+           _scrollToKey(_serviceKey);
+         }
+      }
+
       // Show error snackbar
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please correct the errors in red before proceeding.'),
+          content: Text('Please correct the highlighted errors before proceeding.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -247,9 +285,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         child: Column(
           children: [
             Expanded(
-              child: SingleChildScrollView(
+              child: SmoothScrollView(
                 controller: _scrollController,
-                physics: const BouncingScrollPhysics(),
                 child: Padding(
                   padding: EdgeInsets.all(isMobile ? 20 : 40),
                   child: _buildPart1(isMobile),
@@ -457,8 +494,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
- Widget _buildDateField(bool isMobile) {
+  Widget _buildDateField(bool isMobile) {
   return Column(
+    key: _dateKey,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(
@@ -612,6 +650,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
 Widget _buildAgeField(bool isMobile) {
   return Column(
+    key: _ageKey,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(
@@ -657,6 +696,7 @@ Widget _buildAgeField(bool isMobile) {
 
  Widget _buildRegionField(bool isMobile) {
   return Column(
+    key: _regionKey,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(
@@ -692,6 +732,7 @@ Widget _buildAgeField(bool isMobile) {
 
 Widget _buildServiceAvailedField(bool isMobile) {
   return Column(
+    key: _serviceKey,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(

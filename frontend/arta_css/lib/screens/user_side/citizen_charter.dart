@@ -7,6 +7,7 @@ import '../../services/survey_config_service.dart';
 import '../../services/offline_queue.dart';
 import 'sqd.dart';
 import 'suggestions.dart'; // ThankYouScreen is defined here
+import '../../widgets/smooth_scroll_view.dart';
 
 class CitizenCharterScreen extends StatefulWidget {
   const CitizenCharterScreen({super.key});
@@ -17,6 +18,12 @@ class CitizenCharterScreen extends StatefulWidget {
 
 class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
   late ScrollController _scrollController;
+  final Set<String> _errorFields = {};
+  final Map<String, GlobalKey> _questionKeys = {
+    'CC1': GlobalKey(),
+    'CC2': GlobalKey(),
+    'CC3': GlobalKey(),
+  };
 
   String? cc1Answer;
   String? cc2Answer;
@@ -84,24 +91,55 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
     super.dispose();
   }
 
-  bool _isFormValid() {
-    if (cc1Answer == null) return false;
-
-    // Logic: If CC1 is Option 4 ("I do not know"), CC2 & CC3 are implicitly N/A or skipped
-    // For visual simplicity, we require users to select N/A if that's the case, 
-    // OR you can auto-fill them. For now, strict validation:
-    if (cc1Answer!.startsWith('4.')) {
-      // If user chose 4, we check if they selected N/A for others, or we can just allow them to pass.
-      // Let's enforce the "Answer N/A" rule as per instruction text.
-      return cc2Answer == cc2Options[4] && cc3Answer == cc3Options[3];
+  bool _validateForm() {
+    _errorFields.clear();
+    
+    // Validate CC1
+    if (cc1Answer == null) {
+      _errorFields.add('CC1');
     }
 
-    if (cc2Answer == null || cc3Answer == null) return false;
-    return true;
+    // Validate CC2 & CC3 based on CC1
+    if (cc1Answer != null && cc1Answer!.startsWith('4.')) {
+      // If "I do not know", enforce N/A Selection
+      if (cc2Answer != cc2Options[4]) _errorFields.add('CC2');
+      if (cc3Answer != cc3Options[3]) _errorFields.add('CC3');
+    } else {
+      // Normal flow - require answers if strictly enforcing
+      // Note: The original logic implicitly required them unless CC1 was 4.
+      // So if CC1 is NOT 4, we require CC2 and CC3.
+      if (cc2Answer == null) _errorFields.add('CC2');
+      if (cc3Answer == null) _errorFields.add('CC3');
+    }
+
+    return _errorFields.isEmpty;
+  }
+
+  void _scrollToFirstError() {
+    if (_errorFields.isNotEmpty) {
+      // Order of fields to check
+      final order = ['CC1', 'CC2', 'CC3'];
+      for (final key in order) {
+        if (_errorFields.contains(key)) {
+          final globalKey = _questionKeys[key];
+          if (globalKey?.currentContext != null) {
+            Scrollable.ensureVisible(
+              globalKey!.currentContext!,
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeInOut,
+              alignment: 0.2, 
+            );
+            return; // Scroll to first one found only
+          }
+        }
+      }
+    }
   }
 
   void _onNextPressed() async {
-    if (_isFormValid()) {
+    if (_validateForm()) {
+      setState(() => _errorFields.clear());
+      
       final cc0Rating = cc1Answer != null ? int.tryParse(cc1Answer!.substring(0, 1)) : null;
       final cc1Rating = cc2Answer != null ? int.tryParse(cc2Answer!.substring(0, 1)) : null;
       final cc2Rating = cc3Answer != null ? int.tryParse(cc3Answer!.substring(0, 1)) : null;
@@ -151,6 +189,8 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
         }
       }
     } else {
+      setState(() {});
+      _scrollToFirstError();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please answer all required questions correctly.'),
@@ -277,10 +317,9 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
       child: Column(
         children: [
           Expanded(
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.all(isMobile ? 24 : 48),
+              child: SmoothScrollView(
+                controller: _scrollController,
+                padding: EdgeInsets.all(isMobile ? 24 : 48),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -362,7 +401,12 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
                     question: 'Which of the following best describes your awareness of a CC?',
                     options: cc1Options,
                     selectedValue: cc1Answer,
-                    onChanged: (val) => setState(() => cc1Answer = val),
+                    onChanged: (val) {
+                       setState(() {
+                         cc1Answer = val;
+                         _errorFields.remove('CC1');
+                       });
+                    },
                     isMobile: isMobile,
                   ),
                   
@@ -374,7 +418,12 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
                     question: 'If aware of CC (answered 1-3 in CC1), would you say that the CC of this office was ...?',
                     options: cc2Options,
                     selectedValue: cc2Answer,
-                    onChanged: (val) => setState(() => cc2Answer = val),
+                    onChanged: (val) {
+                       setState(() {
+                         cc2Answer = val;
+                         _errorFields.remove('CC2');
+                       });
+                    },
                     isMobile: isMobile,
                   ),
                   
@@ -386,7 +435,12 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
                     question: 'If aware of CC (answered codes 1-3 in CC1), how much did the CC help you in your transaction?',
                     options: cc3Options,
                     selectedValue: cc3Answer,
-                    onChanged: (val) => setState(() => cc3Answer = val),
+                    onChanged: (val) {
+                       setState(() {
+                         cc3Answer = val;
+                         _errorFields.remove('CC3');
+                       });
+                    },
                     isMobile: isMobile,
                   ),
                 ],
@@ -471,7 +525,19 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
     required Function(String?) onChanged,
     required bool isMobile,
   }) {
-    return Column(
+    final hasError = _errorFields.contains(code);
+    return Padding(
+      key: _questionKeys[code],
+      padding: EdgeInsets.zero,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: EdgeInsets.all(hasError ? 12 : 0),
+        decoration: BoxDecoration(
+          color: hasError ? Colors.red.withValues(alpha: 0.05) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: hasError ? Border.all(color: Colors.red, width: 2) : null,
+        ),
+        child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Question Header
@@ -571,7 +637,9 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
             ),
           );
         }),
-      ],
+        ],
+      ),
+      ),
     );
   }
 }

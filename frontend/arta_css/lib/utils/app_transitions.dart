@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
 /// A custom page transition builder that provides a "premium" feel
 /// using a combination of Slide and Fade effects.
@@ -42,5 +43,23 @@ class GenericPageTransitionsBuilder extends PageTransitionsBuilder {
         child: child,
       ),
     );
+  }
+}
+
+/// Custom scroll behavior to allow mouse dragging and premium bouncy feel
+class SmoothScrollBehavior extends MaterialScrollBehavior {
+  const SmoothScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.stylus,
+        PointerDeviceKind.trackpad,
+      };
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    return const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
   }
 }

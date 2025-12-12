@@ -185,10 +185,7 @@ class MyApp extends StatelessWidget {
     final authService = context.read<AuthService>();
     
     return MaterialApp(
-      scrollBehavior: const MaterialScrollBehavior().copyWith(
-        scrollbars: true,
-        physics: const BouncingScrollPhysics(),
-      ),
+      scrollBehavior: const SmoothScrollBehavior(),
       theme: ThemeData(
         textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
         pageTransitionsTheme: const PageTransitionsTheme(

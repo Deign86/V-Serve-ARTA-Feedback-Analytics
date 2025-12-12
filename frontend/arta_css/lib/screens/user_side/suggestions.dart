@@ -6,6 +6,7 @@ import '../../models/survey_data.dart';
 import '../../services/offline_queue.dart';
 import '../../services/survey_config_service.dart';
 import 'landing_page.dart';
+import '../../widgets/smooth_scroll_view.dart';
 
 class SuggestionsScreen extends StatefulWidget {
   const SuggestionsScreen({super.key});
@@ -141,8 +142,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: const [BoxShadow(blurRadius: 20, color: Colors.black26)],
       ),
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
+      child: SmoothScrollView(
         child: Padding(
           padding: EdgeInsets.all(isMobile ? 24 : 48),
           child: Column(
@@ -559,8 +559,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
     return Listener(
       onPointerDown: (_) => _onUserInteraction(),
       onPointerMove: (_) => _onUserInteraction(),
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
+      child: SmoothScrollView(
         child: Column(
           children: [
             _buildTopSection(),

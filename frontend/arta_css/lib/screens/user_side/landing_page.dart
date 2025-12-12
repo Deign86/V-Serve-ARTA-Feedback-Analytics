@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../services/survey_config_service.dart';
 import 'user_profile.dart';
+import '../../widgets/smooth_scroll_view.dart';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
@@ -104,8 +105,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
           Positioned.fill(
             child: SafeArea(
               child: isMobile 
-                ? SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
+                ? SmoothScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                     child: _buildMobileLayout(context),
                   )
