@@ -5,17 +5,98 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
+import 'cache_service.dart';
 
-class AuthService extends ChangeNotifier {
+class AuthService extends ChangeNotifier with CachingMixin {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   
   UserModel? _currentUser;
   bool _isAuthenticated = false;
+  
+  static const String _sessionCacheKey = 'cached_session';
+  static const String _sessionTimestampKey = 'session_timestamp';
 
   UserModel? get currentUser => _currentUser;
   bool get isAuthenticated => _isAuthenticated;
   UserRole? get userRole => _currentUser?.role;
+  
+  /// Constructor - try to restore session from cache
+  AuthService() {
+    _restoreSession();
+  }
+  
+  /// Restore session from persistent cache
+  Future<void> _restoreSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionJson = prefs.getString(_sessionCacheKey);
+      final timestampStr = prefs.getString(_sessionTimestampKey);
+      
+      if (sessionJson == null || timestampStr == null) return;
+      
+      final timestamp = DateTime.parse(timestampStr);
+      // Session expires after 24 hours
+      if (DateTime.now().difference(timestamp).inHours > 24) {
+        await _clearSession();
+        return;
+      }
+      
+      final sessionData = jsonDecode(sessionJson) as Map<String, dynamic>;
+      _currentUser = UserModel(
+        id: sessionData['id'] ?? '',
+        name: sessionData['name'] ?? 'Unknown',
+        email: sessionData['email'] ?? '',
+        role: _parseRole(sessionData['role'] ?? 'viewer'),
+        department: sessionData['department'] ?? '',
+        lastLogin: DateTime.tryParse(sessionData['lastLogin'] ?? '') ?? DateTime.now(),
+        createdAt: DateTime.tryParse(sessionData['createdAt'] ?? '') ?? DateTime.now(),
+      );
+      
+      _isAuthenticated = true;
+      debugPrint('AuthService: Session restored for ${_currentUser!.name}');
+      notifyListeners();
+    } catch (e) {
+      debugPrint('AuthService: Error restoring session: $e');
+    }
+  }
+  
+  /// Save session to persistent cache
+  Future<void> _saveSession() async {
+    if (_currentUser == null) return;
+    
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sessionData = {
+        'id': _currentUser!.id,
+        'name': _currentUser!.name,
+        'email': _currentUser!.email,
+        'role': _currentUser!.role.toString().split('.').last,
+        'department': _currentUser!.department,
+        'lastLogin': _currentUser!.lastLogin.toIso8601String(),
+        'createdAt': _currentUser!.createdAt.toIso8601String(),
+      };
+      
+      await prefs.setString(_sessionCacheKey, jsonEncode(sessionData));
+      await prefs.setString(_sessionTimestampKey, DateTime.now().toIso8601String());
+      debugPrint('AuthService: Session saved');
+    } catch (e) {
+      debugPrint('AuthService: Error saving session: $e');
+    }
+  }
+  
+  /// Clear session from cache
+  Future<void> _clearSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_sessionCacheKey);
+      await prefs.remove(_sessionTimestampKey);
+      debugPrint('AuthService: Session cleared');
+    } catch (e) {
+      debugPrint('AuthService: Error clearing session: $e');
+    }
+  }
 
   /// Hash a password using SHA-256 (must match backend seeding)
   static String _hashPassword(String password) {
@@ -89,6 +170,10 @@ class AuthService extends ChangeNotifier {
 
       _isAuthenticated = true;
       notifyListeners();
+      
+      // Save session to cache for faster subsequent logins
+      await _saveSession();
+      
       debugPrint('Login successful for ${_currentUser!.name} (${_currentUser!.role})');
       return true;
     } catch (e) {
@@ -100,6 +185,7 @@ class AuthService extends ChangeNotifier {
   Future<void> logout() async {
     _currentUser = null;
     _isAuthenticated = false;
+    await _clearSession();
     notifyListeners();
   }
 

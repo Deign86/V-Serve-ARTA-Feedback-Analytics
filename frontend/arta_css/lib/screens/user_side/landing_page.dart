@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../../services/survey_config_service.dart';
 import 'user_profile.dart';
 
 class LandingScreen extends StatefulWidget {
@@ -31,6 +33,24 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
+    
+    // Preload survey configuration from cache for instant access
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<SurveyConfigService>();
+      }
+    });
+    
+    // Precache carousel images for smooth loading
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        for (final imagePath in _carouselImages) {
+          precacheImage(AssetImage(imagePath), context);
+        }
+        // Precache background image
+        precacheImage(const AssetImage('assets/city_bg2.png'), context);
+      }
+    });
     
     // Initialize ARTA Text Animation
     _expandController = AnimationController(
@@ -108,6 +128,210 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
           ),
         ],
       ),
+    );
+  }
+
+  // ------------------ PRIVACY DIALOG ------------------
+  void _showPrivacyDialog(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final dialogWidth = size.width > 600 ? 450.0 : size.width * 0.9;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // User must choose an option
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            width: dialogWidth,
+            constraints: BoxConstraints(
+              maxHeight: size.height * 0.8,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF003366),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.privacy_tip_outlined, color: Colors.white, size: 28),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          "Data Privacy Notice",
+                          style: GoogleFonts.montserrat(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontSize: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Scrollable Content
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Republic Act No. 10173 - Data Privacy Act of 2012",
+                          style: GoogleFonts.montserrat(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF003366),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "In accordance with the Data Privacy Act of 2012 (Republic Act No. 10173), I hereby consent to the collection, processing, and storage of my personal data by the City Government of Valenzuela for the purpose of the ARTA Feedback Analytics System.",
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            height: 1.6,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "I understand that:",
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildPrivacyPoint(
+                          "Collection",
+                          "My personal information is collected to verify my identity and validate my feedback on government services.",
+                        ),
+                        const SizedBox(height: 10),
+                        _buildPrivacyPoint(
+                          "Usage",
+                          "The data will be used solely for service improvement, analytics, and legitimate government concerns in compliance with ARTA regulations.",
+                        ),
+                        const SizedBox(height: 10),
+                        _buildPrivacyPoint(
+                          "Protection",
+                          "My data will be kept confidential and secured against unauthorized access, disclosure, or misuse through appropriate technical and organizational measures.",
+                        ),
+                        const SizedBox(height: 10),
+                        _buildPrivacyPoint(
+                          "Rights",
+                          "I have the right to access, correct, or request the deletion of my data, subject to legal limitations and retention requirements.",
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          "By proceeding, I confirm that I have read and understood this privacy notice and voluntarily submit my information.",
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontStyle: FontStyle.italic,
+                            color: Colors.black54,
+                            height: 1.6,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Buttons at the bottom of scrollable content
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                              child: Text(
+                                "I Disagree",
+                                style: GoogleFonts.poppins(
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF003366),
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              onPressed: () {
+                                Navigator.of(context).pop(); // Close dialog
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const UserProfileScreen()),
+                                );
+                              },
+                              child: Text(
+                                "I Agree",
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPrivacyPoint(String title, String description) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          margin: const EdgeInsets.only(top: 4),
+          width: 6,
+          height: 6,
+          decoration: const BoxDecoration(
+            color: Color(0xFF003366),
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                height: 1.6,
+                color: Colors.black87,
+              ),
+              children: [
+                TextSpan(
+                  text: "$title: ",
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                TextSpan(text: description),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -329,10 +553,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                       ),
                     ),
                     onPressed: () {
-                      Navigator.push(
-                        context, 
-                        MaterialPageRoute(builder: (_) => const UserProfileScreen())
-                      );
+                      _showPrivacyDialog(context);
                     },
                     child: Text(
                       "TAKE SURVEY",

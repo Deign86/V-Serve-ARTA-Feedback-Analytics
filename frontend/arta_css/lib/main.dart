@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'services/offline_queue.dart';
+import 'services/cache_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'screens/user_side/landing_page.dart';
 import 'screens/user_side/user_profile.dart';
@@ -54,9 +55,15 @@ void main() async {
     debugPrint('Window manager not available: $e');
   }
 
+  // Initialize cache service and warmup
+  final cacheService = CacheService.instance;
+  await cacheService.warmupCache();
+  debugPrint('CacheService initialized');
+
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider.value(value: cacheService),
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => FeedbackService()),
         ChangeNotifierProvider(create: (_) {
