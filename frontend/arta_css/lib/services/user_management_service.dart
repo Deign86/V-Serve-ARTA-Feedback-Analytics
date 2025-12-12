@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
+import 'cache_service.dart';
 
 /// Model representing an admin/system user
 class SystemUser {
@@ -96,7 +97,7 @@ class SystemUser {
 }
 
 /// Service for managing system users
-class UserManagementService extends ChangeNotifier {
+class UserManagementService extends ChangeNotifier with CachingMixin {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   
   List<SystemUser> _users = [];
@@ -106,9 +107,54 @@ class UserManagementService extends ChangeNotifier {
   String? _filterRole;
   String? _filterStatus;
   String? _filterDepartment;
+  DateTime? _lastFetch;
+  
+  static const String _usersCacheKey = 'system_users_list';
   
   StreamSubscription<QuerySnapshot>? _usersSubscription;
   bool _isListening = false;
+  
+  /// Constructor - load from persistent cache on startup
+  UserManagementService() {
+    _loadFromPersistentCache();
+  }
+  
+  /// Load cached users from persistent storage
+  Future<void> _loadFromPersistentCache() async {
+    try {
+      final cachedData = await cacheService.loadFromPersistent<List<dynamic>>(
+        CacheConfig.usersCacheKey,
+        timestampKey: CacheConfig.usersTimestampKey,
+        maxAge: CacheConfig.longTTL,
+      );
+      
+      if (cachedData != null && cachedData.isNotEmpty) {
+        _users = cachedData
+            .map((json) => SystemUser.fromJson(Map<String, dynamic>.from(json)))
+            .toList();
+        _lastFetch = DateTime.now();
+        debugPrint('UserManagementService: Loaded ${_users.length} users from persistent cache');
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('UserManagementService: Error loading from persistent cache: $e');
+    }
+  }
+  
+  /// Save users to persistent cache
+  Future<void> _saveToPersistentCache() async {
+    try {
+      final jsonList = _users.map((u) => u.toJson()).toList();
+      await cacheService.saveToPersistent(
+        CacheConfig.usersCacheKey,
+        jsonList,
+        timestampKey: CacheConfig.usersTimestampKey,
+      );
+      debugPrint('UserManagementService: Saved ${_users.length} users to persistent cache');
+    } catch (e) {
+      debugPrint('UserManagementService: Error saving to persistent cache: $e');
+    }
+  }
 
   // Getters
   List<SystemUser> get users => _getFilteredUsers();
@@ -207,8 +253,14 @@ class UserManagementService extends ChangeNotifier {
               return SystemUser.fromJson(data);
             }).toList();
             
+            _lastFetch = DateTime.now();
             _isLoading = false;
             _error = null;
+            
+            // Cache in memory and persist
+            cacheService.setInMemory(_usersCacheKey, _users, ttl: CacheConfig.defaultTTL);
+            _saveToPersistentCache();
+            
             notifyListeners();
           },
           onError: (error) {
@@ -228,8 +280,26 @@ class UserManagementService extends ChangeNotifier {
     _isListening = false;
   }
 
-  /// Fetch users once
-  Future<void> fetchUsers() async {
+  /// Fetch users once with caching
+  Future<void> fetchUsers({bool forceRefresh = false}) async {
+    // Check memory cache first
+    if (!forceRefresh) {
+      final cachedUsers = cacheService.getFromMemory<List<SystemUser>>(_usersCacheKey);
+      if (cachedUsers != null) {
+        _users = cachedUsers;
+        notifyListeners();
+        return;
+      }
+      
+      // Fallback to instance cache with time check
+      if (_users.isNotEmpty && _lastFetch != null) {
+        final diff = DateTime.now().difference(_lastFetch!);
+        if (diff.inMinutes < 5) {
+          return;
+        }
+      }
+    }
+    
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -245,8 +315,14 @@ class UserManagementService extends ChangeNotifier {
         data['id'] = doc.id;
         return SystemUser.fromJson(data);
       }).toList();
-
+      
+      _lastFetch = DateTime.now();
       _isLoading = false;
+      
+      // Cache in memory and persist
+      cacheService.setInMemory(_usersCacheKey, _users, ttl: CacheConfig.defaultTTL);
+      _saveToPersistentCache();
+      
       notifyListeners();
     } catch (e) {
       debugPrint('Error fetching users: $e');
@@ -383,5 +459,27 @@ class UserManagementService extends ChangeNotifier {
   void dispose() {
     stopRealtimeUpdates();
     super.dispose();
+  }
+  
+  /// Clear all cached user data
+  Future<void> clearCache() async {
+    cacheService.removeFromMemory(_usersCacheKey);
+    await cacheService.removeFromPersistent(
+      CacheConfig.usersCacheKey,
+      timestampKey: CacheConfig.usersTimestampKey,
+    );
+    _users = [];
+    _lastFetch = null;
+    notifyListeners();
+    debugPrint('UserManagementService: Cache cleared');
+  }
+  
+  /// Get cache statistics
+  Map<String, dynamic> getCacheStats() {
+    return {
+      'usersCount': _users.length,
+      'lastFetch': _lastFetch?.toIso8601String(),
+      'isListening': _isListening,
+    };
   }
 }

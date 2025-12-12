@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../../services/survey_config_service.dart';
 import 'user_profile.dart';
 
 class LandingScreen extends StatefulWidget {
@@ -31,6 +33,24 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
+    
+    // Preload survey configuration from cache for instant access
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<SurveyConfigService>();
+      }
+    });
+    
+    // Precache carousel images for smooth loading
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        for (final imagePath in _carouselImages) {
+          precacheImage(AssetImage(imagePath), context);
+        }
+        // Precache background image
+        precacheImage(const AssetImage('assets/city_bg2.png'), context);
+      }
+    });
     
     // Initialize ARTA Text Animation
     _expandController = AnimationController(
