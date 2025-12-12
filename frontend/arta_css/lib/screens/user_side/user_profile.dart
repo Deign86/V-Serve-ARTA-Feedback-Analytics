@@ -29,6 +29,43 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String? age;
   String? region;
   String? serviceAvailed;
+  
+  // Controller for "Other" service input
+  late TextEditingController _otherServiceController;
+  bool _isOtherService = false;
+
+  final List<String> regions = [
+    'NCR',
+    'CAR',
+    'Region I',
+    'Region II',
+    'Region III',
+    'Region IV-A',
+    'Region IV-B',
+    'Region V',
+    'Region VI',
+    'Region VII',
+    'Region VIII',
+    'Region IX',
+    'Region X',
+    'Region XI',
+    'Region XII',
+    'Region XIII',
+    'BARMM',
+  ];
+
+  final List<String> services = [
+    'Business Permit',
+    'Real Property Tax',
+    'Civil Registry',
+    'Health Services',
+    'Building Official',
+    'Zoning',
+    'Social Welfare',
+    'Garbage Collection',
+    'Traffic Management',
+    'Other',
+  ];
 
   // Validation State for Date (since it's not a text field)
   bool _showDateError = false;
@@ -45,6 +82,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    _otherServiceController = TextEditingController();
     
     // Initialize from provider if data exists
     final surveyData = context.read<SurveyProvider>().surveyData;
@@ -53,12 +91,23 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     if (surveyData.sex != null) sex = surveyData.sex!;
     if (surveyData.age != null) age = surveyData.age.toString();
     if (surveyData.regionOfResidence != null) region = surveyData.regionOfResidence;
-    if (surveyData.serviceAvailed != null) serviceAvailed = surveyData.serviceAvailed;
+    
+    if (surveyData.serviceAvailed != null) {
+      if (services.contains(surveyData.serviceAvailed)) {
+        serviceAvailed = surveyData.serviceAvailed;
+        _isOtherService = false;
+      } else {
+        serviceAvailed = 'Other';
+        _isOtherService = true;
+        _otherServiceController.text = surveyData.serviceAvailed!;
+      }
+    }
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _otherServiceController.dispose();
     super.dispose();
   }
 
@@ -92,7 +141,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         sex: demographicsEnabled ? sex : null,
         age: demographicsEnabled && age != null ? int.tryParse(age!) : null,
         region: demographicsEnabled ? region?.trim() : null,
-        serviceAvailed: serviceAvailed?.trim(),
+        serviceAvailed: _isOtherService 
+            ? _otherServiceController.text.trim() 
+            : serviceAvailed?.trim(),
       );
       
       final surveyData = context.read<SurveyProvider>().surveyData;
@@ -114,12 +165,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
            _scrollToKey(_regionKey);
          }
          // Check Service
-         else if (serviceAvailed == null || serviceAvailed!.trim().length < 3) {
+         else if (serviceAvailed == null || 
+                  (_isOtherService && _otherServiceController.text.trim().isEmpty)) {
            _scrollToKey(_serviceKey);
          }
       } else {
          // Demographics disabled, check Service
-         if (serviceAvailed == null || serviceAvailed!.trim().length < 3) {
+         if (serviceAvailed == null || 
+             (_isOtherService && _otherServiceController.text.trim().isEmpty)) {
            _scrollToKey(_serviceKey);
          }
       }
@@ -312,7 +365,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           sex: demographicsEnabled ? sex : null,
                           age: demographicsEnabled && age != null ? int.tryParse(age!) : null,
                           region: demographicsEnabled ? region?.trim() : null,
-                          serviceAvailed: serviceAvailed?.trim(),
+                          serviceAvailed: _isOtherService 
+                              ? _otherServiceController.text.trim() 
+                              : serviceAvailed?.trim(),
                         );
                         Navigator.of(context).maybePop();
                       },
@@ -395,6 +450,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   ],
                 )
               : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(child: _buildDateField(isMobile)),
                     SizedBox(width: 24),
@@ -415,6 +471,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   ],
                 )
               : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(child: _buildRegionField(isMobile)),
                     SizedBox(width: 24),
@@ -708,23 +765,37 @@ Widget _buildAgeField(bool isMobile) {
         ),
       ),
       SizedBox(height: isMobile ? 4 : 8),
-      TextFormField(
+      DropdownButtonFormField<String>(
+        value: region,
+        isExpanded: true,
+        items: regions.map((r) {
+          return DropdownMenuItem(
+            value: r,
+            child: Text(
+              r,
+              style: GoogleFonts.poppins(fontSize: isMobile ? 12 : 14),
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+        }).toList(),
         onChanged: (value) => setState(() => region = value),
         validator: (value) {
-          if (value == null || value.trim().isEmpty) return 'Region is required';
-          if (value.trim().length < 3) return 'Please be more specific';
+          if (value == null || value.isEmpty) return 'Region is required';
           return null;
         },
         decoration: InputDecoration(
-          hintText: 'Enter your region',
+          hintText: 'Select your region',
           hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 11 : 14),
           prefixIcon: Icon(Icons.map_outlined, color: Colors.grey.shade600, size: 20),
+          filled: true,
+          fillColor: const Color(0xFFF5F7FA), // Use thematic light grey
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           contentPadding: EdgeInsets.symmetric(
             horizontal: isMobile ? 12 : 16,
             vertical: isMobile ? 8 : 12,
           ),
         ),
+        dropdownColor: Colors.white, // Ensure dropdown menu is white
       ),
     ],
   );
@@ -744,24 +815,72 @@ Widget _buildServiceAvailedField(bool isMobile) {
         ),
       ),
       SizedBox(height: isMobile ? 4 : 10),
-      TextFormField(
-        onChanged: (value) => setState(() => serviceAvailed = value),
+      DropdownButtonFormField<String>(
+        value: serviceAvailed,
+        isExpanded: true,
+        items: services.map((s) {
+          return DropdownMenuItem(
+            value: s,
+            child: Text(
+              s,
+              style: GoogleFonts.poppins(fontSize: isMobile ? 12 : 14),
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+        }).toList(),
+        onChanged: (value) {
+          setState(() {
+            serviceAvailed = value;
+            _isOtherService = (value == 'Other');
+            if (!_isOtherService) {
+              _otherServiceController.clear();
+            }
+          });
+        },
         validator: (value) {
-          if (value == null || value.trim().isEmpty) return 'Service is required';
-          if (value.trim().length < 3) return 'Please be more specific';
+          if (value == null || value.isEmpty) return 'Service is required';
           return null;
         },
         decoration: InputDecoration(
-          hintText: 'Enter the service availed',
+          hintText: 'Select service availed',
           hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 11 : 14),
           prefixIcon: Icon(Icons.assignment_outlined, color: Colors.grey.shade600, size: 20),
+          filled: true,
+          fillColor: const Color(0xFFF5F7FA), // Use thematic light grey
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           contentPadding: EdgeInsets.symmetric(
             horizontal: isMobile ? 12 : 16,
             vertical: isMobile ? 8 : 12,
           ),
         ),
+        dropdownColor: Colors.white, // Ensure dropdown menu is white
       ),
+      
+      // Conditional "Other" Text Field
+      if (_isOtherService) ...[
+        SizedBox(height: isMobile ? 8 : 12),
+        TextFormField(
+          controller: _otherServiceController,
+          validator: (value) {
+            if (_isOtherService && (value == null || value.trim().isEmpty)) {
+              return 'Please specify the service';
+            }
+            return null;
+          },
+          decoration: InputDecoration(
+            hintText: 'Please specify other service',
+            hintStyle: GoogleFonts.poppins(fontSize: isMobile ? 11 : 14),
+            prefixIcon: Icon(Icons.edit_outlined, color: Colors.grey.shade600, size: 20),
+            filled: true,
+            fillColor: const Color(0xFFF5F7FA),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 12 : 16,
+              vertical: isMobile ? 8 : 12,
+            ),
+          ),
+        ),
+      ],
     ],
   );
 }
