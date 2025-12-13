@@ -50,6 +50,8 @@ class SurveyQuestion {
 class SurveyQuestionsService extends ChangeNotifier {
   static const String _keyCcQuestions = 'survey_cc_questions';
   static const String _keySqdQuestions = 'survey_sqd_questions';
+  static const String _keyCcConfig = 'survey_cc_config';
+  static const String _keySqdConfig = 'survey_sqd_config';
   static const String _keyProfileConfig = 'survey_profile_config';
   static const String _keySuggestionsConfig = 'survey_suggestions_config';
 
@@ -65,6 +67,16 @@ class SurveyQuestionsService extends ChangeNotifier {
     _auditLogService = auditService;
     _currentActor = currentUser;
   }
+
+  // ========== DEFAULT CC CONFIG ==========
+  static Map<String, dynamic> get defaultCcConfig => {
+    'sectionTitle': 'CITIZEN\'S CHARTER',
+  };
+
+  // ========== DEFAULT SQD CONFIG ==========
+  static Map<String, dynamic> get defaultSqdConfig => {
+    'sectionTitle': 'SERVICE QUALITY DIMENSIONS',
+  };
 
   // ========== DEFAULT USER PROFILE CONFIG ==========
   static Map<String, dynamic> get defaultProfileConfig => {
@@ -203,14 +215,25 @@ class SurveyQuestionsService extends ChangeNotifier {
   // Current questions (mutable)
   List<SurveyQuestion> _ccQuestions = [];
   List<SurveyQuestion> _sqdQuestions = [];
+  Map<String, dynamic> _ccConfig = {};
+  Map<String, dynamic> _sqdConfig = {};
+
   Map<String, dynamic> _profileConfig = {};
   Map<String, dynamic> _suggestionsConfig = {};
 
   // Getters
   List<SurveyQuestion> get ccQuestions => _ccQuestions;
   List<SurveyQuestion> get sqdQuestions => _sqdQuestions;
+  Map<String, dynamic> get ccConfig => _ccConfig;
+  Map<String, dynamic> get sqdConfig => _sqdConfig;
   Map<String, dynamic> get profileConfig => _profileConfig;
   Map<String, dynamic> get suggestionsConfig => _suggestionsConfig;
+
+  // CC config convenience getters
+  String get ccSectionTitle => _ccConfig['sectionTitle'] ?? defaultCcConfig['sectionTitle'];
+
+  // SQD config convenience getters
+  String get sqdSectionTitle => _sqdConfig['sectionTitle'] ?? defaultSqdConfig['sectionTitle'];
 
   // Profile config convenience getters
   String get profileSectionTitle => _profileConfig['sectionTitle'] ?? defaultProfileConfig['sectionTitle'];
@@ -293,6 +316,22 @@ class SurveyQuestionsService extends ChangeNotifier {
         _suggestionsConfig = Map<String, dynamic>.from(defaultSuggestionsConfig);
       }
 
+      // Load CC config
+      final ccConfigJson = prefs.getString(_keyCcConfig);
+      if (ccConfigJson != null) {
+        _ccConfig = Map<String, dynamic>.from(jsonDecode(ccConfigJson));
+      } else {
+        _ccConfig = Map<String, dynamic>.from(defaultCcConfig);
+      }
+
+      // Load SQD config
+      final sqdConfigJson = prefs.getString(_keySqdConfig);
+      if (sqdConfigJson != null) {
+        _sqdConfig = Map<String, dynamic>.from(jsonDecode(sqdConfigJson));
+      } else {
+        _sqdConfig = Map<String, dynamic>.from(defaultSqdConfig);
+      }
+
       _isLoaded = true;
       notifyListeners();
       debugPrint('SurveyQuestionsService: Questions loaded');
@@ -359,6 +398,33 @@ class SurveyQuestionsService extends ChangeNotifier {
     );
   }
 
+  /// Save CC config to SharedPreferences
+  Future<void> _saveCcConfig() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = jsonEncode(_ccConfig);
+      await prefs.setString(_keyCcConfig, jsonStr);
+      debugPrint('SurveyQuestionsService: CC config saved');
+    } catch (e) {
+      debugPrint('SurveyQuestionsService: Error saving CC config: $e');
+    }
+  }
+
+  /// Update CC Section Title
+  Future<void> updateCcSectionTitle(String title) async {
+    final previousValue = ccSectionTitle;
+    _ccConfig['sectionTitle'] = title;
+    notifyListeners();
+    await _saveCcConfig();
+
+    await _auditLogService?.logSurveyConfigChanged(
+      actor: _currentActor,
+      configKey: 'CC Section Title',
+      previousValue: previousValue,
+      newValue: title,
+    );
+  }
+
   /// Update a CC question option
   Future<void> updateCcQuestionOption(String questionId, int optionIndex, String newOption) async {
     final qIndex = _ccQuestions.indexWhere((q) => q.id == questionId);
@@ -403,6 +469,33 @@ class SurveyQuestionsService extends ChangeNotifier {
     );
   }
 
+  /// Save SQD config to SharedPreferences
+  Future<void> _saveSqdConfig() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = jsonEncode(_sqdConfig);
+      await prefs.setString(_keySqdConfig, jsonStr);
+      debugPrint('SurveyQuestionsService: SQD config saved');
+    } catch (e) {
+      debugPrint('SurveyQuestionsService: Error saving SQD config: $e');
+    }
+  }
+
+  /// Update SQD Section Title
+  Future<void> updateSqdSectionTitle(String title) async {
+    final previousValue = sqdSectionTitle;
+    _sqdConfig['sectionTitle'] = title;
+    notifyListeners();
+    await _saveSqdConfig();
+
+    await _auditLogService?.logSurveyConfigChanged(
+      actor: _currentActor,
+      configKey: 'SQD Section Title',
+      previousValue: previousValue,
+      newValue: title,
+    );
+  }
+
   /// Reset all questions to defaults
   Future<void> resetToDefaults() async {
     _ccQuestions = defaultCcQuestions.map((q) => q.copyWith()).toList();
@@ -411,6 +504,12 @@ class SurveyQuestionsService extends ChangeNotifier {
     notifyListeners();
     await _saveCcQuestions();
     await _saveSqdQuestions();
+
+    // Reset config too
+    _ccConfig = Map<String, dynamic>.from(defaultCcConfig);
+    _sqdConfig = Map<String, dynamic>.from(defaultSqdConfig);
+    await _saveCcConfig();
+    await _saveSqdConfig();
 
     await _auditLogService?.logSurveyConfigChanged(
       actor: _currentActor,
@@ -432,6 +531,10 @@ class SurveyQuestionsService extends ChangeNotifier {
       previousValue: 'Custom',
       newValue: 'Reset to Defaults',
     );
+    
+    // Reset CC config too
+    _ccConfig = Map<String, dynamic>.from(defaultCcConfig);
+    await _saveCcConfig();
   }
 
   /// Reset only SQD questions to defaults
@@ -446,6 +549,10 @@ class SurveyQuestionsService extends ChangeNotifier {
       previousValue: 'Custom',
       newValue: 'Reset to Defaults',
     );
+
+    // Reset SQD config too
+    _sqdConfig = Map<String, dynamic>.from(defaultSqdConfig);
+    await _saveSqdConfig();
   }
 
   // ========== PROFILE CONFIG METHODS ==========
@@ -601,6 +708,12 @@ class SurveyQuestionsService extends ChangeNotifier {
     await _saveSqdQuestions();
     await _saveProfileConfig();
     await _saveSuggestionsConfig();
+
+    // Reset other configs
+    _ccConfig = Map<String, dynamic>.from(defaultCcConfig);
+    _sqdConfig = Map<String, dynamic>.from(defaultSqdConfig);
+    await _saveCcConfig();
+    await _saveSqdConfig();
 
     await _auditLogService?.logSurveyConfigChanged(
       actor: _currentActor,

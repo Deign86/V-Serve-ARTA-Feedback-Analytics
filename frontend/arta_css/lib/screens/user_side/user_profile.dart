@@ -247,7 +247,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     _buildHeader(isMobile),
                     SizedBox(height: isMobile ? 16 : 24),
                     SurveyProgressBar(
-                      currentStep: configService.getStepNumber(SurveyStep.profile),
+                      currentStep: configService.calculateStepNumber(SurveyStep.profile),
                       totalSteps: totalSteps,
                       isMobile: isMobile,
                       customSteps: configService.getVisibleProgressBarSteps(),

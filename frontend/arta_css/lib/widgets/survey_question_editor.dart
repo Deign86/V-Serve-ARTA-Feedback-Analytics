@@ -90,19 +90,37 @@ class _SurveyQuestionEditorState extends State<SurveyQuestionEditor> {
     switch (_selectedSection) {
       case 'CC':
         return Column(
-          children: questionsService.ccQuestions.map(
-            (q) => _CcQuestionCard(question: q, questionsService: questionsService),
-          ).toList(),
+          children: [
+            _buildHeaderEditor(
+              context, 
+              'Section Title', 
+              questionsService.ccSectionTitle, 
+              () => _showEditTitleDialog(context, 'CC Section Title', questionsService.ccSectionTitle, (val) => questionsService.updateCcSectionTitle(val))
+            ),
+            const SizedBox(height: 16),
+            ...questionsService.ccQuestions.map(
+              (q) => _CcQuestionCard(question: q, questionsService: questionsService),
+            ).toList(),
+          ],
         );
       case 'SQD':
         return Column(
-          children: questionsService.sqdQuestions.asMap().entries.map(
-            (entry) => _SqdQuestionCard(
-              index: entry.key,
-              question: entry.value,
-              questionsService: questionsService,
+          children: [
+            _buildHeaderEditor(
+              context, 
+              'Section Title', 
+              questionsService.sqdSectionTitle, 
+              () => _showEditTitleDialog(context, 'SQD Section Title', questionsService.sqdSectionTitle, (val) => questionsService.updateSqdSectionTitle(val))
             ),
-          ).toList(),
+            const SizedBox(height: 16),
+            ...questionsService.sqdQuestions.asMap().entries.map(
+              (entry) => _SqdQuestionCard(
+                index: entry.key,
+                question: entry.value,
+                questionsService: questionsService,
+              ),
+            ).toList(),
+          ],
         );
       case 'Profile':
         return _ProfileConfigEditor(questionsService: questionsService);
@@ -204,6 +222,90 @@ class _SurveyQuestionEditorState extends State<SurveyQuestionEditor> {
               foregroundColor: Colors.white,
             ),
             child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _buildHeaderEditor(BuildContext context, String label, String value, VoidCallback onEdit) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))],
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.title, size: 18, color: AdminTheme.brandBlue),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AdminTheme.bodyXS(color: Colors.grey.shade500),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: AdminTheme.bodyMedium(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.edit, size: 18, color: AdminTheme.brandBlue),
+            onPressed: onEdit,
+            tooltip: 'Edit',
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditTitleDialog(BuildContext context, String title, String currentValue, Function(String) onSave) {
+    final controller = TextEditingController(text: currentValue);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Edit $title', style: AdminTheme.headingSmall(color: Colors.black87)),
+        content: SizedBox(
+          width: 500,
+          child: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              labelText: 'Title Text',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                onSave(controller.text.trim());
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Title updated'), backgroundColor: Colors.green),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AdminTheme.brandBlue,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Save'),
           ),
         ],
       ),

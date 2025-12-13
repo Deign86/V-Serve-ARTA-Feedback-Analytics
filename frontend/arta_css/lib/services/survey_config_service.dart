@@ -178,7 +178,7 @@ class SurveyConfigService extends ChangeNotifier {
   }
 
   /// Calculate dynamic step number for a given screen
-  int getStepNumber(SurveyStep step) {
+  int calculateStepNumber(SurveyStep step) {
     int stepNum = 0;
 
     // Profile is step 1 if enabled

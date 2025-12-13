@@ -76,7 +76,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                     _buildHeader(isMobile),
                     SizedBox(height: isMobile ? 16 : 24),
                     SurveyProgressBar(
-                      currentStep: context.watch<SurveyConfigService>().getStepNumber(SurveyStep.suggestions),
+                      currentStep: context.watch<SurveyConfigService>().calculateStepNumber(SurveyStep.suggestions),
                       totalSteps: context.watch<SurveyConfigService>().totalSteps,
                       isMobile: isMobile,
                       customSteps: context.watch<SurveyConfigService>().getVisibleProgressBarSteps(),
@@ -155,7 +155,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      'PART 3',
+                      'PART ${context.watch<SurveyConfigService>().calculateStepNumber(SurveyStep.suggestions)}',
                       style: GoogleFonts.montserrat(
                         fontSize: isMobile ? 10 : 12,
                         fontWeight: FontWeight.bold,

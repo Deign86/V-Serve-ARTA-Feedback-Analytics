@@ -211,7 +211,7 @@ class _SQDScreenState extends State<SQDScreen> {
     final isMobile = MediaQuery.of(context).size.width < 900;
     final configService = context.watch<SurveyConfigService>();
     // Calculate current step dynamically
-    final currentStep = configService.getStepNumber(SurveyStep.sqd);
+    final currentStep = configService.calculateStepNumber(SurveyStep.sqd);
     final totalSteps = configService.totalSteps;
 
     return Scaffold(
@@ -293,6 +293,7 @@ class _SQDScreenState extends State<SQDScreen> {
   }
 
   Widget _buildFormCard(bool isMobile) {
+    final configService = context.watch<SurveyConfigService>();
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -319,7 +320,7 @@ class _SQDScreenState extends State<SQDScreen> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          'PART 3',
+                          'PART ${configService.calculateStepNumber(SurveyStep.sqd)}',
                           style: GoogleFonts.montserrat(
                             fontSize: isMobile ? 10 : 12,
                             fontWeight: FontWeight.bold,
@@ -329,7 +330,7 @@ class _SQDScreenState extends State<SQDScreen> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'SQD',
+                        context.watch<SurveyQuestionsService>().sqdSectionTitle,
                         style: GoogleFonts.montserrat(
                           fontSize: isMobile ? 20 : 28,
                           fontWeight: FontWeight.bold,

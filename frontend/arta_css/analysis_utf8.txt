@@ -1,0 +1,18 @@
+Analyzing arta_css...                                           
+
+warning - The declaration '_getFilteredFeedbacks' isn't referenced - lib\screens\admin\admin_screens.dart:819:20 - unused_element
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\screens\admin\admin_screens.dart:1954:19 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\screens\admin\admin_screens.dart:1978:19 - deprecated_member_use
+warning - The value of the local variable 'isLoading' isn't used - lib\screens\admin\role_based_dashboard.dart:365:15 - unused_local_variable
+  error - Undefined name 'configService' - lib\screens\user_side\citizen_charter.dart:354:35 - undefined_identifier
+  error - Undefined name 'configService' - lib\screens\user_side\sqd.dart:322:35 - undefined_identifier
+   info - Don't use 'BuildContext's across async gaps - lib\screens\user_side\suggestions.dart:368:69 - use_build_context_synchronously
+warning - The value of the local variable 'currentPage' isn't used - lib\screens\user_side\user_profile.dart:223:11 - unused_local_variable
+   info - The import of 'package:flutter/foundation.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' - lib\services\survey_config_service.dart:1:8 - unnecessary_import
+   info - The private field _sqdConfig could be 'final' - lib\services\survey_questions_service.dart:220:24 - prefer_final_fields
+warning - The value of the field '_sqdConfig' isn't used - lib\services\survey_questions_service.dart:220:24 - unused_field
+  error - The name '_sqdConfig' is already defined - lib\services\survey_questions_service.dart:220:24 - duplicate_definition
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\widgets\export_filter_dialog.dart:452:7 - deprecated_member_use
+   info - Unnecessary use of 'toList' in a spread - lib\widgets\survey_question_editor.dart:103:15 - unnecessary_to_list_in_spreads
+   info - Unnecessary use of 'toList' in a spread - lib\widgets\survey_question_editor.dart:122:15 - unnecessary_to_list_in_spreads
+

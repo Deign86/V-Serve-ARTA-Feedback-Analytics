@@ -245,7 +245,7 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
     final configService = context.watch<SurveyConfigService>();
-    final currentStep = configService.getStepNumber(SurveyStep.citizenCharter);
+    final currentStep = configService.calculateStepNumber(SurveyStep.citizenCharter);
     final totalSteps = configService.totalSteps;
 
     return Scaffold(
@@ -325,6 +325,7 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
   }
 
   Widget _buildFormCard(bool isMobile) {
+    final configService = context.watch<SurveyConfigService>();
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -351,7 +352,7 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          'PART 2',
+                          'PART ${configService.calculateStepNumber(SurveyStep.citizenCharter)}',
                           style: GoogleFonts.montserrat(
                             fontSize: isMobile ? 10 : 12,
                             fontWeight: FontWeight.bold,
@@ -361,7 +362,7 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'CITIZEN\'S CHARTER',
+                        context.watch<SurveyQuestionsService>().ccSectionTitle,
                         style: GoogleFonts.montserrat(
                           fontSize: isMobile ? 20 : 28,
                           fontWeight: FontWeight.bold,
