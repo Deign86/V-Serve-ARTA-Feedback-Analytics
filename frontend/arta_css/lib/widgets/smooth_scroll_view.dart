@@ -65,11 +65,16 @@ class _SmoothScrollViewState extends State<SmoothScrollView>
   }
   
   void _onScrollChanged() {
-    // If we're not actively scrolling via our ticker, sync the target
-    // This handles external animateTo calls
-    if (_ticker == null || !_ticker!.isActive) {
-      if (_controller.hasClients) {
-        _targetScroll = _controller.offset;
+    // Always sync target scroll to prevent fighting with external animations
+    // This handles Scrollable.ensureVisible, animateTo, and manual scroll
+    if (_controller.hasClients) {
+      // Only sync if the ticker is not actively controlling the scroll
+      // or if the difference is significant (external animation)
+      final currentOffset = _controller.offset;
+      final diff = (_targetScroll - currentOffset).abs();
+      
+      if (_ticker == null || !_ticker!.isActive || diff > 50) {
+        _targetScroll = currentOffset;
       }
     }
   }

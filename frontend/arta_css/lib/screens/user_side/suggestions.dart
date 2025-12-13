@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../services/offline_queue.dart';
 import '../../services/survey_config_service.dart';
 import '../../widgets/offline_queue_widget.dart';
+import '../../widgets/survey_progress_bar.dart';
 import 'landing_page.dart';
 import '../../widgets/smooth_scroll_view.dart';
 
@@ -72,7 +73,11 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                   children: [
                     _buildHeader(isMobile),
                     SizedBox(height: isMobile ? 16 : 24),
-                    _buildProgressBar(isMobile, 4, 4),
+                    SurveyProgressBar(
+                      currentStep: 4,
+                      totalSteps: 4,
+                      isMobile: isMobile,
+                    ),
                     SizedBox(height: isMobile ? 16 : 24),
                     Expanded(child: _buildFormCard(isMobile)),
                   ],
@@ -119,27 +124,6 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildProgressBar(bool isMobile, int current, int total) {
-    return Row(
-      children: List.generate(total, (index) {
-        final isActive = index == current - 1;
-        final isCompleted = index < current - 1;
-        return Expanded(
-          child: Container(
-            height: isMobile ? 6 : 8,
-            margin: EdgeInsets.symmetric(horizontal: isMobile ? 2 : 4),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(4),
-              color: isActive || isCompleted
-                  ? const Color(0xFF0099FF)
-                  : Colors.white.withValues(alpha: 0.3),
-            ),
-          ),
-        );
-      }),
     );
   }
 
@@ -684,108 +668,120 @@ class _ThankYouScreenState extends State<ThankYouScreen> with TickerProviderStat
     return Container(
       width: double.infinity,
       height: isDesktopRightSide ? double.infinity : null,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       color: const Color(0xFF1C1E97),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
         children: [
-          // Thank you image with animated checkmark overlay
-          AnimatedBuilder(
-            animation: Listenable.merge([_checkmarkController, _pulseController]),
-            builder: (context, child) {
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Thank you image
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Image.asset(
-                      'assets/thankyou-img.png',
-                      width: isDesktopRightSide ? 200 : 180,
-                      height: isDesktopRightSide ? 200 : 180,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  // Animated checkmark overlay
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Transform.scale(
+          // Background image that fills the entire container
+          Positioned.fill(
+            child: Image.asset(
+              'assets/thankyou-img.png',
+              fit: BoxFit.cover,
+            ),
+          ),
+          // Content overlay
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Spacer to push content down
+                if (isDesktopRightSide) const Spacer(),
+                
+                // Animated checkmark
+                AnimatedBuilder(
+                  animation: Listenable.merge([_checkmarkController, _pulseController]),
+                  builder: (context, child) {
+                    return Transform.scale(
                       scale: _checkmarkScale.value * _pulseAnimation.value,
                       child: Opacity(
                         opacity: _checkmarkOpacity.value,
                         child: Container(
-                          width: 50,
-                          height: 50,
+                          width: 70,
+                          height: 70,
                           decoration: BoxDecoration(
                             color: const Color(0xFF00C853),
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
                                 color: const Color(0xFF00C853).withValues(alpha: 0.5),
-                                blurRadius: 15,
-                                spreadRadius: 3,
+                                blurRadius: 20,
+                                spreadRadius: 5,
                               ),
                             ],
                           ),
                           child: const Icon(
                             Icons.check,
                             color: Colors.white,
-                            size: 30,
+                            size: 40,
                           ),
                         ),
                       ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  "THANK YOU",
+                  style: GoogleFonts.montserrat(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 32,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        blurRadius: 10,
+                      ),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  "FOR YOUR FEEDBACK!",
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 16,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        blurRadius: 10,
+                      ),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                // Kiosk Mode Countdown
+                if (_isKioskMode) ...[
+                  const SizedBox(height: 32),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: Colors.white30),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.refresh, color: Colors.white70, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Restarting in $_countdownSeconds seconds...",
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          Text(
-            "THANK YOU",
-            style: GoogleFonts.montserrat(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 32,
+                
+                if (isDesktopRightSide) const Spacer(),
+              ],
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
-          Text(
-            "FOR YOUR FEEDBACK!",
-            style: GoogleFonts.poppins(
-              color: Colors.white70,
-              fontSize: 16,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          // Kiosk Mode Countdown
-          if (_isKioskMode) ...[
-            const SizedBox(height: 32),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white30),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.refresh, color: Colors.white70, size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    "Restarting in $_countdownSeconds seconds...",
-                    style: GoogleFonts.poppins(
-                      color: Colors.white70,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );

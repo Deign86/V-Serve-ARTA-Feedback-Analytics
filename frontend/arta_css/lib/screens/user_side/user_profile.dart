@@ -7,6 +7,7 @@ import '../../models/survey_data.dart';
 import '../../services/survey_config_service.dart';
 import '../../services/offline_queue.dart';
 import '../../widgets/offline_queue_widget.dart';
+import '../../widgets/survey_progress_bar.dart';
 import 'citizen_charter.dart';
 import 'sqd.dart';
 import 'suggestions.dart'; // ThankYouScreen is defined here
@@ -274,7 +275,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   children: [
                     _buildHeader(isMobile),
                     SizedBox(height: isMobile ? 16 : 24),
-                    _buildProgressBar(isMobile, currentPage, totalSteps),
+                    SurveyProgressBar(
+                      currentStep: currentPage,
+                      totalSteps: totalSteps,
+                      isMobile: isMobile,
+                    ),
                     SizedBox(height: isMobile ? 16 : 24),
                     Expanded(child: _buildFormCard(isMobile)),
                   ],
@@ -320,29 +325,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildProgressBar(bool isMobile, int currentStep, int totalSteps) {
-    return Row(
-      children: List.generate(totalSteps, (index) {
-        final isCompleted = index < currentStep - 1;
-        final isActive = index == currentStep - 1;
-        return Expanded(
-          child: Container(
-            height: isMobile ? 6 : 8,
-            margin: EdgeInsets.symmetric(horizontal: isMobile ? 2 : 4),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(4),
-              color: isActive
-                  ? const Color(0xFF0099FF)
-                  : isCompleted
-                  ? const Color(0xFF36A0E1)
-                  : Colors.grey.shade300,
-            ),
-          ),
-        );
-      }),
     );
   }
 

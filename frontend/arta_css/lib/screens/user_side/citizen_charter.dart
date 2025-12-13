@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../services/survey_config_service.dart';
 import '../../services/offline_queue.dart';
 import '../../widgets/offline_queue_widget.dart';
+import '../../widgets/survey_progress_bar.dart';
 import 'sqd.dart';
 import 'suggestions.dart'; // ThankYouScreen is defined here
 import '../../widgets/smooth_scroll_view.dart';
@@ -146,28 +147,14 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
       final nextCode = questionOrder[currentIndex + 1];
       final key = _questionKeys[nextCode];
       // Add a small delay to let the UI update before scrolling
-      Future.delayed(const Duration(milliseconds: 150), () {
+      Future.delayed(const Duration(milliseconds: 200), () {
         if (mounted && key?.currentContext != null) {
-          final RenderBox renderBox = key!.currentContext!.findRenderObject() as RenderBox;
-          final position = renderBox.localToGlobal(Offset.zero);
-          
-          // Calculate scroll offset accounting for current scroll position
-          if (_scrollController.hasClients) {
-            final viewportHeight = _scrollController.position.viewportDimension;
-            final currentScroll = _scrollController.offset;
-            final targetOffset = currentScroll + position.dy - (viewportHeight * 0.2) - 150; // 150 for header offset
-            
-            final clampedOffset = targetOffset.clamp(
-              _scrollController.position.minScrollExtent,
-              _scrollController.position.maxScrollExtent,
-            );
-            
-            _scrollController.animateTo(
-              clampedOffset,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeInOut,
-            );
-          }
+          Scrollable.ensureVisible(
+            key!.currentContext!,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
+            alignment: 0.15, // Position near the top
+          );
         }
       });
     }
@@ -276,7 +263,11 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
                   children: [
                     _buildHeader(isMobile),
                     SizedBox(height: isMobile ? 16 : 24),
-                    _buildProgressBar(isMobile, currentStep, totalSteps),
+                    SurveyProgressBar(
+                      currentStep: currentStep,
+                      totalSteps: totalSteps,
+                      isMobile: isMobile,
+                    ),
                     SizedBox(height: isMobile ? 16 : 24),
                     Expanded(child: _buildFormCard(isMobile)),
                   ],
@@ -323,29 +314,6 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildProgressBar(bool isMobile, int currentStep, int totalSteps) {
-    return Row(
-      children: List.generate(totalSteps, (index) {
-        final isCompleted = index < currentStep - 1;
-        final isActive = index == currentStep - 1;
-        return Expanded(
-          child: Container(
-            height: isMobile ? 6 : 8,
-            margin: EdgeInsets.symmetric(horizontal: isMobile ? 2 : 4),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(4),
-              color: isActive
-                  ? const Color(0xFF0099FF)
-                  : isCompleted
-                      ? const Color(0xFF36A0E1)
-                      : Colors.white.withValues(alpha: 0.3),
-            ),
-          ),
-        );
-      }),
     );
   }
 
