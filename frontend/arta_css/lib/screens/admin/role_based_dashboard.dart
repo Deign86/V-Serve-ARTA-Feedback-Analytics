@@ -453,24 +453,7 @@ class _DashboardOverviewState extends State<DashboardOverview> with SingleTicker
                                 ],
                               ),
                             ),
-                          // Refresh button (manual refresh)
-                          ElevatedButton.icon(
-                            onPressed: isLoading ? null : () {
-                              feedbackService.refresh();
-                            },
-                            icon: isLoading 
-                                ? const SizedBox(
-                                    width: 16, 
-                                    height: 16, 
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
-                                  )
-                                : const Icon(Icons.refresh),
-                            label: Text(isLoading ? 'Loading...' : 'Refresh'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white.withValues(alpha: 0.2),
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
+
                         ],
                       ),
                     ],
