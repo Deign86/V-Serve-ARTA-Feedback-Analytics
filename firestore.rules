@@ -34,6 +34,18 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Audit logs collection for non-repudiation and accountability
+    // Logs are append-only - no updates or deletes allowed to ensure integrity
+    // TODO: Add authentication check in production: allow read, create: if request.auth != null;
+    match /audit_logs/{logId} {
+      // Anyone can create logs (services will create logs for actions)
+      allow create: if true;
+      // Logs should be read-only after creation (immutable audit trail)
+      allow update, delete: if false;
+      // Allow reads for admin dashboard viewing
+      allow read: if true;
+    }
+
     // Fallback: deny everything else
     match /{document=**} {
       allow read, write: if false;

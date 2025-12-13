@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'audit_log_service.dart';
+import '../models/user_model.dart';
 
 /// Service to manage survey configuration settings
 /// These settings control which sections are shown in the survey flow
@@ -9,6 +11,16 @@ class SurveyConfigService extends ChangeNotifier {
   static const String _keyDemographicsEnabled = 'survey_demographics_enabled';
   static const String _keySuggestionsEnabled = 'survey_suggestions_enabled';
   static const String _keyKioskMode = 'survey_kiosk_mode';
+
+  // Audit log service reference (set externally)
+  AuditLogService? _auditLogService;
+  UserModel? _currentActor;
+  
+  /// Set the audit log service for logging configuration changes
+  void setAuditService(AuditLogService auditService, UserModel? currentUser) {
+    _auditLogService = auditService;
+    _currentActor = currentUser;
+  }
 
   // Default values - all sections enabled by default
   bool _ccEnabled = true;
@@ -59,35 +71,70 @@ class SurveyConfigService extends ChangeNotifier {
     }
   }
 
-  // Setters with persistence
+  // Setters with persistence and audit logging
   Future<void> setCcEnabled(bool value) async {
+    final previousValue = _ccEnabled;
     _ccEnabled = value;
     notifyListeners();
     await _saveValue(_keyCcEnabled, value);
+    await _auditLogService?.logSurveyConfigChanged(
+      actor: _currentActor,
+      configKey: 'Citizen\'s Charter Section',
+      previousValue: previousValue,
+      newValue: value,
+    );
   }
 
   Future<void> setSqdEnabled(bool value) async {
+    final previousValue = _sqdEnabled;
     _sqdEnabled = value;
     notifyListeners();
     await _saveValue(_keySqdEnabled, value);
+    await _auditLogService?.logSurveyConfigChanged(
+      actor: _currentActor,
+      configKey: 'SQD Section',
+      previousValue: previousValue,
+      newValue: value,
+    );
   }
 
   Future<void> setDemographicsEnabled(bool value) async {
+    final previousValue = _demographicsEnabled;
     _demographicsEnabled = value;
     notifyListeners();
     await _saveValue(_keyDemographicsEnabled, value);
+    await _auditLogService?.logSurveyConfigChanged(
+      actor: _currentActor,
+      configKey: 'Demographics Section',
+      previousValue: previousValue,
+      newValue: value,
+    );
   }
 
   Future<void> setSuggestionsEnabled(bool value) async {
+    final previousValue = _suggestionsEnabled;
     _suggestionsEnabled = value;
     notifyListeners();
     await _saveValue(_keySuggestionsEnabled, value);
+    await _auditLogService?.logSurveyConfigChanged(
+      actor: _currentActor,
+      configKey: 'Suggestions Section',
+      previousValue: previousValue,
+      newValue: value,
+    );
   }
 
   Future<void> setKioskMode(bool value) async {
+    final previousValue = _kioskMode;
     _kioskMode = value;
     notifyListeners();
     await _saveValue(_keyKioskMode, value);
+    await _auditLogService?.logSurveyConfigChanged(
+      actor: _currentActor,
+      configKey: 'Kiosk Mode',
+      previousValue: previousValue,
+      newValue: value,
+    );
   }
 
   /// Get the number of survey steps based on current configuration

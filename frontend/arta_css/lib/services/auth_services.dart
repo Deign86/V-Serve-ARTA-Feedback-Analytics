@@ -4,13 +4,23 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:crypto/crypto.dart';
+import 'package:bcrypt/bcrypt.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 import 'cache_service.dart';
+import 'audit_log_service.dart';
 
 class AuthService extends ChangeNotifier with CachingMixin {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  // Lazy initialization of Firestore to avoid accessing before Firebase is ready
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
+  
+  // Audit log service reference (set externally to avoid circular dependency)
+  AuditLogService? _auditLogService;
+  
+  /// Set the audit log service for logging authentication events
+  void setAuditService(AuditLogService auditService) {
+    _auditLogService = auditService;
+  }
   
   UserModel? _currentUser;
   bool _isAuthenticated = false;
@@ -98,11 +108,22 @@ class AuthService extends ChangeNotifier with CachingMixin {
     }
   }
 
-  /// Hash a password using SHA-256 (must match backend seeding)
-  static String _hashPassword(String password) {
-    final bytes = utf8.encode(password);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
+  /// Hash a password using bcrypt (secure, memory-hard algorithm)
+  /// Note: For login, we use checkpw() instead of comparing hashes directly
+  static String hashPassword(String password) {
+    // Generate a salt with work factor 12 (good balance of security and performance)
+    final salt = BCrypt.gensalt(logRounds: 12);
+    return BCrypt.hashpw(password, salt);
+  }
+
+  /// Verify a password against a stored bcrypt hash
+  static bool verifyPassword(String password, String hashedPassword) {
+    try {
+      return BCrypt.checkpw(password, hashedPassword);
+    } catch (e) {
+      debugPrint('Password verification error: $e');
+      return false;
+    }
   }
 
   /// Convert Firestore role string to UserRole enum
@@ -124,9 +145,6 @@ class AuthService extends ChangeNotifier with CachingMixin {
 
   Future<bool> login(String email, String password) async {
     try {
-      // Hash the provided password
-      final passwordHash = _hashPassword(password);
-
       // Query Firestore for user with matching email
       final querySnapshot = await _firestore
           .collection('system_users')
@@ -137,16 +155,26 @@ class AuthService extends ChangeNotifier with CachingMixin {
 
       if (querySnapshot.docs.isEmpty) {
         debugPrint('Login failed: User not found or inactive - $email');
+        // Log failed login attempt
+        await _auditLogService?.logLoginFailed(
+          attemptedEmail: email,
+          reason: 'User not found or inactive',
+        );
         return false;
       }
 
       final userDoc = querySnapshot.docs.first;
       final userData = userDoc.data();
 
-      // Verify password hash
+      // Verify password using bcrypt
       final storedHash = userData['passwordHash'] as String?;
-      if (storedHash == null || storedHash != passwordHash) {
+      if (storedHash == null || !verifyPassword(password, storedHash)) {
         debugPrint('Login failed: Invalid password for $email');
+        // Log failed login attempt
+        await _auditLogService?.logLoginFailed(
+          attemptedEmail: email,
+          reason: 'Invalid password',
+        );
         return false;
       }
 
@@ -174,15 +202,28 @@ class AuthService extends ChangeNotifier with CachingMixin {
       // Save session to cache for faster subsequent logins
       await _saveSession();
       
+      // Log successful login
+      await _auditLogService?.logLoginSuccess(user: _currentUser!);
+      
       debugPrint('Login successful for ${_currentUser!.name} (${_currentUser!.role})');
       return true;
     } catch (e) {
       debugPrint('Login error: $e');
+      // Log failed login attempt with error
+      await _auditLogService?.logLoginFailed(
+        attemptedEmail: email,
+        reason: 'System error: ${e.toString()}',
+      );
       return false;
     }
   }
 
   Future<void> logout() async {
+    // Log logout before clearing user
+    if (_currentUser != null) {
+      await _auditLogService?.logLogout(user: _currentUser!);
+    }
+    
     _currentUser = null;
     _isAuthenticated = false;
     await _clearSession();

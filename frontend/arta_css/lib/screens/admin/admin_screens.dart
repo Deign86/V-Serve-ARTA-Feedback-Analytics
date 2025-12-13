@@ -6,8 +6,10 @@ import '../../services/export_service.dart';
 import '../../services/feedback_service.dart';
 import '../../services/survey_config_service.dart';
 import '../../services/qr_code_service.dart';
+import '../../services/audit_log_service.dart';
 import '../../models/survey_data.dart';
 import '../../utils/admin_theme.dart';
+import '../../widgets/audit_log_viewer.dart';
 import '../user_side/landing_page.dart';
 
 // THEME CONSTANTS - Re-exported from AdminTheme for backwards compatibility
@@ -1868,6 +1870,56 @@ class _AdvancedFilterDialogState extends State<_AdvancedFilterDialog> {
           child: const Text('Apply Filter'),
         ),
       ],
+    );
+  }
+}
+
+// Audit Log Screen - For viewing administrator action logs
+class AuditLogScreen extends StatefulWidget {
+  const AuditLogScreen({super.key});
+
+  @override
+  State<AuditLogScreen> createState() => _AuditLogScreenState();
+}
+
+class _AuditLogScreenState extends State<AuditLogScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Start real-time updates when screen is loaded
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auditService = context.read<AuditLogService>();
+      auditService.startRealtimeUpdates();
+    });
+  }
+
+  @override
+  void dispose() {
+    // Note: Don't stop updates here as it may still be needed
+    // The service will manage its own lifecycle
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        margin: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const AuditLogViewer(),
+      ),
     );
   }
 }

@@ -32,6 +32,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     {'icon': Icons.people, 'label': 'User Management', 'permission': 'manage_users'},
     {'icon': Icons.analytics, 'label': 'Detailed Analytics', 'permission': 'detailed_analytics'},
     {'icon': Icons.download, 'label': 'Data Exports', 'permission': null},
+    {'icon': Icons.history, 'label': 'Audit Log', 'permission': 'manage_users'},
   ];
 
   /// Get the list of accessible menu items for the current user
@@ -60,6 +61,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return const DetailedAnalyticsScreen();
       case 'Data Exports':
         return const DataExportsScreen();
+      case 'Audit Log':
+        return const AuditLogScreen();
       default:
         return const DashboardOverview();
     }
