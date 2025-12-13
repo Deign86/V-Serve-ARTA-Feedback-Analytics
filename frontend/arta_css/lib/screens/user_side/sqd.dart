@@ -3,6 +3,7 @@ import '../../services/survey_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../services/offline_queue.dart';
+import '../../services/survey_questions_service.dart';
 import '../../widgets/offline_queue_widget.dart';
 import '../../widgets/smooth_scroll_view.dart';
 import '../../widgets/survey_progress_bar.dart';
@@ -25,51 +26,14 @@ class _SQDScreenState extends State<SQDScreen> {
 
   List<int?> answers = List<int?>.filled(9, null);
 
-  final List<Map<String, dynamic>> questions = [
-    {
-      'label': 'SQD 0',
-      'question': 'I am satisfied with the service that I availed.',
-    },
-    {
-      'label': 'SQD 1',
-      'question': 'I spent a reasonable amount of time for my transaction.',
-    },
-    {
-      'label': 'SQD 2',
-      'question':
-          'The office followed the transaction\'s requirements and steps based on the information provided.',
-    },
-    {
-      'label': 'SQD 3',
-      'question':
-          'The steps (including payment) I needed to do for my transaction were easy and simple.',
-    },
-    {
-      'label': 'SQD 4',
-      'question':
-          'I easily found information about my transaction from the office or its website.',
-    },
-    {
-      'label': 'SQD 5',
-      'question':
-          'I paid a reasonable amount of fees for my transaction. (If service was free, mark the \'N/A\' column)',
-    },
-    {
-      'label': 'SQD 6',
-      'question':
-          'I feel the office was fair to everyone, or \'walang palakasan\', during my transaction.',
-    },
-    {
-      'label': 'SQD 7',
-      'question':
-          'I was treated courteously by the staff, and (if asked for help) the staff was helpful.',
-    },
-    {
-      'label': 'SQD 8',
-      'question':
-          'I got what I needed from the government office, or (if denied) denial of request was sufficiently explained to me.',
-    },
-  ];
+  // Get questions from the service dynamically
+  List<Map<String, dynamic>> _getQuestions(BuildContext context) {
+    final questionsService = context.read<SurveyQuestionsService>();
+    return questionsService.sqdQuestions.map((q) => {
+      'label': q.label,
+      'question': q.question,
+    }).toList();
+  }
 
   final List<String> emojis = [
     'assets/emojis/strongly_disagree.png',
@@ -139,9 +103,9 @@ class _SQDScreenState extends State<SQDScreen> {
     }
   }
 
-  void _scrollToNextQuestion(int currentIndex) {
+  void _scrollToNextQuestion(int currentIndex, int totalQuestions) {
     // Only scroll if there's a next question
-    if (currentIndex < questions.length - 1) {
+    if (currentIndex < totalQuestions - 1) {
       final nextIndex = currentIndex + 1;
       // Ensure the key exists for the next question
       if (!_questionKeys.containsKey(nextIndex)) {
@@ -417,10 +381,17 @@ class _SQDScreenState extends State<SQDScreen> {
 
                   SizedBox(height: isMobile ? 24 : 32),
                   
-                  // Questions List
-                  ...List.generate(
-                    questions.length,
-                    (i) => _sqdQuestion(isMobile, i),
+                  // Questions List - Using questions from the service
+                  Builder(
+                    builder: (context) {
+                      final questions = _getQuestions(context);
+                      return Column(
+                        children: List.generate(
+                          questions.length,
+                          (i) => _sqdQuestion(isMobile, i, questions),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -510,7 +481,7 @@ class _SQDScreenState extends State<SQDScreen> {
     );
   }
 
-  Widget _sqdQuestion(bool isMobile, int index) {
+  Widget _sqdQuestion(bool isMobile, int index, List<Map<String, dynamic>> questions) {
     // Generate key if needed
     if (!_questionKeys.containsKey(index)) {
       _questionKeys[index] = GlobalKey();
@@ -553,7 +524,7 @@ class _SQDScreenState extends State<SQDScreen> {
             });
             // Auto-scroll to next question only on first answer (not when changing)
             if (!wasAlreadyAnswered) {
-              _scrollToNextQuestion(index);
+              _scrollToNextQuestion(index, questions.length);
             }
           },
           child: AnimatedScale(

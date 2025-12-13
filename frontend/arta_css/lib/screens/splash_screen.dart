@@ -112,17 +112,39 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 },
               child: Column(
                 children: [
-                  // Placeholder for actual logo asset, using styled text for now
+                  // ARTA Logo
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    width: 140,
+                    height: 140,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.blue.withValues(alpha: 0.1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blue.withValues(alpha: 0.2),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
                     ),
-                    child: Icon(
-                      Icons.analytics_outlined,
-                      size: 80,
-                      color: Colors.blue[800],
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/arta_logo.jpg',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          // Fallback if image fails to load
+                          return Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.blue.withValues(alpha: 0.1),
+                            ),
+                            child: Icon(
+                              Icons.analytics_outlined,
+                              size: 80,
+                              color: Colors.blue[800],
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),

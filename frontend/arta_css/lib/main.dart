@@ -14,6 +14,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'services/auth_services.dart';
 import 'services/feedback_service.dart';
 import 'services/survey_config_service.dart';
+import 'services/survey_questions_service.dart';
 import 'services/user_management_service.dart';
 import 'services/survey_provider.dart';
 import 'services/audit_log_service.dart';
@@ -96,6 +97,11 @@ void main() async {
           final configService = SurveyConfigService();
           configService.loadConfig(); // Load saved configuration
           return configService;
+        }),
+        ChangeNotifierProvider(create: (_) {
+          final questionsService = SurveyQuestionsService();
+          questionsService.loadQuestions(); // Load saved questions
+          return questionsService;
         }),
         ChangeNotifierProvider(create: (_) => UserManagementService()),
         ChangeNotifierProvider(create: (_) => SurveyProvider()),

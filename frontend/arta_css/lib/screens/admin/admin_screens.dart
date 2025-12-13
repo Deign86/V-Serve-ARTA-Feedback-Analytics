@@ -10,6 +10,7 @@ import '../../services/audit_log_service.dart';
 import '../../models/survey_data.dart';
 import '../../utils/admin_theme.dart';
 import '../../widgets/audit_log_viewer.dart';
+import '../../widgets/survey_question_editor.dart';
 import '../user_side/landing_page.dart';
 
 // THEME CONSTANTS - Re-exported from AdminTheme for backwards compatibility
@@ -137,6 +138,8 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
                       _buildAccessPointCard(context),
                       const SizedBox(height: 24),
                       _buildLivePreviewCard(context),
+                      const SizedBox(height: 24),
+                      const SurveyQuestionEditor(),
                     ],
                   )
                 else
@@ -200,6 +203,8 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 24),
+                            const SurveyQuestionEditor(),
                           ],
                         ),
                       ),

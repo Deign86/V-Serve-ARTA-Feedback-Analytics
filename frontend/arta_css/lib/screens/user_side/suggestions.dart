@@ -670,7 +670,13 @@ class _ThankYouScreenState extends State<ThankYouScreen> with TickerProviderStat
           ),
           Expanded(
             flex: 2,
-            child: _buildTopSection(isDesktopRightSide: true),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+              ),
+              child: _buildTopSection(isDesktopRightSide: true),
+            ),
           ),
         ],
       ),

@@ -3,6 +3,7 @@ import '../../services/survey_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../services/survey_config_service.dart';
+import '../../services/survey_questions_service.dart';
 import '../../services/offline_queue.dart';
 import '../../widgets/offline_queue_widget.dart';
 import '../../widgets/survey_progress_bar.dart';
@@ -32,27 +33,15 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
   String? cc2Answer;
   String? cc3Answer;
 
-  final cc1Options = [
-    '1. I know what a CC is and I saw this office\'s CC.',
-    '2. I know what a CC is but I did NOT see this office\'s CC.',
-    '3. I learned of the CC only when I saw this office\'s CC.',
-    '4. I do not know what a CC is and I did not see one in this office.',
-  ];
-
-  final cc2Options = [
-    '1. Easy to see',
-    '2. Somewhat easy to see',
-    '3. Difficult to see',
-    '4. Not visible at all',
-    '5. Not Applicable',
-  ];
-
-  final cc3Options = [
-    '1. Helped very much',
-    '2. Somewhat helped',
-    '3. Did not help',
-    '4. Not Applicable',
-  ];
+  // Get options from the questions service
+  List<String> get cc1Options => context.read<SurveyQuestionsService>().getCcQuestion('CC1')?.options ?? 
+    SurveyQuestionsService.defaultCcQuestions[0].options;
+  
+  List<String> get cc2Options => context.read<SurveyQuestionsService>().getCcQuestion('CC2')?.options ?? 
+    SurveyQuestionsService.defaultCcQuestions[1].options;
+  
+  List<String> get cc3Options => context.read<SurveyQuestionsService>().getCcQuestion('CC3')?.options ?? 
+    SurveyQuestionsService.defaultCcQuestions[2].options;
 
   @override
   void initState() {
@@ -61,27 +50,35 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
     
     // Initialize from provider
     final surveyData = context.read<SurveyProvider>().surveyData;
+    final questionsService = context.read<SurveyQuestionsService>();
+    
+    final cc1Opts = questionsService.getCcQuestion('CC1')?.options ?? 
+        SurveyQuestionsService.defaultCcQuestions[0].options;
+    final cc2Opts = questionsService.getCcQuestion('CC2')?.options ?? 
+        SurveyQuestionsService.defaultCcQuestions[1].options;
+    final cc3Opts = questionsService.getCcQuestion('CC3')?.options ?? 
+        SurveyQuestionsService.defaultCcQuestions[2].options;
     
     // CC1
     if (surveyData.cc0Rating != null) {
       // Find the option string that corresponds to the rating
       // 1-based index in options
-      if (surveyData.cc0Rating! >= 1 && surveyData.cc0Rating! <= 4) {
-        cc1Answer = cc1Options[surveyData.cc0Rating! - 1];
+      if (surveyData.cc0Rating! >= 1 && surveyData.cc0Rating! <= cc1Opts.length) {
+        cc1Answer = cc1Opts[surveyData.cc0Rating! - 1];
       }
     }
     
     // CC2
     if (surveyData.cc1Rating != null) {
-       if (surveyData.cc1Rating! >= 1 && surveyData.cc1Rating! <= 5) {
-        cc2Answer = cc2Options[surveyData.cc1Rating! - 1];
+       if (surveyData.cc1Rating! >= 1 && surveyData.cc1Rating! <= cc2Opts.length) {
+        cc2Answer = cc2Opts[surveyData.cc1Rating! - 1];
       }
     }
     
     // CC3
     if (surveyData.cc2Rating != null) {
-       if (surveyData.cc2Rating! >= 1 && surveyData.cc2Rating! <= 4) {
-        cc3Answer = cc3Options[surveyData.cc2Rating! - 1];
+       if (surveyData.cc2Rating! >= 1 && surveyData.cc2Rating! <= cc3Opts.length) {
+        cc3Answer = cc3Opts[surveyData.cc2Rating! - 1];
       }
     }
   }
@@ -103,8 +100,17 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
     // Validate CC2 & CC3 based on CC1
     if (cc1Answer != null && cc1Answer!.startsWith('4.')) {
       // If "I do not know", enforce N/A Selection
-      if (cc2Answer != cc2Options[4]) _errorFields.add('CC2');
-      if (cc3Answer != cc3Options[3]) _errorFields.add('CC3');
+      // Find N/A options dynamically (last option in each list typically)
+      final cc2NaOption = cc2Options.lastWhere(
+        (o) => o.toLowerCase().contains('not applicable') || o.toLowerCase().contains('n/a'),
+        orElse: () => cc2Options.last,
+      );
+      final cc3NaOption = cc3Options.lastWhere(
+        (o) => o.toLowerCase().contains('not applicable') || o.toLowerCase().contains('n/a'),
+        orElse: () => cc3Options.last,
+      );
+      if (cc2Answer != cc2NaOption) _errorFields.add('CC2');
+      if (cc3Answer != cc3NaOption) _errorFields.add('CC3');
     } else {
       // Normal flow - require answers if strictly enforcing
       // Note: The original logic implicitly required them unless CC1 was 4.
@@ -407,62 +413,80 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
                   SizedBox(height: isMobile ? 24 : 32),
                   
                   // CC1
-                  _ccCard(
-                    code: 'CC1',
-                    question: 'Which of the following best describes your awareness of a CC?',
-                    options: cc1Options,
-                    selectedValue: cc1Answer,
-                    onChanged: (val) {
-                       final wasAlreadyAnswered = cc1Answer != null;
-                       setState(() {
-                         cc1Answer = val;
-                         _errorFields.remove('CC1');
-                       });
-                       // Auto-scroll to next question only on first answer
-                       if (!wasAlreadyAnswered) {
-                         _scrollToNextQuestion('CC1');
-                       }
+                  Builder(
+                    builder: (context) {
+                      final questionsService = context.watch<SurveyQuestionsService>();
+                      final cc1Question = questionsService.getCcQuestion('CC1');
+                      return _ccCard(
+                        code: 'CC1',
+                        question: cc1Question?.question ?? 'Which of the following best describes your awareness of a CC?',
+                        options: cc1Options,
+                        selectedValue: cc1Answer,
+                        onChanged: (val) {
+                           final wasAlreadyAnswered = cc1Answer != null;
+                           setState(() {
+                             cc1Answer = val;
+                             _errorFields.remove('CC1');
+                           });
+                           // Auto-scroll to next question only on first answer
+                           if (!wasAlreadyAnswered) {
+                             _scrollToNextQuestion('CC1');
+                           }
+                        },
+                        isMobile: isMobile,
+                      );
                     },
-                    isMobile: isMobile,
                   ),
                   
                   SizedBox(height: isMobile ? 32 : 48),
                   
                   // CC2
-                  _ccCard(
-                    code: 'CC2',
-                    question: 'If aware of CC (answered 1-3 in CC1), would you say that the CC of this office was ...?',
-                    options: cc2Options,
-                    selectedValue: cc2Answer,
-                    onChanged: (val) {
-                       final wasAlreadyAnswered = cc2Answer != null;
-                       setState(() {
-                         cc2Answer = val;
-                         _errorFields.remove('CC2');
-                       });
-                       // Auto-scroll to next question only on first answer
-                       if (!wasAlreadyAnswered) {
-                         _scrollToNextQuestion('CC2');
-                       }
+                  Builder(
+                    builder: (context) {
+                      final questionsService = context.watch<SurveyQuestionsService>();
+                      final cc2Question = questionsService.getCcQuestion('CC2');
+                      return _ccCard(
+                        code: 'CC2',
+                        question: cc2Question?.question ?? 'If aware of CC (answered 1-3 in CC1), would you say that the CC of this office was ...?',
+                        options: cc2Options,
+                        selectedValue: cc2Answer,
+                        onChanged: (val) {
+                           final wasAlreadyAnswered = cc2Answer != null;
+                           setState(() {
+                             cc2Answer = val;
+                             _errorFields.remove('CC2');
+                           });
+                           // Auto-scroll to next question only on first answer
+                           if (!wasAlreadyAnswered) {
+                             _scrollToNextQuestion('CC2');
+                           }
+                        },
+                        isMobile: isMobile,
+                      );
                     },
-                    isMobile: isMobile,
                   ),
                   
                   SizedBox(height: isMobile ? 32 : 48),
                   
                   // CC3
-                  _ccCard(
-                    code: 'CC3',
-                    question: 'If aware of CC (answered codes 1-3 in CC1), how much did the CC help you in your transaction?',
-                    options: cc3Options,
-                    selectedValue: cc3Answer,
-                    onChanged: (val) {
-                       setState(() {
-                         cc3Answer = val;
-                         _errorFields.remove('CC3');
-                       });
+                  Builder(
+                    builder: (context) {
+                      final questionsService = context.watch<SurveyQuestionsService>();
+                      final cc3Question = questionsService.getCcQuestion('CC3');
+                      return _ccCard(
+                        code: 'CC3',
+                        question: cc3Question?.question ?? 'If aware of CC (answered codes 1-3 in CC1), how much did the CC help you in your transaction?',
+                        options: cc3Options,
+                        selectedValue: cc3Answer,
+                        onChanged: (val) {
+                           setState(() {
+                             cc3Answer = val;
+                             _errorFields.remove('CC3');
+                           });
+                        },
+                        isMobile: isMobile,
+                      );
                     },
-                    isMobile: isMobile,
                   ),
                 ],
               ),
