@@ -625,36 +625,9 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
               },
             ),
           ),
-          Positioned(
-            bottom: 20,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                _carouselImages.length,
-                (index) => _buildDot(index == _currentPage),
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
-
-  Widget _buildDot(bool isActive) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.symmetric(horizontal: 5),
-      width: isActive ? 16 : 10,
-      height: isActive ? 16 : 10,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isActive ? const Color(0xFF003366) : Colors.white.withValues(alpha: 0.8),
-        boxShadow: const [BoxShadow(blurRadius: 2, color: Colors.black26)],
-      ),
-    );
-  }
 }
-
 
