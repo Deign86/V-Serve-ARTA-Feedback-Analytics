@@ -1,0 +1,9 @@
+{
+  "files.exclude": {
+    "**/linux/runner": true
+  },
+  "C_Cpp.files.exclude": {
+    "**/linux/**": true
+  },
+  "C_Cpp.errorSquiggles": "disabled"
+}

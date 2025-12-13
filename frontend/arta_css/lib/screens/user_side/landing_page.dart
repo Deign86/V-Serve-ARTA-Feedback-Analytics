@@ -589,6 +589,28 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
       clipBehavior: withCardDecoration ? Clip.antiAlias : Clip.none,
       child: Stack(
         children: [
+          // Fade transition carousel using AnimatedSwitcher
+          Positioned.fill(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 800),
+              switchInCurve: Curves.easeInOut,
+              switchOutCurve: Curves.easeInOut,
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              },
+              child: Image.asset(
+                _carouselImages[_currentPage],
+                key: ValueKey<int>(_currentPage),
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+              ),
+            ),
+          ),
+          // Invisible PageView for swipe gestures
           Positioned.fill(
             child: PageView.builder(
               controller: _pageController,
@@ -599,12 +621,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                 });
               },
               itemBuilder: (context, index) {
-                return Image.asset(
-                  _carouselImages[index],
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                );
+                return const SizedBox.shrink();
               },
             ),
           ),
