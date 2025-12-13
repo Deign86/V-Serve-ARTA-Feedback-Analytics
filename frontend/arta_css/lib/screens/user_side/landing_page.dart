@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../services/survey_config_service.dart';
+import '../../services/audit_log_service.dart';
 import '../../widgets/offline_queue_widget.dart';
 import 'user_profile.dart';
 import '../../widgets/smooth_scroll_view.dart';
@@ -282,6 +283,15 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                               ),
                               onPressed: () {
                                 Navigator.of(dialogContext).pop(); // Close dialog
+                                
+                                // Log survey started (non-blocking)
+                                try {
+                                  final auditService = Provider.of<AuditLogService>(context, listen: false);
+                                  auditService.logSurveyStarted();
+                                } catch (e) {
+                                  debugPrint('Audit log error (non-critical): $e');
+                                }
+                                
                                 navigator.push(
                                   MaterialPageRoute(builder: (_) => UserProfileScreen(isPreviewMode: widget.isPreviewMode)),
                                 );
