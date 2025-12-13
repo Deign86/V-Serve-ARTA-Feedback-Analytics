@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../services/survey_config_service.dart';
+import '../../widgets/offline_queue_widget.dart';
 import 'user_profile.dart';
 import '../../widgets/smooth_scroll_view.dart';
 
@@ -123,6 +124,14 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                     ),
                   ),
             ),
+          ),
+          
+          // 3. Offline Queue Banner (shows only when needed)
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: OfflineQueueBanner(),
           ),
         ],
       ),

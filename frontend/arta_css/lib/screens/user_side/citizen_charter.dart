@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../services/survey_config_service.dart';
 import '../../services/offline_queue.dart';
+import '../../widgets/offline_queue_widget.dart';
 import 'sqd.dart';
 import 'suggestions.dart'; // ThankYouScreen is defined here
 import '../../widgets/smooth_scroll_view.dart';
@@ -135,6 +136,43 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
     }
   }
 
+  void _scrollToNextQuestion(String currentCode) {
+    // Define the order of questions
+    final questionOrder = ['CC1', 'CC2', 'CC3'];
+    final currentIndex = questionOrder.indexOf(currentCode);
+    
+    // Only scroll if there's a next question
+    if (currentIndex >= 0 && currentIndex < questionOrder.length - 1) {
+      final nextCode = questionOrder[currentIndex + 1];
+      final key = _questionKeys[nextCode];
+      // Add a small delay to let the UI update before scrolling
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted && key?.currentContext != null) {
+          final RenderBox renderBox = key!.currentContext!.findRenderObject() as RenderBox;
+          final position = renderBox.localToGlobal(Offset.zero);
+          
+          // Calculate scroll offset accounting for current scroll position
+          if (_scrollController.hasClients) {
+            final viewportHeight = _scrollController.position.viewportDimension;
+            final currentScroll = _scrollController.offset;
+            final targetOffset = currentScroll + position.dy - (viewportHeight * 0.2) - 150; // 150 for header offset
+            
+            final clampedOffset = targetOffset.clamp(
+              _scrollController.position.minScrollExtent,
+              _scrollController.position.maxScrollExtent,
+            );
+            
+            _scrollController.animateTo(
+              clampedOffset,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeInOut,
+            );
+          }
+        }
+      });
+    }
+  }
+
   void _onNextPressed() async {
     if (_validateForm()) {
       setState(() => _errorFields.clear());
@@ -245,6 +283,13 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
                 ),
               ),
             ),
+          ),
+          // Offline Queue Banner (shows only when needed)
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: OfflineQueueBanner(),
           ),
         ],
       ),
@@ -400,10 +445,15 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
                     options: cc1Options,
                     selectedValue: cc1Answer,
                     onChanged: (val) {
+                       final wasAlreadyAnswered = cc1Answer != null;
                        setState(() {
                          cc1Answer = val;
                          _errorFields.remove('CC1');
                        });
+                       // Auto-scroll to next question only on first answer
+                       if (!wasAlreadyAnswered) {
+                         _scrollToNextQuestion('CC1');
+                       }
                     },
                     isMobile: isMobile,
                   ),
@@ -417,10 +467,15 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
                     options: cc2Options,
                     selectedValue: cc2Answer,
                     onChanged: (val) {
+                       final wasAlreadyAnswered = cc2Answer != null;
                        setState(() {
                          cc2Answer = val;
                          _errorFields.remove('CC2');
                        });
+                       // Auto-scroll to next question only on first answer
+                       if (!wasAlreadyAnswered) {
+                         _scrollToNextQuestion('CC2');
+                       }
                     },
                     isMobile: isMobile,
                   ),

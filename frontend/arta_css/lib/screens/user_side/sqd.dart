@@ -3,6 +3,7 @@ import '../../services/survey_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../services/offline_queue.dart';
+import '../../widgets/offline_queue_widget.dart';
 import '../../widgets/smooth_scroll_view.dart';
 import '../../services/survey_config_service.dart';
 import 'suggestions.dart'; // ThankYouScreen is defined here
@@ -137,6 +138,44 @@ class _SQDScreenState extends State<SQDScreen> {
     }
   }
 
+  void _scrollToNextQuestion(int currentIndex) {
+    // Only scroll if there's a next question
+    if (currentIndex < questions.length - 1) {
+      final nextIndex = currentIndex + 1;
+      // Ensure the key exists for the next question
+      if (!_questionKeys.containsKey(nextIndex)) {
+        _questionKeys[nextIndex] = GlobalKey();
+      }
+      final key = _questionKeys[nextIndex];
+      // Add a small delay to let the UI update before scrolling
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted && key?.currentContext != null) {
+          final RenderBox renderBox = key!.currentContext!.findRenderObject() as RenderBox;
+          final position = renderBox.localToGlobal(Offset.zero);
+          
+          // Calculate scroll offset accounting for current scroll position
+          // and desired alignment (0.2 = 20% from top)
+          if (_scrollController.hasClients) {
+            final viewportHeight = _scrollController.position.viewportDimension;
+            final currentScroll = _scrollController.offset;
+            final targetOffset = currentScroll + position.dy - (viewportHeight * 0.2) - 150; // 150 for header offset
+            
+            final clampedOffset = targetOffset.clamp(
+              _scrollController.position.minScrollExtent,
+              _scrollController.position.maxScrollExtent,
+            );
+            
+            _scrollController.animateTo(
+              clampedOffset,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeInOut,
+            );
+          }
+        }
+      });
+    }
+  }
+
   bool _isSubmitting = false;
 
     void _onNextPressed() async {
@@ -255,6 +294,13 @@ class _SQDScreenState extends State<SQDScreen> {
                 ),
               ),
             ),
+          ),
+          // Offline Queue Banner (shows only when needed)
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: OfflineQueueBanner(),
           ),
         ],
       ),
@@ -533,10 +579,15 @@ class _SQDScreenState extends State<SQDScreen> {
         
         return GestureDetector(
           onTap: () {
+            final wasAlreadyAnswered = answers[index] != null;
             setState(() {
               answers[index] = optIdx;
               _errorIndices.remove(index); // Clear error on select
             });
+            // Auto-scroll to next question only on first answer (not when changing)
+            if (!wasAlreadyAnswered) {
+              _scrollToNextQuestion(index);
+            }
           },
           child: AnimatedScale(
             scale: selected ? 1.1 : 1.0,

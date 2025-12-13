@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../services/offline_queue.dart';
 import '../../services/survey_config_service.dart';
+import '../../widgets/offline_queue_widget.dart';
 import 'landing_page.dart';
 import '../../widgets/smooth_scroll_view.dart';
 
@@ -78,6 +79,13 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                 ),
               ),
             ),
+          ),
+          // Offline Queue Banner (shows only when needed)
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: OfflineQueueBanner(),
           ),
         ],
       ),
@@ -425,7 +433,7 @@ class ThankYouScreen extends StatefulWidget {
   State<ThankYouScreen> createState() => _ThankYouScreenState();
 }
 
-class _ThankYouScreenState extends State<ThankYouScreen> {
+class _ThankYouScreenState extends State<ThankYouScreen> with TickerProviderStateMixin {
   late TextEditingController _commentsController;
   bool _isSubmittingComment = false;
   bool _hasCommentText = false;
@@ -437,11 +445,55 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
   DateTime _lastInteractionTime = DateTime.now();
   static const int _interactionPauseSeconds = 3; // pause countdown for 3 seconds after interaction
 
+  // Animation controllers
+  late AnimationController _checkmarkController;
+  late Animation<double> _checkmarkScale;
+  late Animation<double> _checkmarkOpacity;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
   @override
   void initState() {
     super.initState();
     _commentsController = TextEditingController();
     _commentsController.addListener(_onCommentChanged);
+    
+    // Initialize checkmark animation
+    _checkmarkController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    _checkmarkScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _checkmarkController,
+        curve: Curves.elasticOut,
+      ),
+    );
+    
+    _checkmarkOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _checkmarkController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
+      ),
+    );
+    
+    // Pulse animation for the glow effect
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
+      CurvedAnimation(
+        parent: _pulseController,
+        curve: Curves.easeInOut,
+      ),
+    );
+    
+    // Start animations
+    _checkmarkController.forward();
+    _pulseController.repeat(reverse: true);
     
     // Check kiosk mode and start countdown if enabled
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -504,6 +556,8 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
   void dispose() {
     _commentsController.removeListener(_onCommentChanged);
     _commentsController.dispose();
+    _checkmarkController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -630,12 +684,63 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
     return Container(
       width: double.infinity,
       height: isDesktopRightSide ? double.infinity : null,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       color: const Color(0xFF1C1E97),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.check_circle_outline, color: Colors.white, size: 80),
+          // Thank you image with animated checkmark overlay
+          AnimatedBuilder(
+            animation: Listenable.merge([_checkmarkController, _pulseController]),
+            builder: (context, child) {
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Thank you image
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.asset(
+                      'assets/thankyou-img.png',
+                      width: isDesktopRightSide ? 200 : 180,
+                      height: isDesktopRightSide ? 200 : 180,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  // Animated checkmark overlay
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Transform.scale(
+                      scale: _checkmarkScale.value * _pulseAnimation.value,
+                      child: Opacity(
+                        opacity: _checkmarkOpacity.value,
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00C853),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF00C853).withValues(alpha: 0.5),
+                                blurRadius: 15,
+                                spreadRadius: 3,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
           const SizedBox(height: 24),
           Text(
             "THANK YOU",

@@ -1,9 +1,13 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 /// A wrapper around SingleChildScrollView that provides "flowing" physics-based animation
 /// for mouse wheel events, eliminating the discrete "ticking" feel.
-/// allows standard touch dragging for mobile.
+/// Allows standard touch dragging for mobile.
+/// 
+/// Performance optimized: Uses Ticker-based animation for smoother scrolling
+/// on lower-end devices and avoids animation pile-up.
 class SmoothScrollView extends StatefulWidget {
   final Widget child;
   final ScrollController? controller;
@@ -22,46 +26,111 @@ class SmoothScrollView extends StatefulWidget {
   State<SmoothScrollView> createState() => _SmoothScrollViewState();
 }
 
-class _SmoothScrollViewState extends State<SmoothScrollView> {
+class _SmoothScrollViewState extends State<SmoothScrollView>
+    with SingleTickerProviderStateMixin {
   late ScrollController _controller;
   double _targetScroll = 0.0;
   
-  // We disable the native scroll physics for Mouse to prevent "ticking"
-  // But we enable it for Touch to allow dragging.
-  ScrollPhysics _physics = const NeverScrollableScrollPhysics();
+  // Ticker-based smooth scrolling for better performance
+  Ticker? _ticker;
+  
+  // Lerp factor for smooth interpolation (higher = snappier, lower = smoother)
+  // 0.15 provides a good balance between responsiveness and smoothness
+  static const double _lerpFactor = 0.15;
+  
+  // Minimum velocity threshold to stop animation
+  static const double _velocityThreshold = 0.5;
+  
+  // Track if we're using touch input
+  bool _isTouchInput = false;
+  
+  // We use ClampingScrollPhysics which allows animateTo but prevents bouncing
+  // Our custom wheel handler provides smooth scrolling for mouse
+  ScrollPhysics _physics = const ClampingScrollPhysics();
 
   @override
   void initState() {
     super.initState();
     _controller = widget.controller ?? ScrollController();
     
-    // Sync target with current position initially
+    // Sync target with current position initially and add listener
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_controller.hasClients) {
         _targetScroll = _controller.offset;
       }
     });
+    
+    // Listen for external scroll changes (like animateTo) to sync _targetScroll
+    _controller.addListener(_onScrollChanged);
+  }
+  
+  void _onScrollChanged() {
+    // If we're not actively scrolling via our ticker, sync the target
+    // This handles external animateTo calls
+    if (_ticker == null || !_ticker!.isActive) {
+      if (_controller.hasClients) {
+        _targetScroll = _controller.offset;
+      }
+    }
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_onScrollChanged);
+    _stopTicker();
     if (widget.controller == null) {
       _controller.dispose();
     }
     super.dispose();
   }
 
+  void _startTicker() {
+    if (_ticker != null && _ticker!.isActive) return;
+    
+    _ticker = createTicker(_onTick);
+    _ticker!.start();
+  }
+
+  void _stopTicker() {
+    _ticker?.stop();
+    _ticker?.dispose();
+    _ticker = null;
+  }
+
+  void _onTick(Duration elapsed) {
+    if (!_controller.hasClients) return;
+    
+    final currentOffset = _controller.offset;
+    final diff = _targetScroll - currentOffset;
+    
+    // If we're close enough, stop the animation
+    if (diff.abs() < _velocityThreshold) {
+      if (currentOffset != _targetScroll) {
+        _controller.jumpTo(_targetScroll);
+      }
+      _stopTicker();
+      return;
+    }
+    
+    // Lerp towards target for smooth animation
+    // Using lerp provides consistent smoothness across frame rates
+    final newOffset = currentOffset + (diff * _lerpFactor);
+    _controller.jumpTo(newOffset);
+  }
+
   void _handlePointerSignal(PointerSignalEvent event) {
     if (event is PointerScrollEvent) {
       if (!_controller.hasClients) return;
       
-      // Update target based on delta
-      // We use a multiplier to make it feel responsive but smooth
-      final delta = event.scrollDelta.dy;
-      // If delta is 0 (horizontal?), ignore for vertical
-      if (widget.scrollDirection == Axis.vertical && delta == 0) return;
+      // Get scroll delta
+      final delta = widget.scrollDirection == Axis.vertical 
+          ? event.scrollDelta.dy 
+          : event.scrollDelta.dx;
       
-      // Accumulate target
+      // Ignore zero delta
+      if (delta == 0) return;
+      
+      // Accumulate target with a slight multiplier for responsiveness
       _targetScroll += delta;
       
       // Clamp to extents
@@ -69,31 +138,37 @@ class _SmoothScrollViewState extends State<SmoothScrollView> {
       final max = _controller.position.maxScrollExtent;
       _targetScroll = _targetScroll.clamp(min, max);
       
-      // Animate smoothly to the new target
-      _controller.animateTo(
-        _targetScroll,
-        duration: const Duration(milliseconds: 600),
-        curve: Curves.easeOutQuart,
-      );
+      // Start smooth scrolling using ticker
+      _startTicker();
     }
   }
 
   void _handlePointerDown(PointerDownEvent event) {
-    // If user touches screen, enable standard physics logic (Drag)
-    // If mouse, disable standard logic to prevent "tick" double scroll
-    if (event.kind == PointerDeviceKind.touch || event.kind == PointerDeviceKind.stylus) {
-      setState(() {
-        _physics = const BouncingScrollPhysics();
-      });
-    } else {
-      // Mouse/Trackpad: We handle scroll manually via Signal
-      setState(() {
-        _physics = const NeverScrollableScrollPhysics();
-      });
-      // Also update target to current offset in case they used drag previously
-      if (_controller.hasClients) {
-        _targetScroll = _controller.offset;
+    final isTouch = event.kind == PointerDeviceKind.touch || 
+                    event.kind == PointerDeviceKind.stylus;
+    
+    // Only update state if input type actually changed
+    if (isTouch != _isTouchInput) {
+      _isTouchInput = isTouch;
+      
+      if (isTouch) {
+        // Touch: Stop any ongoing smooth scroll and enable physics
+        _stopTicker();
+        setState(() {
+          _physics = const BouncingScrollPhysics();
+        });
+      } else {
+        // Mouse/Trackpad: Use ClampingScrollPhysics to allow programmatic scrolling
+        // but our custom wheel handler provides smooth scrolling
+        setState(() {
+          _physics = const ClampingScrollPhysics();
+        });
       }
+    }
+    
+    // Sync target with current offset
+    if (_controller.hasClients) {
+      _targetScroll = _controller.offset;
     }
   }
 

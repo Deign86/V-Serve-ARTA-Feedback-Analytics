@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
 import '../../services/survey_config_service.dart';
 import '../../services/offline_queue.dart';
+import '../../widgets/offline_queue_widget.dart';
 import 'citizen_charter.dart';
 import 'sqd.dart';
 import 'suggestions.dart'; // ThankYouScreen is defined here
@@ -280,6 +281,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 ),
               ),
             ),
+          ),
+          // Offline Queue Banner (shows only when needed)
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: OfflineQueueBanner(),
           ),
         ],
       ),

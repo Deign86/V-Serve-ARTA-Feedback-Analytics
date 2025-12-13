@@ -79,10 +79,15 @@ void main() async {
   }
   debugPrint('CacheService initialized');
 
+  // Initialize offline queue service
+  final offlineQueueService = OfflineQueueService.instance;
+  debugPrint('OfflineQueueService initialized');
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: cacheService),
+        ChangeNotifierProvider.value(value: offlineQueueService),
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => FeedbackService()),
         ChangeNotifierProvider(create: (_) {
