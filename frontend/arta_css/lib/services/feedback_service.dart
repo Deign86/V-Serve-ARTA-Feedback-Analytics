@@ -6,7 +6,8 @@ import 'cache_service.dart';
 
 /// Service for fetching and aggregating feedback data from Firestore
 class FeedbackService extends ChangeNotifier with CachingMixin {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  // Lazy initialization of Firestore to avoid accessing before Firebase is ready
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
   
   // Cached data
   List<SurveyData> _feedbacks = [];

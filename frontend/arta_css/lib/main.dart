@@ -15,6 +15,7 @@ import 'services/feedback_service.dart';
 import 'services/survey_config_service.dart';
 import 'services/user_management_service.dart';
 import 'services/survey_provider.dart';
+import 'services/audit_log_service.dart';
 import 'screens/role_based_login_screen.dart';
 import 'screens/admin/role_based_dashboard.dart';
 import 'utils/app_transitions.dart';
@@ -97,6 +98,7 @@ void main() async {
         }),
         ChangeNotifierProvider(create: (_) => UserManagementService()),
         ChangeNotifierProvider(create: (_) => SurveyProvider()),
+        ChangeNotifierProvider(create: (_) => AuditLogService()),
       ],
       child: const MyApp(),
     ),
@@ -201,32 +203,78 @@ class AuthRouteObserver extends NavigatorObserver {
   }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Wire up audit logging services after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeAuditLogging();
+    });
+  }
+  
+  /// Initialize audit logging by connecting all services to the audit log service
+  void _initializeAuditLogging() {
+    try {
+      final auditLogService = context.read<AuditLogService>();
+      final authService = context.read<AuthService>();
+      final userManagementService = context.read<UserManagementService>();
+      final surveyConfigService = context.read<SurveyConfigService>();
+      
+      // Connect audit service to auth service
+      authService.setAuditService(auditLogService);
+      
+      // Connect audit service to user management (will get current user from auth when needed)
+      userManagementService.setAuditService(auditLogService, authService.currentUser);
+      
+      // Connect audit service to survey config
+      surveyConfigService.setAuditService(auditLogService, authService.currentUser);
+      
+      // Listen for auth changes to update the actor in services
+      authService.addListener(() {
+        userManagementService.setAuditService(auditLogService, authService.currentUser);
+        surveyConfigService.setAuditService(auditLogService, authService.currentUser);
+      });
+      
+      debugPrint('AuditLogging: Services initialized and connected');
+    } catch (e) {
+      debugPrint('AuditLogging: Failed to initialize - $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final authService = context.read<AuthService>();
-    
-    return MaterialApp(
-      scrollBehavior: const SmoothScrollBehavior(),
-      theme: ThemeData(
-        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
-        pageTransitionsTheme: const PageTransitionsTheme(
-          builders: {
-            TargetPlatform.android: GenericPageTransitionsBuilder(),
-            TargetPlatform.iOS: GenericPageTransitionsBuilder(),
-            TargetPlatform.windows: GenericPageTransitionsBuilder(),
-            TargetPlatform.macOS: GenericPageTransitionsBuilder(),
-            TargetPlatform.linux: GenericPageTransitionsBuilder(),
-          },
-        ),
-      ),
-      title: 'V-Serve',
-      initialRoute: '/', // Public survey is the default landing page
-      navigatorObservers: [AuthRouteObserver(authService)],
-      onGenerateRoute: (settings) => _generateRoute(settings, authService),
-      debugShowCheckedModeBanner: false,
+    // Use Consumer to properly listen to AuthService changes
+    return Consumer<AuthService>(
+      builder: (context, authService, _) {
+        return MaterialApp(
+          scrollBehavior: const SmoothScrollBehavior(),
+          theme: ThemeData(
+            textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
+            pageTransitionsTheme: const PageTransitionsTheme(
+              builders: {
+                TargetPlatform.android: GenericPageTransitionsBuilder(),
+                TargetPlatform.iOS: GenericPageTransitionsBuilder(),
+                TargetPlatform.windows: GenericPageTransitionsBuilder(),
+                TargetPlatform.macOS: GenericPageTransitionsBuilder(),
+                TargetPlatform.linux: GenericPageTransitionsBuilder(),
+              },
+            ),
+          ),
+          title: 'V-Serve',
+          initialRoute: '/', // Public survey is the default landing page
+          navigatorObservers: [AuthRouteObserver(authService)],
+          onGenerateRoute: (settings) => _generateRoute(settings, authService),
+          debugShowCheckedModeBanner: false,
+        );
+      },
     );
   }
   

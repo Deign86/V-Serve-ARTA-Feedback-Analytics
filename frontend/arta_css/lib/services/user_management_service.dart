@@ -1,9 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:crypto/crypto.dart';
+import 'package:bcrypt/bcrypt.dart';
 import 'cache_service.dart';
+import 'audit_log_service.dart';
+import '../models/user_model.dart';
 
 /// Model representing an admin/system user
 class SystemUser {
@@ -98,7 +99,18 @@ class SystemUser {
 
 /// Service for managing system users
 class UserManagementService extends ChangeNotifier with CachingMixin {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  // Lazy initialization of Firestore to avoid accessing before Firebase is ready
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
+  
+  // Audit log service reference (set via setAuditService)
+  AuditLogService? _auditLogService;
+  UserModel? _currentActor;
+  
+  /// Set the audit log service for logging actions
+  void setAuditService(AuditLogService auditService, UserModel? currentUser) {
+    _auditLogService = auditService;
+    _currentActor = currentUser;
+  }
   
   List<SystemUser> _users = [];
   bool _isLoading = false;
@@ -333,11 +345,11 @@ class UserManagementService extends ChangeNotifier with CachingMixin {
   }
 
   /// Add a new user
-  /// Hash a password using SHA-256
+  /// Hash a password using bcrypt (secure, memory-hard algorithm)
   static String _hashPassword(String password) {
-    final bytes = utf8.encode(password);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
+    // Generate a salt with work factor 12 (good balance of security and performance)
+    final salt = BCrypt.gensalt(logRounds: 12);
+    return BCrypt.hashpw(password, salt);
   }
 
   /// Add a new user to Firestore
@@ -382,6 +394,16 @@ class UserManagementService extends ChangeNotifier with CachingMixin {
         'lastLoginAt': null,
       });
 
+      // Log the user creation to audit log
+      await _auditLogService?.logUserCreated(
+        actor: _currentActor,
+        newUserId: docRef.id,
+        newUserName: name,
+        newUserEmail: email,
+        newUserRole: role,
+        newUserDepartment: department,
+      );
+
       debugPrint('User added with ID: ${docRef.id}');
       return true;
     } catch (e) {
@@ -393,8 +415,19 @@ class UserManagementService extends ChangeNotifier with CachingMixin {
   }
 
   /// Update an existing user
-  Future<bool> updateUser(SystemUser user) async {
+  Future<bool> updateUser(SystemUser user, {SystemUser? previousUser}) async {
     try {
+      // Get previous values if not provided
+      SystemUser? oldUser = previousUser;
+      if (oldUser == null) {
+        final existingDoc = await _firestore.collection('system_users').doc(user.id).get();
+        if (existingDoc.exists) {
+          final data = existingDoc.data()!;
+          data['id'] = existingDoc.id;
+          oldUser = SystemUser.fromJson(data);
+        }
+      }
+      
       await _firestore.collection('system_users').doc(user.id).update({
         'name': user.name,
         'email': user.email,
@@ -402,6 +435,38 @@ class UserManagementService extends ChangeNotifier with CachingMixin {
         'department': user.department,
         'status': user.status,
       });
+
+      // Log to audit - check if role changed specifically
+      if (oldUser != null && oldUser.role != user.role) {
+        await _auditLogService?.logUserRoleChanged(
+          actor: _currentActor,
+          targetUserId: user.id,
+          targetUserName: user.name,
+          previousRole: oldUser.role,
+          newRole: user.role,
+        );
+      }
+      
+      // Log general update
+      await _auditLogService?.logUserUpdated(
+        actor: _currentActor,
+        targetUserId: user.id,
+        targetUserName: user.name,
+        previousValues: {
+          'name': oldUser?.name ?? '',
+          'email': oldUser?.email ?? '',
+          'role': oldUser?.role ?? '',
+          'department': oldUser?.department ?? '',
+          'status': oldUser?.status ?? '',
+        },
+        newValues: {
+          'name': user.name,
+          'email': user.email,
+          'role': user.role,
+          'department': user.department,
+          'status': user.status,
+        },
+      );
 
       debugPrint('User updated: ${user.id}');
       return true;
@@ -414,11 +479,33 @@ class UserManagementService extends ChangeNotifier with CachingMixin {
   }
 
   /// Change user status
-  Future<bool> setUserStatus(String userId, String status) async {
+  Future<bool> setUserStatus(String userId, String status, {String? userName, String? previousStatus}) async {
     try {
+      // Get previous status if not provided
+      String oldStatus = previousStatus ?? 'Unknown';
+      String userDisplayName = userName ?? userId;
+      
+      if (previousStatus == null || userName == null) {
+        final existingDoc = await _firestore.collection('system_users').doc(userId).get();
+        if (existingDoc.exists) {
+          final data = existingDoc.data()!;
+          oldStatus = data['status'] ?? 'Unknown';
+          userDisplayName = data['name'] ?? userId;
+        }
+      }
+      
       await _firestore.collection('system_users').doc(userId).update({
         'status': status,
       });
+
+      // Log status change to audit
+      await _auditLogService?.logUserStatusChanged(
+        actor: _currentActor,
+        targetUserId: userId,
+        targetUserName: userDisplayName,
+        previousStatus: oldStatus,
+        newStatus: status,
+      );
 
       debugPrint('User $userId status changed to $status');
       return true;
@@ -431,9 +518,31 @@ class UserManagementService extends ChangeNotifier with CachingMixin {
   }
 
   /// Delete a user
-  Future<bool> deleteUser(String userId) async {
+  Future<bool> deleteUser(String userId, {String? userName, String? userEmail}) async {
     try {
+      // Get user info before deletion for audit log
+      String deletedName = userName ?? userId;
+      String deletedEmail = userEmail ?? '';
+      
+      if (userName == null || userEmail == null) {
+        final existingDoc = await _firestore.collection('system_users').doc(userId).get();
+        if (existingDoc.exists) {
+          final data = existingDoc.data()!;
+          deletedName = data['name'] ?? userId;
+          deletedEmail = data['email'] ?? '';
+        }
+      }
+      
       await _firestore.collection('system_users').doc(userId).delete();
+      
+      // Log deletion to audit
+      await _auditLogService?.logUserDeleted(
+        actor: _currentActor,
+        deletedUserId: userId,
+        deletedUserName: deletedName,
+        deletedUserEmail: deletedEmail,
+      );
+      
       debugPrint('User deleted: $userId');
       return true;
     } catch (e) {

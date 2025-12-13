@@ -9,8 +9,8 @@
  *   npm install
  *   
  *   # Option 1: Set environment variables directly
- *   set ADMIN_EMAIL=admin@example.com
- *   set ADMIN_PASSWORD=securePassword123
+ *   set ADMIN_EMAIL=admin@vserve.gov.ph
+ *   set ADMIN_PASSWORD=Admin@2024!Secure
  *   node scripts/seed_admin_users.js
  *   
  *   # Option 2: Create a .env file in the backend folder (see .env.example)
@@ -18,15 +18,13 @@
  * 
  * Environment Variables (all optional - will skip if not set):
  *   ADMIN_NAME, ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_DEPARTMENT
- *   EDITOR_NAME, EDITOR_EMAIL, EDITOR_PASSWORD, EDITOR_DEPARTMENT
- *   ANALYST_NAME, ANALYST_EMAIL, ANALYST_PASSWORD, ANALYST_DEPARTMENT
  *   VIEWER_NAME, VIEWER_EMAIL, VIEWER_PASSWORD, VIEWER_DEPARTMENT
  * 
  * Note: Requires a valid serviceAccountKey.json in the backend folder or
  * set SERVICE_ACCOUNT_PATH environment variable to the path of your service account key.
  */
 
-const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const path = require('path');
 
 // Load environment variables from .env file if it exists
@@ -38,16 +36,18 @@ try {
 
 const db = require('../src/firestore');
 
-// Hash password using SHA-256 (matches the Flutter app's hashing)
+// Hash password using bcrypt (secure, memory-hard algorithm)
+// Uses work factor of 12 (matches Flutter app's bcrypt configuration)
 function hashPassword(password) {
-  return crypto.createHash('sha256').update(password).digest('hex');
+  const salt = bcrypt.genSaltSync(12);
+  return bcrypt.hashSync(password, salt);
 }
 
 // Build admin users array from environment variables
 function buildAdminUsers() {
   const users = [];
   
-  // Admin user
+  // Admin user (Full access)
   if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
     users.push({
       name: process.env.ADMIN_NAME || 'Admin User',
@@ -59,31 +59,7 @@ function buildAdminUsers() {
     });
   }
   
-  // Editor user
-  if (process.env.EDITOR_EMAIL && process.env.EDITOR_PASSWORD) {
-    users.push({
-      name: process.env.EDITOR_NAME || 'Editor User',
-      email: process.env.EDITOR_EMAIL,
-      password: process.env.EDITOR_PASSWORD,
-      role: 'Editor',
-      department: process.env.EDITOR_DEPARTMENT || 'Business Licensing',
-      status: 'Active',
-    });
-  }
-  
-  // Analyst user
-  if (process.env.ANALYST_EMAIL && process.env.ANALYST_PASSWORD) {
-    users.push({
-      name: process.env.ANALYST_NAME || 'Analyst User',
-      email: process.env.ANALYST_EMAIL,
-      password: process.env.ANALYST_PASSWORD,
-      role: 'Analyst',
-      department: process.env.ANALYST_DEPARTMENT || 'Data Analytics',
-      status: 'Active',
-    });
-  }
-  
-  // Viewer user
+  // Viewer user (Read-only access)
   if (process.env.VIEWER_EMAIL && process.env.VIEWER_PASSWORD) {
     users.push({
       name: process.env.VIEWER_NAME || 'Viewer User',
@@ -108,11 +84,10 @@ async function seedAdminUsers() {
     console.log('\nPlease set environment variables or create a .env file.');
     console.log('Required variables for each user type:');
     console.log('  ADMIN_EMAIL, ADMIN_PASSWORD');
-    console.log('  EDITOR_EMAIL, EDITOR_PASSWORD');
-    console.log('  ANALYST_EMAIL, ANALYST_PASSWORD');
     console.log('  VIEWER_EMAIL, VIEWER_PASSWORD');
     console.log('\nOptional variables:');
-    console.log('  ADMIN_NAME, ADMIN_DEPARTMENT (same pattern for other roles)');
+    console.log('  ADMIN_NAME, ADMIN_DEPARTMENT');
+    console.log('  VIEWER_NAME, VIEWER_DEPARTMENT');
     console.log('\nSee .env.example for a template.');
     process.exit(1);
   }
