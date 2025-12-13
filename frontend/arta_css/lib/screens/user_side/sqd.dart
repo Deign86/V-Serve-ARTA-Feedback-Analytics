@@ -241,6 +241,7 @@ class _SQDScreenState extends State<SQDScreen> {
                       currentStep: currentStep,
                       totalSteps: totalSteps,
                       isMobile: isMobile,
+                      customSteps: configService.getVisibleProgressBarSteps(),
                     ),
                     SizedBox(height: isMobile ? 16 : 24),
                     Expanded(child: _buildFormCard(isMobile)),

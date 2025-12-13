@@ -79,6 +79,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                       currentStep: context.watch<SurveyConfigService>().getStepNumber(SurveyStep.suggestions),
                       totalSteps: context.watch<SurveyConfigService>().totalSteps,
                       isMobile: isMobile,
+                      customSteps: context.watch<SurveyConfigService>().getVisibleProgressBarSteps(),
                     ),
                     SizedBox(height: isMobile ? 16 : 24),
                     Expanded(child: _buildFormCard(isMobile)),

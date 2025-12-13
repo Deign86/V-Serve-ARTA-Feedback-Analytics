@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart'; // For Icons
+import 'package:arta_css/widgets/survey_progress_bar.dart'; // For ProgressBarStep
 import 'package:shared_preferences/shared_preferences.dart';
 import 'audit_log_service.dart';
 import '../models/user_model.dart';
@@ -145,6 +147,34 @@ class SurveyConfigService extends ChangeNotifier {
     if (_sqdEnabled) steps++;
     if (_suggestionsEnabled) steps++;
     return steps > 0 ? steps : 1; // Ensure at least 1 step for safety
+  }
+
+  /// Get list of visible steps for ProgressBar
+  List<ProgressBarStep> getVisibleProgressBarSteps() {
+    final List<ProgressBarStep> steps = [];
+    
+    if (_demographicsEnabled) {
+      steps.add(const ProgressBarStep(icon: Icons.person_outline, label: 'Profile'));
+    }
+    
+    if (_ccEnabled) {
+      steps.add(const ProgressBarStep(icon: Icons.article_outlined, label: 'Charter'));
+    }
+    
+    if (_sqdEnabled) {
+      steps.add(const ProgressBarStep(icon: Icons.star_outline, label: 'Ratings'));
+    }
+    
+    if (_suggestionsEnabled) {
+      steps.add(const ProgressBarStep(icon: Icons.chat_bubble_outline, label: 'Feedback'));
+    }
+    
+    // Fallback if all disabled (shouldn't happen in normal flow but good for safety)
+    if (steps.isEmpty) {
+      steps.add(const ProgressBarStep(icon: Icons.check_circle_outline, label: 'Done'));
+    }
+    
+    return steps;
   }
 
   /// Calculate dynamic step number for a given screen
