@@ -7,13 +7,12 @@ import '../../services/feedback_service.dart';
 import '../../services/survey_config_service.dart';
 import '../../services/qr_code_service.dart';
 import '../../models/survey_data.dart';
+import '../../utils/admin_theme.dart';
 import '../user_side/landing_page.dart';
 
-// THEME CONSTANTS
-const String fontHeading = 'Montserrat';
-const String fontBody = 'Poppins';
-final Color brandBlue = Colors.blue.shade900;
-final Color brandRed = Colors.red.shade900;
+// THEME CONSTANTS - Re-exported from AdminTheme for backwards compatibility
+final Color brandBlue = AdminTheme.brandBlue;
+final Color brandRed = AdminTheme.brandRed;
 
 // ARTA Configuration Screen
 class ArtaConfigurationScreen extends StatefulWidget {
@@ -48,11 +47,9 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
                     children: [
                        RichText(
                         text: TextSpan(
-                          style: TextStyle(
-                            fontFamily: 'Montserrat',
-                            fontSize: isSmallScreen ? 20 : 24,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: AdminTheme.headingLarge(
+                            color: Colors.white,
+                          ).copyWith(fontSize: isSmallScreen ? 20 : 24),
                           children: const <TextSpan>[
                             TextSpan(
                               text: 'ARTA Survey ',
@@ -68,11 +65,9 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
                       const SizedBox(height: 8),
                       Text(
                         'Manage the standard Client Satisfaction Measurement (CSM) form.',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: isSmallScreen ? 12 : 14,
+                        style: AdminTheme.bodyMedium(
                           color: Colors.white,
-                        ),
+                        ).copyWith(fontSize: isSmallScreen ? 12 : 14),
                       ),
                     ],
                   ),
@@ -250,10 +245,7 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
                     const SizedBox(width: 12),
                     Text(
                       title,
-                      style: TextStyle(
-                        fontFamily: fontHeading,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                      style: AdminTheme.headingSmall(
                         color: Colors.black87,
                       ),
                     ),
@@ -268,11 +260,9 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
                     ),
                     child: Text(
                       'Mandatory',
-                      style: TextStyle(
-                        fontFamily: fontBody,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                      style: AdminTheme.bodyXS(
                         color: brandRed,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
@@ -297,19 +287,15 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    fontFamily: fontBody,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                  style: AdminTheme.bodyMedium(
                     color: Colors.black87,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontFamily: fontBody,
-                    fontSize: 12,
+                  style: AdminTheme.bodySmall(
                     color: Colors.grey.shade600,
                   ),
                 ),
@@ -347,10 +333,7 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
                 const SizedBox(width: 12),
                 Text(
                   'Access Point',
-                  style: TextStyle(
-                    fontFamily: fontHeading,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                  style: AdminTheme.headingSmall(
                     color: Colors.black87,
                   ),
                 ),
@@ -382,7 +365,7 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
             Center(
               child: Text(
                 'ID: ${QrCodeService.surveyId}',
-                style: TextStyle(fontFamily: fontBody, fontSize: 10, color: Colors.grey.shade500),
+                style: AdminTheme.bodyXS(color: Colors.grey.shade500),
               ),
             ),
             const SizedBox(height: 24),
@@ -463,10 +446,10 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Direct Link:', style: TextStyle(fontFamily: fontBody, fontSize: 12, color: Colors.grey.shade600)),
+                Text('Direct Link:', style: AdminTheme.bodySmall(color: Colors.grey.shade600)),
                 SelectableText(
                   QrCodeService.surveyUrl.replaceFirst('https://', ''),
-                  style: TextStyle(fontFamily: fontBody, fontSize: 11, color: Colors.blue, fontWeight: FontWeight.w500),
+                  style: AdminTheme.linkText(),
                 ),
               ],
             ),
@@ -474,8 +457,8 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Status:', style: TextStyle(fontFamily: fontBody, fontSize: 12, color: Colors.grey.shade600)),
-                Text('Active', style: TextStyle(fontFamily: fontBody, fontSize: 12, color: Colors.green, fontWeight: FontWeight.bold)),
+                Text('Status:', style: AdminTheme.bodySmall(color: Colors.grey.shade600)),
+                Text('Active', style: AdminTheme.bodySmall(color: Colors.green, fontWeight: FontWeight.bold)),
               ],
             ),
           ],
@@ -503,10 +486,7 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
                 const SizedBox(width: 12),
                 Text(
                   'Live Preview',
-                  style: TextStyle(
-                    fontFamily: fontHeading,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                  style: AdminTheme.headingSmall(
                     color: brandBlue,
                   ),
                 ),
@@ -515,9 +495,7 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
             const SizedBox(height: 12),
             Text(
               'See how the survey looks on mobile devices before publishing changes.',
-              style: TextStyle(
-                fontFamily: fontBody,
-                fontSize: 12,
+              style: AdminTheme.bodySmall(
                 color: brandBlue.withValues(alpha: 0.8),
               ),
             ),
@@ -557,7 +535,7 @@ class SurveyDetailScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FC), // Light blue-grey background
       appBar: AppBar(
-        title: Text('Survey Preview', style: TextStyle(fontFamily: fontHeading, color: Colors.black87, fontWeight: FontWeight.bold)),
+        title: Text('Survey Preview', style: AdminTheme.headingMedium(color: Colors.black87)),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black87),
@@ -597,8 +575,8 @@ class SurveyDetailScreen extends StatelessWidget {
                                 Column(
                                  crossAxisAlignment: CrossAxisAlignment.start,
                                  children: [
-                                   Text('CITY GOVERNMENT OF VALENZUELA', style: TextStyle(fontFamily: fontHeading, fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey.shade700)),
-                                   Text('Service Excellence Office', style: TextStyle(fontFamily: fontBody, fontSize: 10, color: Colors.grey.shade500)),
+                                   Text('CITY GOVERNMENT OF VALENZUELA', style: AdminTheme.bodySmall(color: Colors.grey.shade700, fontWeight: FontWeight.bold)),
+                                   Text('Service Excellence Office', style: AdminTheme.bodyXS(color: Colors.grey.shade500)),
                                  ],
                                )
                             ],
@@ -606,22 +584,22 @@ class SurveyDetailScreen extends StatelessWidget {
                           const SizedBox(height: 32),
                           
                           // Survey Header
-                          Text(title, style: TextStyle(fontFamily: fontHeading, fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87)),
+                          Text(title, style: AdminTheme.headingLarge(color: Colors.black87).copyWith(fontSize: 28)),
                           const SizedBox(height: 8),
                           Text(
                             'Your feedback is important to us. Please help us improve our services by answering the following questions.',
-                            style: TextStyle(fontFamily: fontBody, fontSize: 14, color: Colors.grey.shade600),
+                            style: AdminTheme.bodyMedium(color: Colors.grey.shade600),
                           ),
                           const Divider(height: 48),
 
-                          Text("Citizen's Charter (CC)", style: TextStyle(fontFamily: fontHeading, fontSize: 18, fontWeight: FontWeight.bold, color: brandBlue)),
+                          Text("Citizen's Charter (CC)", style: AdminTheme.headingMedium(color: brandBlue)),
                           const SizedBox(height: 16),
                           _buildPreviewItem(1, 'CC1: Do you know about the Citizen\'s Charter?', ['Yes, aware before my transaction', 'Yes, but only saw it today', 'No, not aware']),
                           _buildPreviewItem(2, 'CC2: Did you see the Citizen\'s Charter?', ['Yes, it was easy to see', 'Yes, but hard to see', 'No, did not see it']),
                           _buildPreviewItem(3, 'CC3: Was the Citizen\'s Charter helpful?', ['Yes, very helpful', 'Somewhat helpful', 'No, not helpful']),
 
                           const Divider(height: 48),
-                          Text("Service Quality Dimensions (SQD)", style: TextStyle(fontFamily: fontHeading, fontSize: 18, fontWeight: FontWeight.bold, color: brandBlue)),
+                          Text("Service Quality Dimensions (SQD)", style: AdminTheme.headingMedium(color: brandBlue)),
                           const SizedBox(height: 16),
                           _buildPreviewItem(4, 'SQD0: I am satisfied with the service that I availed.', []), // Empty list for rating
                           _buildPreviewItem(5, 'SQD1: I spent a reasonable amount of time for my transaction.', []),
@@ -636,7 +614,7 @@ class SurveyDetailScreen extends StatelessWidget {
                                 backgroundColor: brandBlue,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
-                              child: const Text('SUBMIT FEEDBACK', style: TextStyle(fontFamily: fontHeading, fontWeight: FontWeight.bold)),
+                              child: Text('SUBMIT FEEDBACK', style: AdminTheme.headingXS(color: Colors.white)),
                             ),
                           )
                         ],
@@ -646,7 +624,7 @@ class SurveyDetailScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              Text("This is a preview of how the survey appears to citizens.", style: TextStyle(fontFamily: fontBody, color: Colors.grey.shade600)),
+              Text("This is a preview of how the survey appears to citizens.", style: AdminTheme.bodyMedium(color: Colors.grey.shade600)),
             ],
           ),
         ),
@@ -660,7 +638,7 @@ class SurveyDetailScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(question, style: TextStyle(fontFamily: fontBody, fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+          Text(question, style: AdminTheme.bodyLarge(color: Colors.black87, fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
           if (options.isEmpty)
              Row(children: List.generate(5, (index) => Padding(padding: const EdgeInsets.only(right: 8), child: Icon(Icons.star_border, color: Colors.amber, size: 30))))
@@ -677,7 +655,7 @@ class SurveyDetailScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text(opt, style: TextStyle(fontFamily: fontBody, fontSize: 14, color: Colors.grey.shade800)),
+                Text(opt, style: AdminTheme.bodyMedium(color: Colors.grey.shade800)),
               ],
             ),
           )),
@@ -706,11 +684,7 @@ class _MobilePreviewScreenState extends State<MobilePreviewScreen> {
       appBar: AppBar(
         title: Text(
           'Mobile Preview',
-          style: TextStyle(
-            fontFamily: fontHeading,
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
+          style: AdminTheme.headingMedium(color: Colors.black87),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -768,20 +742,12 @@ class _MobilePreviewScreenState extends State<MobilePreviewScreen> {
             const SizedBox(height: 24),
             Text(
               'This preview shows exactly how the survey appears on mobile devices.',
-              style: TextStyle(
-                fontFamily: fontBody,
-                color: Colors.grey.shade600,
-                fontSize: 14,
-              ),
+              style: AdminTheme.bodyMedium(color: Colors.grey.shade600),
             ),
             const SizedBox(height: 8),
             Text(
               'Interact with it to test the full survey flow.',
-              style: TextStyle(
-                fontFamily: fontBody,
-                color: Colors.grey.shade500,
-                fontSize: 12,
-              ),
+              style: AdminTheme.bodySmall(color: Colors.grey.shade500),
             ),
             const SizedBox(height: 24),
           ],
@@ -803,6 +769,10 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
   // Date filter state
   DateTimeRange? _selectedDateRange;
   String _activeFilter = 'all'; // 'all', 'thisMonth', 'thisWeek', 'custom'
+  
+  // Radar chart hover state
+  int? _touchedRadarIndex;
+  Offset? _radarMousePosition;
   
   // SQD metadata
   static const List<Map<String, String>> _sqdMetadata = [
@@ -974,11 +944,9 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                             children: [
                               RichText(
                                 text: TextSpan(
-                                  style: TextStyle(
-                                    fontFamily: 'Montserrat',
-                                    fontSize: isSmallScreen ? 20 : 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: AdminTheme.headingLarge(
+                                    color: Colors.white,
+                                  ).copyWith(fontSize: isSmallScreen ? 20 : 24),
                                   children: const <TextSpan>[
                                     TextSpan(
                                       text: 'DETAILED ',
@@ -994,11 +962,9 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                               const SizedBox(height: 8),
                               Text(
                                 'Deep dive into customer satisfaction metrics and segmentation.',
-                                style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize: isSmallScreen ? 12 : 14,
+                                style: AdminTheme.bodyMedium(
                                   color: Colors.white,
-                                ),
+                                ).copyWith(fontSize: isSmallScreen ? 12 : 14),
                               ),
                             ],
                           ),
@@ -1116,7 +1082,7 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                       children: [
                         Icon(Icons.auto_awesome, color: brandBlue, size: 20),
                         const SizedBox(width: 12),
-                        Text('Automated Performance Analysis', style: TextStyle(fontFamily: fontHeading, fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text('Automated Performance Analysis', style: AdminTheme.headingSmall()),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -1149,7 +1115,7 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Service Quality Dimensions (SQD) Breakdown', style: TextStyle(fontFamily: fontHeading, fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                      Text('Service Quality Dimensions (SQD) Breakdown', style: AdminTheme.headingMedium(color: Colors.black87)),
                       TextButton.icon(
                         onPressed: () {},
                         icon: const Icon(Icons.arrow_forward, size: 16),
@@ -1234,7 +1200,7 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Visual SQD Analysis (Radar)', style: TextStyle(fontFamily: fontHeading, fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text('Visual SQD Analysis (Radar)', style: AdminTheme.headingSmall()),
                     const SizedBox(height: 24),
                     SizedBox(
                       height: 400,
@@ -1245,45 +1211,146 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                                 style: TextStyle(color: Colors.grey.shade400),
                               ),
                             )
-                          : RadarChart(
-                        RadarChartData(
-                          radarShape: RadarShape.polygon,
-                          ticksTextStyle: const TextStyle(color: Colors.transparent),
-                          gridBorderData: BorderSide(color: Colors.grey.shade200),
-                          titlePositionPercentageOffset: 0.2,
-                          titleTextStyle: TextStyle(color: Colors.grey.shade800, fontSize: 12),
-                          tickCount: 5,
-                          // ticksBorderData removed
-                          radarBorderData: const BorderSide(color: Colors.transparent),
-                          radarBackgroundColor: Colors.transparent,
-                          // Fix scale to 0-5 to match PDF chart (prevents auto-scaling)
-                          borderData: FlBorderData(show: false),
-                          dataSets: [
-                            RadarDataSet(
-                              fillColor: brandRed.withValues(alpha: 0.4),
-                              borderColor: brandRed,
-                              entryRadius: 3,
-                              dataEntries: sqdData.map((e) => RadarEntry(value: e['score'] as double)).toList(),
+                          : LayoutBuilder(
+                              builder: (context, constraints) {
+                                return MouseRegion(
+                                  onHover: (event) {
+                                    setState(() => _radarMousePosition = event.localPosition);
+                                  },
+                                  onExit: (_) {
+                                    setState(() {
+                                      _touchedRadarIndex = null;
+                                      _radarMousePosition = null;
+                                    });
+                                  },
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      RadarChart(
+                                        RadarChartData(
+                                          radarShape: RadarShape.polygon,
+                                          ticksTextStyle: const TextStyle(color: Colors.transparent),
+                                          gridBorderData: BorderSide(color: Colors.grey.shade200),
+                                          titlePositionPercentageOffset: 0.2,
+                                          titleTextStyle: TextStyle(color: Colors.grey.shade800, fontSize: 12),
+                                          tickCount: 5,
+                                          radarBorderData: const BorderSide(color: Colors.transparent),
+                                          radarBackgroundColor: Colors.transparent,
+                                          borderData: FlBorderData(show: false),
+                                          radarTouchData: RadarTouchData(
+                                            enabled: true,
+                                            touchSpotThreshold: 20,
+                                            touchCallback: (FlTouchEvent event, RadarTouchResponse? response) {
+                                              if (response == null || response.touchedSpot == null) {
+                                                if (_touchedRadarIndex != null) {
+                                                  setState(() => _touchedRadarIndex = null);
+                                                }
+                                                return;
+                                              }
+                                              // Only respond to first dataset (actual data, not scale helpers)
+                                              if (response.touchedSpot!.touchedDataSetIndex == 0) {
+                                                final newIndex = response.touchedSpot!.touchedRadarEntryIndex;
+                                                if (_touchedRadarIndex != newIndex) {
+                                                  setState(() => _touchedRadarIndex = newIndex);
+                                                }
+                                              }
+                                            },
+                                          ),
+                                          dataSets: [
+                                            RadarDataSet(
+                                              fillColor: brandRed.withValues(alpha: 0.4),
+                                              borderColor: brandRed,
+                                              entryRadius: 3,
+                                              dataEntries: sqdData.map((e) => RadarEntry(value: e['score'] as double)).toList(),
+                                            ),
+                                            // Add invisible dataset at 0 and 5 to fix the scale
+                                            RadarDataSet(
+                                              fillColor: Colors.transparent,
+                                              borderColor: Colors.transparent,
+                                              entryRadius: 0,
+                                              dataEntries: List.generate(sqdData.length, (_) => const RadarEntry(value: 0)),
+                                            ),
+                                            RadarDataSet(
+                                              fillColor: Colors.transparent,
+                                              borderColor: Colors.transparent,
+                                              entryRadius: 0,
+                                              dataEntries: List.generate(sqdData.length, (_) => const RadarEntry(value: 5)),
+                                            ),
+                                          ],
+                                          getTitle: (index, angle) {
+                                            return RadarChartTitle(text: sqdData[index]['code']);
+                                          },
+                                        ),
+                                      ),
+                                      // Custom tooltip overlay following cursor
+                                      if (_touchedRadarIndex != null && _touchedRadarIndex! < sqdData.length && _radarMousePosition != null)
+                                        Positioned(
+                                          left: (_radarMousePosition!.dx + 260 > constraints.maxWidth)
+                                              ? _radarMousePosition!.dx - 260
+                                              : _radarMousePosition!.dx + 16,
+                                          top: (_radarMousePosition!.dy + 100 > constraints.maxHeight)
+                                              ? _radarMousePosition!.dy - 100
+                                              : _radarMousePosition!.dy + 8,
+                                          child: IgnorePointer(
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey.shade800,
+                                                borderRadius: BorderRadius.circular(8),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black.withValues(alpha: 0.2),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    '${sqdData[_touchedRadarIndex!]['code']}: ${sqdData[_touchedRadarIndex!]['title']}',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 13,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    '${(sqdData[_touchedRadarIndex!]['score'] as double).toStringAsFixed(2)} / 5.00',
+                                                    style: TextStyle(
+                                                      color: (sqdData[_touchedRadarIndex!]['score'] as double) >= 4.5
+                                                          ? Colors.greenAccent
+                                                          : ((sqdData[_touchedRadarIndex!]['score'] as double) >= 4.0
+                                                              ? Colors.amberAccent
+                                                              : Colors.redAccent),
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 14,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  SizedBox(
+                                                    width: 220,
+                                                    child: Text(
+                                                      sqdData[_touchedRadarIndex!]['desc'] as String,
+                                                      style: TextStyle(
+                                                        color: Colors.white.withValues(alpha: 0.85),
+                                                        fontSize: 11,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              },
                             ),
-                            // Add invisible dataset at 0 and 5 to fix the scale
-                            RadarDataSet(
-                              fillColor: Colors.transparent,
-                              borderColor: Colors.transparent,
-                              entryRadius: 0,
-                              dataEntries: List.generate(sqdData.length, (_) => const RadarEntry(value: 0)),
-                            ),
-                            RadarDataSet(
-                              fillColor: Colors.transparent,
-                              borderColor: Colors.transparent,
-                              entryRadius: 0,
-                              dataEntries: List.generate(sqdData.length, (_) => const RadarEntry(value: 5)),
-                            ),
-                          ],
-                          getTitle: (index, angle) {
-                             return RadarChartTitle(text: sqdData[index]['code']);
-                          },
-                        ),
-                      ),
                     ),
                   ],
                 ),
@@ -1366,9 +1433,9 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(fontFamily: fontBody, fontSize: 12, color: Colors.grey.shade600)),
-                Text(value, style: TextStyle(fontFamily: fontHeading, fontSize: 16, fontWeight: FontWeight.bold)),
-                Text(sub, style: TextStyle(fontFamily: fontBody, fontSize: 12, color: color, fontWeight: FontWeight.w500)),
+                Text(label, style: AdminTheme.bodySmall(color: Colors.grey.shade600)),
+                Text(value, style: AdminTheme.headingSmall()),
+                Text(sub, style: AdminTheme.bodySmall(color: color, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -1380,7 +1447,7 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
   Widget _buildAnalysisText(String title, String content) {
     return RichText(
       text: TextSpan(
-        style: TextStyle(fontFamily: fontBody, fontSize: 13, color: Colors.grey.shade800, height: 1.5),
+        style: AdminTheme.analysisText(color: Colors.grey.shade800),
         children: [
           TextSpan(text: '$title: ', style: const TextStyle(fontWeight: FontWeight.bold)),
           TextSpan(text: content),
@@ -1408,7 +1475,7 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
               children: [
                 Icon(Icons.bar_chart, color: brandBlue, size: 20),
                 const SizedBox(width: 12),
-                Text('Satisfaction by Service', style: TextStyle(fontFamily: fontHeading, fontSize: 16, fontWeight: FontWeight.bold)),
+                Text('Satisfaction by Service', style: AdminTheme.headingSmall()),
               ],
             ),
             const SizedBox(height: 24),
@@ -1505,7 +1572,7 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
               children: [
                 Icon(Icons.pie_chart, color: brandRed, size: 20),
                 const SizedBox(width: 12),
-                Text('Respondent Profile', style: TextStyle(fontFamily: fontHeading, fontSize: 16, fontWeight: FontWeight.bold)),
+                Text('Respondent Profile', style: AdminTheme.headingSmall()),
               ],
             ),
             const SizedBox(height: 24),

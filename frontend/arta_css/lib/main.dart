@@ -33,26 +33,26 @@ void main() async {
   // Set URL strategy for web (removes # from URLs and enables proper history handling)
   url_strategy.configureUrlStrategy();
 
-  print('ARTAV_LOG: App Main Starting...'); // Use print for immediate feedback
+  debugPrint('ARTAV_LOG: App Main Starting...');
 
   try {
-    print('ARTAV_LOG: Initializing Firebase...');
+    debugPrint('ARTAV_LOG: Initializing Firebase...');
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     ).timeout(const Duration(seconds: 3), onTimeout: () {
-      print('ARTAV_LOG: Firebase init timed out - continuing without Firebase');
+      debugPrint('ARTAV_LOG: Firebase init timed out - continuing without Firebase');
       return Firebase.app(); // Return dummy/incomplete app or just continue
     });
-    print('ARTAV_LOG: Firebase initialized with generated options');
+    debugPrint('ARTAV_LOG: Firebase initialized with generated options');
     
     try {
       final flushed = await OfflineQueue.flush().timeout(const Duration(seconds: 2), onTimeout: () => 0);
-      if (flushed > 0) print('ARTAV_LOG: Flushed $flushed pending feedbacks');
+      if (flushed > 0) debugPrint('ARTAV_LOG: Flushed $flushed pending feedbacks');
     } catch (e) {
-      print('ARTAV_LOG: Failed flushing offline queue: $e');
+      debugPrint('ARTAV_LOG: Failed flushing offline queue: $e');
     }
   } catch (e) {
-    print('ARTAV_LOG: Firebase initializeApp failed: $e');
+    debugPrint('ARTAV_LOG: Firebase initializeApp failed: $e');
   }
 
   try {

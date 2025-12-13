@@ -4,10 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 
 class SplashScreen extends StatefulWidget {
   final Widget nextScreen;
+  /// Minimum display time in milliseconds (ensures splash is visible even if init is fast)
+  final int minimumDisplayMs;
 
   const SplashScreen({
     super.key,
     required this.nextScreen,
+    this.minimumDisplayMs = 800, // Minimum 800ms so animation is visible
   });
 
   @override
@@ -18,14 +21,17 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _opacityAnimation;
+  late DateTime _startTime;
+  bool _navigationTriggered = false;
 
   @override
   void initState() {
     super.initState();
+    _startTime = DateTime.now();
     
     // Animation setup
     _controller = AnimationController(
-      duration: const Duration(seconds: 2),
+      duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
     
@@ -39,20 +45,42 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    // 5-second simulated loading delay
-    Timer(const Duration(seconds: 5), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => widget.nextScreen,
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-            transitionDuration: const Duration(milliseconds: 800),
-          ),
-        );
+    // Navigate after animation completes and minimum display time is met
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _navigateWhenReady();
       }
     });
+  }
+
+  void _navigateWhenReady() {
+    if (_navigationTriggered || !mounted) return;
+    
+    final elapsed = DateTime.now().difference(_startTime).inMilliseconds;
+    final remaining = widget.minimumDisplayMs - elapsed;
+    
+    if (remaining > 0) {
+      // Wait for minimum display time
+      Timer(Duration(milliseconds: remaining), _performNavigation);
+    } else {
+      // Minimum time already passed, navigate immediately
+      _performNavigation();
+    }
+  }
+
+  void _performNavigation() {
+    if (_navigationTriggered || !mounted) return;
+    _navigationTriggered = true;
+    
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => widget.nextScreen,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 500),
+      ),
+    );
   }
 
   @override
@@ -89,7 +117,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue.withValues(alpha: 0.1),
                     ),
                     child: Icon(
                       Icons.analytics_outlined,
@@ -134,11 +162,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    "Loading System Resources...",
+                    "Initializing...",
                     style: GoogleFonts.poppins(
                       fontSize: 12,
                       color: Colors.grey[500],
-                      fontStyle: FontStyle.italic,
                     ),
                   ),
                 ],

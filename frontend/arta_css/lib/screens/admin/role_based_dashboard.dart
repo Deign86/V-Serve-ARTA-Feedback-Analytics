@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../services/feedback_service.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'admin_screens.dart';
 import '../../services/export_service.dart';
 import '../../services/auth_services.dart';
 import '../../services/user_management_service.dart';
+import '../../utils/admin_theme.dart';
 
 // NOTE: This file provides screens (DashboardScreen, etc.)
 // and no longer contains its own `main()` or a top-level `MaterialApp`.
@@ -341,12 +341,9 @@ class _DashboardOverviewState extends State<DashboardOverview> with SingleTicker
                         children: [
                            RichText(
                             text: TextSpan(
-                              style: GoogleFonts.montserrat(
-                                textStyle: TextStyle(
-                                  fontSize: isSmallScreen ? 24 : 32,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              style: AdminTheme.headingXL(
+                                color: Colors.white,
+                              ).copyWith(fontSize: isSmallScreen ? 24 : 32),
                               children: const <TextSpan>[
                                 TextSpan(
                                   text: 'ARTA ',
@@ -1000,12 +997,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     children: [
                       RichText(
                         text: TextSpan(
-                          style: GoogleFonts.montserrat(
-                            textStyle: TextStyle(
-                              fontSize: isSmallScreen ? 24 : 32,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          style: AdminTheme.headingXL(
+                            color: Colors.white,
+                          ).copyWith(fontSize: isSmallScreen ? 24 : 32),
                           children: const <TextSpan>[
                             TextSpan(text: 'USER ', style: TextStyle(color: Colors.amber)),
                             TextSpan(text: 'MANAGEMENT', style: TextStyle(color: Colors.white)),
@@ -1402,7 +1396,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           builder: (context, setState) {
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Text('Add New User', style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: brandBlue)),
+              title: Text('Add New User', style: AdminTheme.dialogTitle(color: brandBlue)),
               content: SizedBox(
                 width: 400,
                 child: Form(
@@ -1520,7 +1514,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           builder: (context, setState) {
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Text('Edit User', style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: brandBlue)),
+              title: Text('Edit User', style: AdminTheme.dialogTitle(color: brandBlue)),
               content: SizedBox(
                 width: 400,
                 child: Form(
@@ -1609,7 +1603,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 children: [
                   Icon(Icons.filter_list, color: brandBlue),
                   const SizedBox(width: 12),
-                  Text('Filter Users', style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: brandBlue)),
+                  Text('Filter Users', style: AdminTheme.dialogTitle(color: brandBlue)),
                 ],
               ),
               content: SizedBox(
@@ -1724,12 +1718,9 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
                 children: [
                   RichText(
                     text: TextSpan(
-                      style: GoogleFonts.montserrat(
-                        textStyle: TextStyle(
-                          fontSize: isSmallScreen ? 24 : 32,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      style: AdminTheme.headingXL(
+                        color: Colors.white,
+                      ).copyWith(fontSize: isSmallScreen ? 24 : 32),
                       children: const <TextSpan>[
                         TextSpan(
                           text: 'DATA ',
