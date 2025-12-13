@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../services/survey_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../../models/survey_data.dart';
 import '../../services/survey_config_service.dart';
 import '../../services/offline_queue.dart';
 import 'sqd.dart';
@@ -60,13 +59,11 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
     final surveyData = context.read<SurveyProvider>().surveyData;
     
     // CC1
-    print("DEBUG: CitizenCharterScreen initState. SurveyData cc0Rating: ${surveyData.cc0Rating}");
     if (surveyData.cc0Rating != null) {
       // Find the option string that corresponds to the rating
       // 1-based index in options
       if (surveyData.cc0Rating! >= 1 && surveyData.cc0Rating! <= 4) {
         cc1Answer = cc1Options[surveyData.cc0Rating! - 1];
-        print("DEBUG: Restored cc1Answer: $cc1Answer");
       }
     }
     
@@ -269,18 +266,6 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
         ),
       ],
     );
-  }
-
-  Widget _buildDebugInfo(BuildContext context) {
-    try {
-      final surveyData = context.watch<SurveyProvider>().surveyData;
-      return Text(
-        "DEBUG: CC0=${surveyData.cc0Rating}",
-        style: const TextStyle(color: Colors.red, fontSize: 12, decoration: TextDecoration.none),
-      );
-    } catch (_) {
-      return const SizedBox.shrink();
-    }
   }
 
   Widget _buildProgressBar(bool isMobile, int currentStep, int totalSteps) {

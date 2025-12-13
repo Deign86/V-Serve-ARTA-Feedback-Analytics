@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../services/survey_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../../models/survey_data.dart';
 import '../../services/offline_queue.dart';
 import '../../services/survey_config_service.dart';
 import 'landing_page.dart';

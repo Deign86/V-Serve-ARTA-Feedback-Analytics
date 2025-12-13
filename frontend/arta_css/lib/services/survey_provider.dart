@@ -34,13 +34,11 @@ class SurveyProvider extends ChangeNotifier {
     required int? cc1,
     required int? cc2,
   }) {
-    print("DEBUG: updateCC called with cc0=$cc0, cc1=$cc1, cc2=$cc2");
     _surveyData = _surveyData.copyWith(
       cc0Rating: cc0,
       cc1Rating: cc1,
       cc2Rating: cc2,
     );
-    print("DEBUG: _surveyData updated. cc0Rating is now ${_surveyData.cc0Rating}");
     notifyListeners();
   }
 
