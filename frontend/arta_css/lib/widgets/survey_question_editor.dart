@@ -12,7 +12,7 @@ class SurveyQuestionEditor extends StatefulWidget {
 }
 
 class _SurveyQuestionEditorState extends State<SurveyQuestionEditor> {
-  String _selectedSection = 'CC'; // 'CC' or 'SQD'
+  String _selectedSection = 'CC'; // 'CC', 'SQD', 'Profile', or 'Suggestions'
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +39,7 @@ class _SurveyQuestionEditorState extends State<SurveyQuestionEditor> {
                     Icon(Icons.edit_note, color: AdminTheme.brandBlue, size: 20),
                     const SizedBox(width: 12),
                     Text(
-                      'Question Editor',
+                      'Survey Content Editor',
                       style: AdminTheme.headingSmall(color: Colors.black87),
                     ),
                   ],
@@ -60,87 +60,114 @@ class _SurveyQuestionEditorState extends State<SurveyQuestionEditor> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Edit survey questions and options. Changes reflect immediately on the user survey.',
+              'Edit survey content, questions, and options. Changes reflect immediately on the user survey.',
               style: AdminTheme.bodySmall(color: Colors.grey.shade600),
             ),
             const SizedBox(height: 20),
 
-            // Section Tabs
-            Row(
+            // Section Tabs - 2 rows for 4 tabs
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
               children: [
+                _buildSectionTab('Profile', 'User Profile', Icons.person_outline),
                 _buildSectionTab('CC', "Citizen's Charter", Icons.article_outlined),
-                const SizedBox(width: 12),
                 _buildSectionTab('SQD', 'Service Quality', Icons.star_outline),
+                _buildSectionTab('Suggestions', 'Suggestions', Icons.feedback_outlined),
               ],
             ),
             const SizedBox(height: 20),
 
-            // Questions List
-            if (_selectedSection == 'CC')
-              ...questionsService.ccQuestions.map(
-                (q) => _CcQuestionCard(question: q, questionsService: questionsService),
-              )
-            else
-              ...questionsService.sqdQuestions.asMap().entries.map(
-                (entry) => _SqdQuestionCard(
-                  index: entry.key,
-                  question: entry.value,
-                  questionsService: questionsService,
-                ),
-              ),
+            // Content based on selected section
+            _buildSectionContent(questionsService),
           ],
         ),
       ),
     );
   }
 
+  Widget _buildSectionContent(SurveyQuestionsService questionsService) {
+    switch (_selectedSection) {
+      case 'CC':
+        return Column(
+          children: questionsService.ccQuestions.map(
+            (q) => _CcQuestionCard(question: q, questionsService: questionsService),
+          ).toList(),
+        );
+      case 'SQD':
+        return Column(
+          children: questionsService.sqdQuestions.asMap().entries.map(
+            (entry) => _SqdQuestionCard(
+              index: entry.key,
+              question: entry.value,
+              questionsService: questionsService,
+            ),
+          ).toList(),
+        );
+      case 'Profile':
+        return _ProfileConfigEditor(questionsService: questionsService);
+      case 'Suggestions':
+        return _SuggestionsConfigEditor(questionsService: questionsService);
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   Widget _buildSectionTab(String id, String label, IconData icon) {
     final isSelected = _selectedSection == id;
-    return Expanded(
-      child: InkWell(
-        onTap: () => setState(() => _selectedSection = id),
-        borderRadius: BorderRadius.circular(8),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          decoration: BoxDecoration(
-            color: isSelected ? AdminTheme.brandBlue.withValues(alpha: 0.1) : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected ? AdminTheme.brandBlue : Colors.grey.shade300,
-              width: isSelected ? 2 : 1,
+    return InkWell(
+      onTap: () => setState(() => _selectedSection = id),
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        constraints: const BoxConstraints(minWidth: 140),
+        decoration: BoxDecoration(
+          color: isSelected ? AdminTheme.brandBlue.withValues(alpha: 0.1) : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? AdminTheme.brandBlue : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? AdminTheme.brandBlue : Colors.grey.shade600,
             ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 18,
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: AdminTheme.bodySmall(
                 color: isSelected ? AdminTheme.brandBlue : Colors.grey.shade600,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: AdminTheme.bodySmall(
-                  color: isSelected ? AdminTheme.brandBlue : Colors.grey.shade600,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   void _showResetConfirmation(BuildContext context, SurveyQuestionsService service) {
+    final sectionNames = {
+      'CC': "Citizen's Charter",
+      'SQD': 'Service Quality Dimensions',
+      'Profile': 'User Profile',
+      'Suggestions': 'Suggestions',
+    };
+    final sectionName = sectionNames[_selectedSection] ?? _selectedSection;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Reset Questions?', style: AdminTheme.headingSmall(color: Colors.black87)),
+        title: Text('Reset $sectionName?', style: AdminTheme.headingSmall(color: Colors.black87)),
         content: Text(
-          'This will reset all ${_selectedSection == 'CC' ? "Citizen's Charter" : "SQD"} questions to their default values. This action cannot be undone.',
+          'This will reset all $sectionName configuration to default values. This action cannot be undone.',
           style: AdminTheme.bodyMedium(color: Colors.grey.shade700),
         ),
         actions: [
@@ -150,15 +177,24 @@ class _SurveyQuestionEditorState extends State<SurveyQuestionEditor> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (_selectedSection == 'CC') {
-                service.resetCcToDefaults();
-              } else {
-                service.resetSqdToDefaults();
+              switch (_selectedSection) {
+                case 'CC':
+                  service.resetCcToDefaults();
+                  break;
+                case 'SQD':
+                  service.resetSqdToDefaults();
+                  break;
+                case 'Profile':
+                  service.resetProfileToDefaults();
+                  break;
+                case 'Suggestions':
+                  service.resetSuggestionsToDefaults();
+                  break;
               }
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('${_selectedSection == 'CC' ? "CC" : "SQD"} questions reset to defaults'),
+                  content: Text('$sectionName reset to defaults'),
                   backgroundColor: Colors.green,
                 ),
               );
@@ -470,6 +506,736 @@ class _SqdQuestionCard extends StatelessWidget {
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Question updated'), backgroundColor: Colors.green),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AdminTheme.brandBlue,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Editor for User Profile configuration
+class _ProfileConfigEditor extends StatelessWidget {
+  final SurveyQuestionsService questionsService;
+
+  const _ProfileConfigEditor({required this.questionsService});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section Title
+        _buildEditableField(
+          context: context,
+          label: 'Section Title',
+          value: questionsService.profileSectionTitle,
+          icon: Icons.title,
+          onEdit: () => _showEditTextDialog(
+            context,
+            'Section Title',
+            questionsService.profileSectionTitle,
+            (newValue) => questionsService.updateProfileConfig('sectionTitle', newValue),
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Client Types
+        _buildEditableList(
+          context: context,
+          label: 'Client Types',
+          items: questionsService.clientTypes,
+          icon: Icons.people_outline,
+          listKey: 'clientTypes',
+        ),
+        const SizedBox(height: 24),
+
+        // Regions
+        _buildEditableList(
+          context: context,
+          label: 'Regions',
+          items: questionsService.regions,
+          icon: Icons.map_outlined,
+          listKey: 'regions',
+        ),
+        const SizedBox(height: 24),
+
+        // Services
+        _buildEditableList(
+          context: context,
+          label: 'Services Availed',
+          items: questionsService.services,
+          icon: Icons.assignment_outlined,
+          listKey: 'services',
+        ),
+        const SizedBox(height: 24),
+
+        // Labels
+        _buildSubsection(
+          context: context,
+          label: 'Field Labels',
+          children: [
+            _buildEditableField(
+              context: context,
+              label: 'Client Type Label',
+              value: questionsService.clientTypeLabel,
+              icon: Icons.label_outline,
+              onEdit: () => _showEditTextDialog(
+                context,
+                'Client Type Label',
+                questionsService.clientTypeLabel,
+                (newValue) => questionsService.updateProfileConfig('clientTypeLabel', newValue),
+              ),
+            ),
+            _buildEditableField(
+              context: context,
+              label: 'Date Label',
+              value: questionsService.dateLabel,
+              icon: Icons.label_outline,
+              onEdit: () => _showEditTextDialog(
+                context,
+                'Date Label',
+                questionsService.dateLabel,
+                (newValue) => questionsService.updateProfileConfig('dateLabel', newValue),
+              ),
+            ),
+            _buildEditableField(
+              context: context,
+              label: 'Sex Label',
+              value: questionsService.sexLabel,
+              icon: Icons.label_outline,
+              onEdit: () => _showEditTextDialog(
+                context,
+                'Sex Label',
+                questionsService.sexLabel,
+                (newValue) => questionsService.updateProfileConfig('sexLabel', newValue),
+              ),
+            ),
+            _buildEditableField(
+              context: context,
+              label: 'Age Label',
+              value: questionsService.ageLabel,
+              icon: Icons.label_outline,
+              onEdit: () => _showEditTextDialog(
+                context,
+                'Age Label',
+                questionsService.ageLabel,
+                (newValue) => questionsService.updateProfileConfig('ageLabel', newValue),
+              ),
+            ),
+            _buildEditableField(
+              context: context,
+              label: 'Region Label',
+              value: questionsService.regionLabel,
+              icon: Icons.label_outline,
+              onEdit: () => _showEditTextDialog(
+                context,
+                'Region Label',
+                questionsService.regionLabel,
+                (newValue) => questionsService.updateProfileConfig('regionLabel', newValue),
+              ),
+            ),
+            _buildEditableField(
+              context: context,
+              label: 'Service Label',
+              value: questionsService.serviceLabel,
+              icon: Icons.label_outline,
+              onEdit: () => _showEditTextDialog(
+                context,
+                'Service Label',
+                questionsService.serviceLabel,
+                (newValue) => questionsService.updateProfileConfig('serviceLabel', newValue),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEditableField({
+    required BuildContext context,
+    required String label,
+    required String value,
+    required IconData icon,
+    required VoidCallback onEdit,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: Colors.grey.shade600),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AdminTheme.bodyXS(color: Colors.grey.shade500),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: AdminTheme.bodyMedium(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.edit, size: 18, color: AdminTheme.brandBlue),
+            onPressed: onEdit,
+            tooltip: 'Edit',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditableList({
+    required BuildContext context,
+    required String label,
+    required List<String> items,
+    required IconData icon,
+    required String listKey,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: AdminTheme.brandBlue),
+              const SizedBox(width: 8),
+              Text(label, style: AdminTheme.bodyMedium(color: Colors.black87, fontWeight: FontWeight.w600)),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: () => _showAddItemDialog(context, label, listKey),
+                icon: Icon(Icons.add, size: 16, color: AdminTheme.brandBlue),
+                label: Text('Add', style: AdminTheme.bodySmall(color: AdminTheme.brandBlue)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...items.asMap().entries.map((entry) => _buildListItem(
+            context: context,
+            index: entry.key,
+            value: entry.value,
+            listKey: listKey,
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildListItem({
+    required BuildContext context,
+    required int index,
+    required String value,
+    required String listKey,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AdminTheme.brandBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              '${index + 1}',
+              style: AdminTheme.bodyXS(color: AdminTheme.brandBlue, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(value, style: AdminTheme.bodySmall(color: Colors.black87)),
+          ),
+          IconButton(
+            icon: Icon(Icons.edit_outlined, size: 16, color: Colors.grey.shade500),
+            onPressed: () => _showEditListItemDialog(context, listKey, index, value),
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            padding: EdgeInsets.zero,
+            tooltip: 'Edit',
+          ),
+          IconButton(
+            icon: Icon(Icons.delete_outline, size: 16, color: Colors.red.shade400),
+            onPressed: () => _showDeleteConfirmation(context, listKey, index, value),
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            padding: EdgeInsets.zero,
+            tooltip: 'Delete',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubsection({
+    required BuildContext context,
+    required String label,
+    required List<Widget> children,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: AdminTheme.bodyMedium(color: Colors.black87, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  void _showEditTextDialog(BuildContext context, String title, String currentValue, Function(String) onSave) {
+    final controller = TextEditingController(text: currentValue);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Edit $title', style: AdminTheme.headingSmall(color: Colors.black87)),
+        content: SizedBox(
+          width: 400,
+          child: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              labelText: title,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                onSave(controller.text.trim());
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Updated successfully'), backgroundColor: Colors.green),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AdminTheme.brandBlue,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddItemDialog(BuildContext context, String label, String listKey) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Add New $label', style: AdminTheme.headingSmall(color: Colors.black87)),
+        content: SizedBox(
+          width: 400,
+          child: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              labelText: 'Enter new option',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                questionsService.addProfileListOption(listKey, controller.text.trim());
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Option added'), backgroundColor: Colors.green),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AdminTheme.brandBlue,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditListItemDialog(BuildContext context, String listKey, int index, String currentValue) {
+    final controller = TextEditingController(text: currentValue);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Edit Option', style: AdminTheme.headingSmall(color: Colors.black87)),
+        content: SizedBox(
+          width: 400,
+          child: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              labelText: 'Option text',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                questionsService.updateProfileListOption(listKey, index, controller.text.trim());
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Option updated'), backgroundColor: Colors.green),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AdminTheme.brandBlue,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, String listKey, int index, String value) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete Option?', style: AdminTheme.headingSmall(color: Colors.black87)),
+        content: Text(
+          'Are you sure you want to delete "$value"?',
+          style: AdminTheme.bodyMedium(color: Colors.grey.shade700),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              questionsService.removeProfileListOption(listKey, index);
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Option deleted'), backgroundColor: Colors.orange),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Editor for Suggestions configuration
+class _SuggestionsConfigEditor extends StatelessWidget {
+  final SurveyQuestionsService questionsService;
+
+  const _SuggestionsConfigEditor({required this.questionsService});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.info_outline, size: 16, color: Colors.blue.shade700),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Configure the labels and placeholder text shown on the Suggestions section of the survey.',
+                  style: AdminTheme.bodySmall(color: Colors.blue.shade700),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Section Title
+        _buildEditableField(
+          context: context,
+          label: 'Section Title',
+          value: questionsService.suggestionsSectionTitle,
+          icon: Icons.title,
+          onEdit: () => _showEditTextDialog(
+            context,
+            'Section Title',
+            questionsService.suggestionsSectionTitle,
+            (newValue) => questionsService.updateSuggestionsConfig('sectionTitle', newValue),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Suggestions Label
+        _buildEditableField(
+          context: context,
+          label: 'Suggestions Label',
+          value: questionsService.suggestionsLabel,
+          icon: Icons.label_outline,
+          onEdit: () => _showEditTextDialog(
+            context,
+            'Suggestions Label',
+            questionsService.suggestionsLabel,
+            (newValue) => questionsService.updateSuggestionsConfig('suggestionsLabel', newValue),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Suggestions Subtitle
+        _buildEditableField(
+          context: context,
+          label: 'Suggestions Subtitle',
+          value: questionsService.suggestionsSubtitle,
+          icon: Icons.short_text,
+          onEdit: () => _showEditTextDialog(
+            context,
+            'Suggestions Subtitle',
+            questionsService.suggestionsSubtitle,
+            (newValue) => questionsService.updateSuggestionsConfig('suggestionsSubtitle', newValue),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Suggestions Placeholder
+        _buildEditableField(
+          context: context,
+          label: 'Suggestions Placeholder',
+          value: questionsService.suggestionsPlaceholder,
+          icon: Icons.text_fields,
+          onEdit: () => _showEditTextDialog(
+            context,
+            'Suggestions Placeholder',
+            questionsService.suggestionsPlaceholder,
+            (newValue) => questionsService.updateSuggestionsConfig('suggestionsPlaceholder', newValue),
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        const Divider(),
+        const SizedBox(height: 24),
+
+        // Email Label
+        _buildEditableField(
+          context: context,
+          label: 'Email Label',
+          value: questionsService.emailLabel,
+          icon: Icons.email_outlined,
+          onEdit: () => _showEditTextDialog(
+            context,
+            'Email Label',
+            questionsService.emailLabel,
+            (newValue) => questionsService.updateSuggestionsConfig('emailLabel', newValue),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Email Subtitle
+        _buildEditableField(
+          context: context,
+          label: 'Email Subtitle',
+          value: questionsService.emailSubtitle,
+          icon: Icons.short_text,
+          onEdit: () => _showEditTextDialog(
+            context,
+            'Email Subtitle',
+            questionsService.emailSubtitle,
+            (newValue) => questionsService.updateSuggestionsConfig('emailSubtitle', newValue),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Email Placeholder
+        _buildEditableField(
+          context: context,
+          label: 'Email Placeholder',
+          value: questionsService.emailPlaceholder,
+          icon: Icons.text_fields,
+          onEdit: () => _showEditTextDialog(
+            context,
+            'Email Placeholder',
+            questionsService.emailPlaceholder,
+            (newValue) => questionsService.updateSuggestionsConfig('emailPlaceholder', newValue),
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        const Divider(),
+        const SizedBox(height: 24),
+
+        // Thank You Title
+        _buildEditableField(
+          context: context,
+          label: 'Thank You Title',
+          value: questionsService.thankYouTitle,
+          icon: Icons.celebration_outlined,
+          onEdit: () => _showEditTextDialog(
+            context,
+            'Thank You Title',
+            questionsService.thankYouTitle,
+            (newValue) => questionsService.updateSuggestionsConfig('thankYouTitle', newValue),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Thank You Message
+        _buildEditableField(
+          context: context,
+          label: 'Thank You Message',
+          value: questionsService.thankYouMessage,
+          icon: Icons.message_outlined,
+          onEdit: () => _showEditTextDialog(
+            context,
+            'Thank You Message',
+            questionsService.thankYouMessage,
+            (newValue) => questionsService.updateSuggestionsConfig('thankYouMessage', newValue),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEditableField({
+    required BuildContext context,
+    required String label,
+    required String value,
+    required IconData icon,
+    required VoidCallback onEdit,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: Colors.grey.shade600),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AdminTheme.bodyXS(color: Colors.grey.shade500),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: AdminTheme.bodyMedium(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.edit, size: 18, color: AdminTheme.brandBlue),
+            onPressed: onEdit,
+            tooltip: 'Edit',
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditTextDialog(BuildContext context, String title, String currentValue, Function(String) onSave) {
+    final controller = TextEditingController(text: currentValue);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Edit $title', style: AdminTheme.headingSmall(color: Colors.black87)),
+        content: SizedBox(
+          width: 400,
+          child: TextField(
+            controller: controller,
+            maxLines: title.contains('Message') ? 4 : 1,
+            decoration: InputDecoration(
+              labelText: title,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                onSave(controller.text.trim());
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Updated successfully'), backgroundColor: Colors.green),
                 );
               }
             },

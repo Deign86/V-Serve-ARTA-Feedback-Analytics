@@ -5,6 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../services/export_service.dart';
 import '../../services/feedback_service.dart';
 import '../../services/survey_config_service.dart';
+import '../../services/survey_questions_service.dart';
 import '../../services/qr_code_service.dart';
 import '../../services/audit_log_service.dart';
 import '../../models/survey_data.dart';
@@ -766,7 +767,11 @@ class _MobilePreviewScreenState extends State<MobilePreviewScreen> {
 
 // Detailed Analytics Screen
 class DetailedAnalyticsScreen extends StatefulWidget {
-  const DetailedAnalyticsScreen({super.key});
+  /// When true, shows as standalone page with AppBar and background
+  /// When false (default), shows as embedded screen within dashboard
+  final bool isStandalone;
+  
+  const DetailedAnalyticsScreen({super.key, this.isStandalone = false});
 
   @override
   State<DetailedAnalyticsScreen> createState() => _DetailedAnalyticsScreenState();
@@ -776,6 +781,10 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
   // Date filter state
   DateTimeRange? _selectedDateRange;
   String _activeFilter = 'all'; // 'all', 'thisMonth', 'thisWeek', 'custom'
+  
+  // Region and service filter state
+  String? _selectedRegion;
+  String? _selectedService;
   
   // Radar chart hover state
   int? _touchedRadarIndex;
@@ -806,16 +815,30 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
     });
   }
 
-  // Filter feedbacks based on date range
-  // ignore: unused_element
+  // Filter feedbacks based on date range, region, and service
   List<SurveyData> _getFilteredFeedbacks(List<SurveyData> allFeedbacks) {
-    if (_selectedDateRange == null) return allFeedbacks;
-    
     return allFeedbacks.where((feedback) {
-      final date = feedback.submittedAt ?? feedback.date;
-      if (date == null) return false;
-      return date.isAfter(_selectedDateRange!.start.subtract(const Duration(days: 1))) &&
-             date.isBefore(_selectedDateRange!.end.add(const Duration(days: 1)));
+      // Date filter
+      if (_selectedDateRange != null) {
+        final date = feedback.submittedAt ?? feedback.date;
+        if (date == null) return false;
+        if (!date.isAfter(_selectedDateRange!.start.subtract(const Duration(days: 1))) ||
+            !date.isBefore(_selectedDateRange!.end.add(const Duration(days: 1)))) {
+          return false;
+        }
+      }
+      
+      // Region filter
+      if (_selectedRegion != null && _selectedRegion!.isNotEmpty) {
+        if (feedback.regionOfResidence != _selectedRegion) return false;
+      }
+      
+      // Service filter
+      if (_selectedService != null && _selectedService!.isNotEmpty) {
+        if (feedback.serviceAvailed != _selectedService) return false;
+      }
+      
+      return true;
     }).toList();
   }
 
@@ -852,13 +875,21 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
       context: context,
       builder: (context) => _AdvancedFilterDialog(
         currentDateRange: _selectedDateRange,
+        currentRegion: _selectedRegion,
+        currentService: _selectedService,
       ),
     );
     
     if (result != null) {
       setState(() {
         _selectedDateRange = result['dateRange'] as DateTimeRange?;
-        _activeFilter = result['dateRange'] != null ? 'custom' : 'all';
+        _selectedRegion = result['region'] as String?;
+        _selectedService = result['service'] as String?;
+        // Determine filter status
+        final hasAnyFilter = _selectedDateRange != null || 
+            (_selectedRegion != null && _selectedRegion!.isNotEmpty) || 
+            (_selectedService != null && _selectedService!.isNotEmpty);
+        _activeFilter = hasAnyFilter ? 'custom' : 'all';
       });
     }
   }
@@ -867,27 +898,41 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
   void _clearFilters() {
     setState(() {
       _selectedDateRange = null;
+      _selectedRegion = null;
+      _selectedService = null;
       _activeFilter = 'all';
     });
   }
 
   // Get filter button text
   String _getFilterButtonText() {
-    switch (_activeFilter) {
-      case 'thisMonth':
-        return 'This Month';
-      case 'thisWeek':
-        return 'This Week';
-      case 'custom':
-        if (_selectedDateRange != null) {
-          final start = '${_selectedDateRange!.start.month}/${_selectedDateRange!.start.day}';
-          final end = '${_selectedDateRange!.end.month}/${_selectedDateRange!.end.day}';
-          return '$start - $end';
-        }
-        return 'Custom';
-      default:
-        return 'All Time';
+    // Count active filters
+    int filterCount = 0;
+    if (_selectedDateRange != null) filterCount++;
+    if (_selectedRegion != null && _selectedRegion!.isNotEmpty) filterCount++;
+    if (_selectedService != null && _selectedService!.isNotEmpty) filterCount++;
+    
+    if (filterCount == 0) {
+      switch (_activeFilter) {
+        case 'thisMonth':
+          return 'This Month';
+        case 'thisWeek':
+          return 'This Week';
+        default:
+          return 'All Time';
+      }
+    } else if (filterCount == 1) {
+      if (_selectedDateRange != null) {
+        final start = '${_selectedDateRange!.start.month}/${_selectedDateRange!.start.day}';
+        final end = '${_selectedDateRange!.end.month}/${_selectedDateRange!.end.day}';
+        return '$start - $end';
+      } else if (_selectedRegion != null && _selectedRegion!.isNotEmpty) {
+        return _selectedRegion!;
+      } else if (_selectedService != null && _selectedService!.isNotEmpty) {
+        return _selectedService!;
+      }
     }
+    return '$filterCount Filters Active';
   }
 
   List<Map<String, dynamic>> _getSQDDataWithScores(Map<String, double> sqdAverages) {
@@ -921,15 +966,14 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
         final clientTypeDistribution = stats?.clientTypeDistribution ?? {};
         final serviceBreakdown = stats?.serviceBreakdown ?? {};
 
-    return Scaffold(
-      backgroundColor: Colors.transparent, // Transparent for dashboard background
-      body: isLoading 
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isSmallScreen = constraints.maxWidth < 600;
+    // Body content
+    final bodyContent = isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isSmallScreen = constraints.maxWidth < 600;
             
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1124,7 +1168,11 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                     children: [
                       Text('Service Quality Dimensions (SQD) Breakdown', style: AdminTheme.headingMedium(color: Colors.black87)),
                       TextButton.icon(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (context) => const DetailedAnalyticsScreen(isStandalone: true)),
+                          );
+                        },
                         icon: const Icon(Icons.arrow_forward, size: 16),
                         label: const Text('View Detailed Analysis'),
                       ),
@@ -1367,7 +1415,37 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
             );
           },
         ),
-      ),
+      );
+
+    // Return appropriate scaffold based on standalone mode
+    if (widget.isStandalone) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Detailed Analytics'),
+          backgroundColor: brandBlue,
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                brandBlue,
+                brandBlue.withValues(alpha: 0.8),
+                const Color(0xFF1a4d80),
+              ],
+            ),
+          ),
+          child: bodyContent,
+        ),
+      );
+    }
+    
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: bodyContent,
     );
       },
     );
@@ -1760,8 +1838,10 @@ class _ExportProcessScreenState extends State<ExportProcessScreen> {
 // Advanced Filter Dialog
 class _AdvancedFilterDialog extends StatefulWidget {
   final DateTimeRange? currentDateRange;
+  final String? currentRegion;
+  final String? currentService;
   
-  const _AdvancedFilterDialog({this.currentDateRange});
+  const _AdvancedFilterDialog({this.currentDateRange, this.currentRegion, this.currentService});
   
   @override
   State<_AdvancedFilterDialog> createState() => _AdvancedFilterDialogState();
@@ -1769,11 +1849,15 @@ class _AdvancedFilterDialog extends StatefulWidget {
 
 class _AdvancedFilterDialogState extends State<_AdvancedFilterDialog> {
   DateTimeRange? _dateRange;
+  String? _selectedRegion;
+  String? _selectedService;
   
   @override
   void initState() {
     super.initState();
     _dateRange = widget.currentDateRange;
+    _selectedRegion = widget.currentRegion;
+    _selectedService = widget.currentService;
   }
   
   Future<void> _selectDateRange() async {
@@ -1858,6 +1942,54 @@ class _AdvancedFilterDialogState extends State<_AdvancedFilterDialog> {
                 style: TextButton.styleFrom(foregroundColor: Colors.red.shade600),
               ),
             ],
+            const SizedBox(height: 24),
+            
+            // Region filter
+            Text('Region', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
+            const SizedBox(height: 12),
+            Consumer<SurveyQuestionsService>(
+              builder: (context, questionsService, _) {
+                final regions = questionsService.regions;
+                return DropdownButtonFormField<String>(
+                  value: _selectedRegion,
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.location_on, color: brandBlue),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    hintText: 'All Regions',
+                  ),
+                  items: [
+                    const DropdownMenuItem<String>(value: null, child: Text('All Regions')),
+                    ...regions.map((r) => DropdownMenuItem(value: r, child: Text(r))),
+                  ],
+                  onChanged: (value) => setState(() => _selectedRegion = value),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+            
+            // Service filter
+            Text('Service Type', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
+            const SizedBox(height: 12),
+            Consumer<SurveyQuestionsService>(
+              builder: (context, questionsService, _) {
+                final services = questionsService.services;
+                return DropdownButtonFormField<String>(
+                  value: _selectedService,
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.miscellaneous_services, color: brandBlue),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    hintText: 'All Services',
+                  ),
+                  items: [
+                    const DropdownMenuItem<String>(value: null, child: Text('All Services')),
+                    ...services.map((s) => DropdownMenuItem(value: s, child: Text(s))),
+                  ],
+                  onChanged: (value) => setState(() => _selectedService = value),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -1866,8 +1998,22 @@ class _AdvancedFilterDialogState extends State<_AdvancedFilterDialog> {
           onPressed: () => Navigator.pop(context),
           child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600)),
         ),
+        TextButton(
+          onPressed: () {
+            setState(() {
+              _dateRange = null;
+              _selectedRegion = null;
+              _selectedService = null;
+            });
+          },
+          child: Text('Clear All', style: TextStyle(color: Colors.red.shade600)),
+        ),
         ElevatedButton(
-          onPressed: () => Navigator.pop(context, {'dateRange': _dateRange}),
+          onPressed: () => Navigator.pop(context, {
+            'dateRange': _dateRange,
+            'region': _selectedRegion,
+            'service': _selectedService,
+          }),
           style: ElevatedButton.styleFrom(
             backgroundColor: brandBlue,
             foregroundColor: Colors.white,

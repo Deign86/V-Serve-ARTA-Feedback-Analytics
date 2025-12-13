@@ -3,11 +3,11 @@ import 'package:provider/provider.dart';
 import '../../../services/feedback_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'admin_screens.dart';
-import '../../services/export_service.dart';
 import '../../services/auth_services.dart';
 import '../../services/user_management_service.dart';
 import '../../services/audit_log_service.dart';
 import '../../widgets/global_offline_indicator.dart';
+import '../../widgets/export_filter_dialog.dart';
 import '../../utils/admin_theme.dart';
 
 // NOTE: This file provides screens (DashboardScreen, etc.)
@@ -1177,7 +1177,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   // Role cards - use LayoutBuilder from parent constraints
                   LayoutBuilder(
                     builder: (context, roleConstraints) {
-                      final crossAxisCount = roleConstraints.maxWidth > 1200 ? 3 : roleConstraints.maxWidth > 600 ? 2 : 1;
+                      final crossAxisCount = roleConstraints.maxWidth > 600 ? 2 : 1;
                       // Calculate aspect ratio dynamically
                       final cardWidth = (roleConstraints.maxWidth - (crossAxisCount - 1) * 16) / crossAxisCount;
                       final targetHeight = 100.0;
@@ -1192,7 +1192,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         childAspectRatio: aspectRatio,
                         children: [
                           _buildRoleCard('ADMINISTRATOR', '${userService.administratorCount} Active', 'Full System Access', Icons.admin_panel_settings, Colors.red),
-                          _buildRoleCard('EDITOR', '${userService.editorCount} Active', 'Manage Surveys & Content', Icons.edit_document, Colors.blue),
                           _buildRoleCard('ANALYST / VIEWER', '${userService.analystCount} Active', 'View Reports & Analytics', Icons.analytics, Colors.green),
                         ],
                       );
@@ -2044,13 +2043,19 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: () async {
+                  ExportType? preselectedType;
                   if (isPdf) {
-                    _showPdfExportDialog(context, feedbackService);
+                    preselectedType = ExportType.pdfCompliance;
                   } else if (isCsv) {
-                    await _exportCsv(context, feedbackService);
+                    preselectedType = ExportType.csv;
                   } else if (isJson) {
-                    await _exportJson(context, feedbackService);
+                    preselectedType = ExportType.json;
                   }
+                  showExportFilterDialog(
+                    context,
+                    feedbackService,
+                    preselectedType: preselectedType,
+                  );
                 },
                 icon: const Icon(Icons.download, size: 16),
                 label: const Text('Generate'),
@@ -2062,125 +2067,6 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Future<void> _exportCsv(BuildContext context, FeedbackService feedbackService) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    try {
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('Generating CSV export...')),
-      );
-      
-      final data = feedbackService.exportFeedbacks();
-      if (data.isEmpty) {
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(content: Text('No data to export'), backgroundColor: Colors.orange),
-        );
-        return;
-      }
-      
-      // Use the new formatted CSV export
-      final filename = await ExportService.exportFeedbackCsv('ARTA_Feedback_Data', data);
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('CSV exported: $filename'), backgroundColor: Colors.green),
-      );
-    } catch (e) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
-      );
-    }
-  }
-
-  Future<void> _exportJson(BuildContext context, FeedbackService feedbackService) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    try {
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('Generating JSON export...')),
-      );
-      
-      final data = feedbackService.exportFeedbacks();
-      if (data.isEmpty) {
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(content: Text('No data to export'), backgroundColor: Colors.orange),
-        );
-        return;
-      }
-      
-      // Use the new formatted JSON export
-      final filename = await ExportService.exportFeedbackJson('ARTA_Feedback_Data', data);
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('JSON exported: $filename'), backgroundColor: Colors.green),
-      );
-    } catch (e) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
-      );
-    }
-  }
-
-  void _showPdfExportDialog(BuildContext context, FeedbackService feedbackService) {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Export PDF Report'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.description, color: Colors.red),
-              title: const Text('ARTA Compliance Report'),
-              subtitle: const Text('Standard format for ARTA submission'),
-              onTap: () async {
-                Navigator.pop(dialogContext);
-                try {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(content: Text('Generating PDF report...')),
-                  );
-                  final data = feedbackService.exportFeedbacks();
-                  final filename = await ExportService.exportPdf('ARTA_Compliance_Report', data);
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(content: Text('PDF exported: $filename'), backgroundColor: Colors.green),
-                  );
-                } catch (e) {
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
-                  );
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.analytics, color: Colors.blue),
-              title: const Text('Detailed Analysis'),
-              subtitle: const Text('Full breakdown of SQD and comments'),
-              onTap: () async {
-                Navigator.pop(dialogContext);
-                try {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(content: Text('Generating detailed analysis...')),
-                  );
-                  final data = feedbackService.exportFeedbacks();
-                  final filename = await ExportService.exportDetailedAnalysisPdf('ARTA_Detailed_Analysis', data);
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(content: Text('PDF exported: $filename'), backgroundColor: Colors.green),
-                  );
-                } catch (e) {
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
-                  );
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-        ],
       ),
     );
   }

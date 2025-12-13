@@ -50,6 +50,8 @@ class SurveyQuestion {
 class SurveyQuestionsService extends ChangeNotifier {
   static const String _keyCcQuestions = 'survey_cc_questions';
   static const String _keySqdQuestions = 'survey_sqd_questions';
+  static const String _keyProfileConfig = 'survey_profile_config';
+  static const String _keySuggestionsConfig = 'survey_suggestions_config';
 
   // Audit log service reference
   AuditLogService? _auditLogService;
@@ -63,6 +65,44 @@ class SurveyQuestionsService extends ChangeNotifier {
     _auditLogService = auditService;
     _currentActor = currentUser;
   }
+
+  // ========== DEFAULT USER PROFILE CONFIG ==========
+  static Map<String, dynamic> get defaultProfileConfig => {
+    'sectionTitle': 'CLIENT PROFILE',
+    'clientTypeLabel': 'Client Type',
+    'clientTypes': ['CITIZEN', 'BUSINESS', 'GOVERNMENT'],
+    'dateLabel': 'Date of Transaction',
+    'sexLabel': 'Sex',
+    'sexOptions': ['MALE', 'FEMALE'],
+    'ageLabel': 'Age',
+    'agePlaceholder': 'Enter your age',
+    'regionLabel': 'Region of Residence',
+    'regions': [
+      'NCR', 'CAR', 'Region I', 'Region II', 'Region III',
+      'Region IV-A', 'Region IV-B', 'Region V', 'Region VI',
+      'Region VII', 'Region VIII', 'Region IX', 'Region X',
+      'Region XI', 'Region XII', 'Region XIII', 'BARMM',
+    ],
+    'serviceLabel': 'Service Availed',
+    'services': [
+      'Business Permit', 'Real Property Tax', 'Civil Registry',
+      'Health Services', 'Building Official', 'Zoning',
+      'Social Welfare', 'Garbage Collection', 'Traffic Management', 'Other',
+    ],
+  };
+
+  // ========== DEFAULT SUGGESTIONS CONFIG ==========
+  static Map<String, dynamic> get defaultSuggestionsConfig => {
+    'sectionTitle': 'SUGGESTIONS',
+    'suggestionsLabel': 'SUGGESTIONS',
+    'suggestionsSubtitle': 'How can we further improve our services?',
+    'suggestionsPlaceholder': 'Write your suggestions here...',
+    'emailLabel': 'EMAIL ADDRESS',
+    'emailSubtitle': 'Optional - for feedback replies',
+    'emailPlaceholder': 'Enter your email address...',
+    'thankYouTitle': 'THANK YOU',
+    'thankYouMessage': 'FOR YOUR FEEDBACK!',
+  };
 
   // Default CC Questions
   static List<SurveyQuestion> get defaultCcQuestions => [
@@ -163,10 +203,39 @@ class SurveyQuestionsService extends ChangeNotifier {
   // Current questions (mutable)
   List<SurveyQuestion> _ccQuestions = [];
   List<SurveyQuestion> _sqdQuestions = [];
+  Map<String, dynamic> _profileConfig = {};
+  Map<String, dynamic> _suggestionsConfig = {};
 
   // Getters
   List<SurveyQuestion> get ccQuestions => _ccQuestions;
   List<SurveyQuestion> get sqdQuestions => _sqdQuestions;
+  Map<String, dynamic> get profileConfig => _profileConfig;
+  Map<String, dynamic> get suggestionsConfig => _suggestionsConfig;
+
+  // Profile config convenience getters
+  String get profileSectionTitle => _profileConfig['sectionTitle'] ?? defaultProfileConfig['sectionTitle'];
+  String get clientTypeLabel => _profileConfig['clientTypeLabel'] ?? defaultProfileConfig['clientTypeLabel'];
+  List<String> get clientTypes => List<String>.from(_profileConfig['clientTypes'] ?? defaultProfileConfig['clientTypes']);
+  String get dateLabel => _profileConfig['dateLabel'] ?? defaultProfileConfig['dateLabel'];
+  String get sexLabel => _profileConfig['sexLabel'] ?? defaultProfileConfig['sexLabel'];
+  List<String> get sexOptions => List<String>.from(_profileConfig['sexOptions'] ?? defaultProfileConfig['sexOptions']);
+  String get ageLabel => _profileConfig['ageLabel'] ?? defaultProfileConfig['ageLabel'];
+  String get agePlaceholder => _profileConfig['agePlaceholder'] ?? defaultProfileConfig['agePlaceholder'];
+  String get regionLabel => _profileConfig['regionLabel'] ?? defaultProfileConfig['regionLabel'];
+  List<String> get regions => List<String>.from(_profileConfig['regions'] ?? defaultProfileConfig['regions']);
+  String get serviceLabel => _profileConfig['serviceLabel'] ?? defaultProfileConfig['serviceLabel'];
+  List<String> get services => List<String>.from(_profileConfig['services'] ?? defaultProfileConfig['services']);
+
+  // Suggestions config convenience getters
+  String get suggestionsSectionTitle => _suggestionsConfig['sectionTitle'] ?? defaultSuggestionsConfig['sectionTitle'];
+  String get suggestionsLabel => _suggestionsConfig['suggestionsLabel'] ?? defaultSuggestionsConfig['suggestionsLabel'];
+  String get suggestionsSubtitle => _suggestionsConfig['suggestionsSubtitle'] ?? defaultSuggestionsConfig['suggestionsSubtitle'];
+  String get suggestionsPlaceholder => _suggestionsConfig['suggestionsPlaceholder'] ?? defaultSuggestionsConfig['suggestionsPlaceholder'];
+  String get emailLabel => _suggestionsConfig['emailLabel'] ?? defaultSuggestionsConfig['emailLabel'];
+  String get emailSubtitle => _suggestionsConfig['emailSubtitle'] ?? defaultSuggestionsConfig['emailSubtitle'];
+  String get emailPlaceholder => _suggestionsConfig['emailPlaceholder'] ?? defaultSuggestionsConfig['emailPlaceholder'];
+  String get thankYouTitle => _suggestionsConfig['thankYouTitle'] ?? defaultSuggestionsConfig['thankYouTitle'];
+  String get thankYouMessage => _suggestionsConfig['thankYouMessage'] ?? defaultSuggestionsConfig['thankYouMessage'];
 
   /// Get a specific CC question by ID
   SurveyQuestion? getCcQuestion(String id) {
@@ -208,6 +277,22 @@ class SurveyQuestionsService extends ChangeNotifier {
         _sqdQuestions = defaultSqdQuestions.map((q) => q.copyWith()).toList();
       }
 
+      // Load Profile config
+      final profileJson = prefs.getString(_keyProfileConfig);
+      if (profileJson != null) {
+        _profileConfig = Map<String, dynamic>.from(jsonDecode(profileJson));
+      } else {
+        _profileConfig = Map<String, dynamic>.from(defaultProfileConfig);
+      }
+
+      // Load Suggestions config
+      final suggestionsJson = prefs.getString(_keySuggestionsConfig);
+      if (suggestionsJson != null) {
+        _suggestionsConfig = Map<String, dynamic>.from(jsonDecode(suggestionsJson));
+      } else {
+        _suggestionsConfig = Map<String, dynamic>.from(defaultSuggestionsConfig);
+      }
+
       _isLoaded = true;
       notifyListeners();
       debugPrint('SurveyQuestionsService: Questions loaded');
@@ -216,6 +301,8 @@ class SurveyQuestionsService extends ChangeNotifier {
       // Use defaults on error
       _ccQuestions = defaultCcQuestions.map((q) => q.copyWith()).toList();
       _sqdQuestions = defaultSqdQuestions.map((q) => q.copyWith()).toList();
+      _profileConfig = Map<String, dynamic>.from(defaultProfileConfig);
+      _suggestionsConfig = Map<String, dynamic>.from(defaultSuggestionsConfig);
       _isLoaded = true;
       notifyListeners();
     }
@@ -356,6 +443,168 @@ class SurveyQuestionsService extends ChangeNotifier {
     await _auditLogService?.logSurveyConfigChanged(
       actor: _currentActor,
       configKey: 'SQD Questions',
+      previousValue: 'Custom',
+      newValue: 'Reset to Defaults',
+    );
+  }
+
+  // ========== PROFILE CONFIG METHODS ==========
+
+  /// Save profile config to SharedPreferences
+  Future<void> _saveProfileConfig() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = jsonEncode(_profileConfig);
+      await prefs.setString(_keyProfileConfig, jsonStr);
+      debugPrint('SurveyQuestionsService: Profile config saved');
+    } catch (e) {
+      debugPrint('SurveyQuestionsService: Error saving profile config: $e');
+    }
+  }
+
+  /// Update a profile config value
+  Future<void> updateProfileConfig(String key, dynamic value) async {
+    final previousValue = _profileConfig[key];
+    _profileConfig[key] = value;
+    notifyListeners();
+    await _saveProfileConfig();
+
+    await _auditLogService?.logSurveyConfigChanged(
+      actor: _currentActor,
+      configKey: 'Profile: $key',
+      previousValue: previousValue?.toString() ?? 'null',
+      newValue: value?.toString() ?? 'null',
+    );
+  }
+
+  /// Add an option to a profile list (e.g., regions, services)
+  Future<void> addProfileListOption(String listKey, String option) async {
+    final list = List<String>.from(_profileConfig[listKey] ?? []);
+    if (!list.contains(option)) {
+      list.add(option);
+      _profileConfig[listKey] = list;
+      notifyListeners();
+      await _saveProfileConfig();
+
+      await _auditLogService?.logSurveyConfigChanged(
+        actor: _currentActor,
+        configKey: 'Profile $listKey',
+        previousValue: 'Added',
+        newValue: option,
+      );
+    }
+  }
+
+  /// Remove an option from a profile list
+  Future<void> removeProfileListOption(String listKey, int index) async {
+    final list = List<String>.from(_profileConfig[listKey] ?? []);
+    if (index >= 0 && index < list.length) {
+      final removed = list.removeAt(index);
+      _profileConfig[listKey] = list;
+      notifyListeners();
+      await _saveProfileConfig();
+
+      await _auditLogService?.logSurveyConfigChanged(
+        actor: _currentActor,
+        configKey: 'Profile $listKey',
+        previousValue: removed,
+        newValue: 'Removed',
+      );
+    }
+  }
+
+  /// Update an option in a profile list
+  Future<void> updateProfileListOption(String listKey, int index, String newValue) async {
+    final list = List<String>.from(_profileConfig[listKey] ?? []);
+    if (index >= 0 && index < list.length) {
+      final previous = list[index];
+      list[index] = newValue;
+      _profileConfig[listKey] = list;
+      notifyListeners();
+      await _saveProfileConfig();
+
+      await _auditLogService?.logSurveyConfigChanged(
+        actor: _currentActor,
+        configKey: 'Profile $listKey Option',
+        previousValue: previous,
+        newValue: newValue,
+      );
+    }
+  }
+
+  /// Reset profile config to defaults
+  Future<void> resetProfileToDefaults() async {
+    _profileConfig = Map<String, dynamic>.from(defaultProfileConfig);
+    notifyListeners();
+    await _saveProfileConfig();
+
+    await _auditLogService?.logSurveyConfigChanged(
+      actor: _currentActor,
+      configKey: 'Profile Config',
+      previousValue: 'Custom',
+      newValue: 'Reset to Defaults',
+    );
+  }
+
+  // ========== SUGGESTIONS CONFIG METHODS ==========
+
+  /// Save suggestions config to SharedPreferences
+  Future<void> _saveSuggestionsConfig() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = jsonEncode(_suggestionsConfig);
+      await prefs.setString(_keySuggestionsConfig, jsonStr);
+      debugPrint('SurveyQuestionsService: Suggestions config saved');
+    } catch (e) {
+      debugPrint('SurveyQuestionsService: Error saving suggestions config: $e');
+    }
+  }
+
+  /// Update a suggestions config value
+  Future<void> updateSuggestionsConfig(String key, dynamic value) async {
+    final previousValue = _suggestionsConfig[key];
+    _suggestionsConfig[key] = value;
+    notifyListeners();
+    await _saveSuggestionsConfig();
+
+    await _auditLogService?.logSurveyConfigChanged(
+      actor: _currentActor,
+      configKey: 'Suggestions: $key',
+      previousValue: previousValue?.toString() ?? 'null',
+      newValue: value?.toString() ?? 'null',
+    );
+  }
+
+  /// Reset suggestions config to defaults
+  Future<void> resetSuggestionsToDefaults() async {
+    _suggestionsConfig = Map<String, dynamic>.from(defaultSuggestionsConfig);
+    notifyListeners();
+    await _saveSuggestionsConfig();
+
+    await _auditLogService?.logSurveyConfigChanged(
+      actor: _currentActor,
+      configKey: 'Suggestions Config',
+      previousValue: 'Custom',
+      newValue: 'Reset to Defaults',
+    );
+  }
+
+  /// Reset all configurations to defaults
+  Future<void> resetAllToDefaults() async {
+    _ccQuestions = defaultCcQuestions.map((q) => q.copyWith()).toList();
+    _sqdQuestions = defaultSqdQuestions.map((q) => q.copyWith()).toList();
+    _profileConfig = Map<String, dynamic>.from(defaultProfileConfig);
+    _suggestionsConfig = Map<String, dynamic>.from(defaultSuggestionsConfig);
+
+    notifyListeners();
+    await _saveCcQuestions();
+    await _saveSqdQuestions();
+    await _saveProfileConfig();
+    await _saveSuggestionsConfig();
+
+    await _auditLogService?.logSurveyConfigChanged(
+      actor: _currentActor,
+      configKey: 'All Survey Configuration',
       previousValue: 'Custom',
       newValue: 'Reset to Defaults',
     );

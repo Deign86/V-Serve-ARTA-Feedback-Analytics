@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
 import '../../services/survey_config_service.dart';
+import '../../services/survey_questions_service.dart';
 import '../../services/offline_queue.dart';
 import '../../widgets/offline_queue_widget.dart';
 import '../../widgets/survey_progress_bar.dart';
@@ -38,39 +39,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   late TextEditingController _otherServiceController;
   bool _isOtherService = false;
 
-  final List<String> regions = [
-    'NCR',
-    'CAR',
-    'Region I',
-    'Region II',
-    'Region III',
-    'Region IV-A',
-    'Region IV-B',
-    'Region V',
-    'Region VI',
-    'Region VII',
-    'Region VIII',
-    'Region IX',
-    'Region X',
-    'Region XI',
-    'Region XII',
-    'Region XIII',
-    'BARMM',
-  ];
-
-  final List<String> services = [
-    'Business Permit',
-    'Real Property Tax',
-    'Civil Registry',
-    'Health Services',
-    'Building Official',
-    'Zoning',
-    'Social Welfare',
-    'Garbage Collection',
-    'Traffic Management',
-    'Other',
-  ];
-
   // Validation State for Date (since it's not a text field)
   bool _showDateError = false;
 
@@ -90,6 +58,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     
     // Initialize from provider if data exists
     final surveyData = context.read<SurveyProvider>().surveyData;
+    final questionsService = context.read<SurveyQuestionsService>();
+    final services = questionsService.services;
+    
     if (surveyData.clientType != null) clientType = surveyData.clientType!;
     if (surveyData.date != null) selectedDate = surveyData.date;
     if (surveyData.sex != null) sex = surveyData.sex!;
@@ -422,13 +393,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildPart1(bool isMobile) {
     final configService = context.watch<SurveyConfigService>();
+    final questionsService = context.watch<SurveyQuestionsService>();
     final demographicsEnabled = configService.demographicsEnabled;
+    final sectionTitle = questionsService.profileSectionTitle;
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'PART 1. USER PROFILE',
+          sectionTitle,
           style: GoogleFonts.montserrat(
             fontSize: isMobile ? 18 : 24,
             fontWeight: FontWeight.bold,
@@ -505,11 +478,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildClientTypeField(bool isMobile) {
+    final questionsService = context.watch<SurveyQuestionsService>();
+    final clientTypes = questionsService.clientTypes;
+    final clientTypeLabel = questionsService.clientTypeLabel;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'CLIENT TYPE:',
+          '$clientTypeLabel:',
           style: GoogleFonts.montserrat(
             fontSize: isMobile ? 13 : 15,
             fontWeight: FontWeight.bold,
@@ -520,35 +497,34 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         Wrap(
           spacing: isMobile ? 14 : 24,
           runSpacing: 8,
-          children:
-              ['CITIZEN', 'BUSINESS', 'GOVERNMENT (EMPLOYEE OR ANOTHER AGENCY)']
-                  .map(
-                    (type) => SizedBox(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // ignore: deprecated_member_use
-                          Radio<String>(
-                            value: type,
-                            // ignore: deprecated_member_use
-                            groupValue: clientType,
-                            activeColor: const Color(0xFF003366),
-                            // ignore: deprecated_member_use
-                            onChanged: (value) =>
-                                setState(() => clientType = value!),
-                          ),
-                          Text(
-                            type,
-                            style: GoogleFonts.poppins(
-                              fontSize: isMobile ? 11 : 14,
-                              color: const Color(0xFF003366),
-                            ),
-                          ),
-                        ],
+          children: clientTypes
+              .map(
+                (type) => SizedBox(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // ignore: deprecated_member_use
+                      Radio<String>(
+                        value: type,
+                        // ignore: deprecated_member_use
+                        groupValue: clientType,
+                        activeColor: const Color(0xFF003366),
+                        // ignore: deprecated_member_use
+                        onChanged: (value) =>
+                            setState(() => clientType = value!),
                       ),
-                    ),
-                  )
-                  .toList(),
+                      Text(
+                        type,
+                        style: GoogleFonts.poppins(
+                          fontSize: isMobile ? 11 : 14,
+                          color: const Color(0xFF003366),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
         ),
       ],
     );
@@ -755,12 +731,16 @@ Widget _buildAgeField(bool isMobile) {
 
 
  Widget _buildRegionField(bool isMobile) {
+  final questionsService = context.watch<SurveyQuestionsService>();
+  final regions = questionsService.regions;
+  final regionLabel = questionsService.regionLabel;
+  
   return Column(
     key: _regionKey,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(
-        'REGION OF RESIDENCE:',
+        '$regionLabel:',
         style: GoogleFonts.montserrat(
           fontSize: isMobile ? 11 : 15,
           fontWeight: FontWeight.bold,
@@ -805,12 +785,16 @@ Widget _buildAgeField(bool isMobile) {
 }
 
 Widget _buildServiceAvailedField(bool isMobile) {
+  final questionsService = context.watch<SurveyQuestionsService>();
+  final services = questionsService.services;
+  final serviceLabel = questionsService.serviceLabel;
+  
   return Column(
     key: _serviceKey,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(
-        'SERVICE AVAILED:',
+        '$serviceLabel:',
         style: GoogleFonts.montserrat(
           fontSize: isMobile ? 10 : 15,
           fontWeight: FontWeight.bold,

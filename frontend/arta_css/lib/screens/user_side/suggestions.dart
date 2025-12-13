@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../services/offline_queue.dart';
 import '../../services/survey_config_service.dart';
+import '../../services/survey_questions_service.dart';
 import '../../services/audit_log_service.dart';
 import '../../widgets/offline_queue_widget.dart';
 import '../../widgets/survey_progress_bar.dart';
@@ -129,6 +130,8 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
   }
 
   Widget _buildFormCard(bool isMobile) {
+    final questionsService = context.watch<SurveyQuestionsService>();
+    
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -161,7 +164,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'SUGGESTIONS',
+                    questionsService.suggestionsSectionTitle,
                     style: GoogleFonts.montserrat(
                       fontSize: isMobile ? 20 : 28,
                       fontWeight: FontWeight.bold,
@@ -175,9 +178,9 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
               
               _buildModernTextField(
                 controller: _suggestionsController,
-                label: 'SUGGESTIONS',
-                subtitle: 'How can we further improve our services?',
-                hint: 'Write your suggestions here...',
+                label: questionsService.suggestionsLabel,
+                subtitle: questionsService.suggestionsSubtitle,
+                hint: questionsService.suggestionsPlaceholder,
                 icon: Icons.edit_note,
                 isMobile: isMobile,
                 maxLines: 6,
@@ -187,9 +190,9 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
               
               _buildModernTextField(
                 controller: _emailController,
-                label: 'EMAIL ADDRESS',
-                subtitle: 'Optional - for feedback replies',
-                hint: 'Enter your email address...',
+                label: questionsService.emailLabel,
+                subtitle: questionsService.emailSubtitle,
+                hint: questionsService.emailPlaceholder,
                 icon: Icons.email_outlined,
                 isMobile: isMobile,
                 type: TextInputType.emailAddress,
@@ -684,6 +687,8 @@ class _ThankYouScreenState extends State<ThankYouScreen> with TickerProviderStat
   }
 
   Widget _buildTopSection({bool isDesktopRightSide = false}) {
+    final questionsService = context.watch<SurveyQuestionsService>();
+    
     return Container(
       width: double.infinity,
       height: isDesktopRightSide ? double.infinity : null,
@@ -741,7 +746,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with TickerProviderStat
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  "THANK YOU",
+                  questionsService.thankYouTitle,
                   style: GoogleFonts.montserrat(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -757,7 +762,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with TickerProviderStat
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  "FOR YOUR FEEDBACK!",
+                  questionsService.thankYouMessage,
                   style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontSize: 16,

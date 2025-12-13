@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../models/survey_data.dart';
+import '../models/export_filters.dart';
 import 'cache_service.dart';
 
 /// Service for fetching and aggregating feedback data from Firestore
@@ -511,6 +512,134 @@ class FeedbackService extends ChangeNotifier with CachingMixin {
   /// Export feedbacks as list of maps (for CSV/JSON export)
   List<Map<String, dynamic>> exportFeedbacks() {
     return _feedbacks.map((f) => f.toJson()).toList();
+  }
+  
+  /// Export feedbacks with filters applied
+  List<Map<String, dynamic>> exportFilteredFeedbacks(ExportFilters filters) {
+    if (!filters.hasActiveFilters) {
+      return exportFeedbacks();
+    }
+    
+    final filtered = _feedbacks.where((f) {
+      // Date range filter
+      if (filters.startDate != null) {
+        final feedbackDate = f.submittedAt ?? f.date;
+        if (feedbackDate == null || feedbackDate.isBefore(filters.startDate!)) {
+          return false;
+        }
+      }
+      if (filters.endDate != null) {
+        final feedbackDate = f.submittedAt ?? f.date;
+        // Include the entire end date (up to 23:59:59)
+        final endOfDay = DateTime(
+          filters.endDate!.year,
+          filters.endDate!.month,
+          filters.endDate!.day,
+          23, 59, 59,
+        );
+        if (feedbackDate == null || feedbackDate.isAfter(endOfDay)) {
+          return false;
+        }
+      }
+      
+      // Client type filter
+      if (filters.clientType != null && 
+          f.clientType?.toLowerCase() != filters.clientType!.toLowerCase()) {
+        return false;
+      }
+      
+      // Region filter
+      if (filters.region != null && 
+          f.regionOfResidence?.toLowerCase() != filters.region!.toLowerCase()) {
+        return false;
+      }
+      
+      // Service availed filter
+      if (filters.serviceAvailed != null && 
+          f.serviceAvailed?.toLowerCase() != filters.serviceAvailed!.toLowerCase()) {
+        return false;
+      }
+      
+      // Satisfaction rating filter
+      if (filters.minSatisfaction != null && 
+          (f.sqd0Rating == null || f.sqd0Rating! < filters.minSatisfaction!)) {
+        return false;
+      }
+      if (filters.maxSatisfaction != null && 
+          (f.sqd0Rating == null || f.sqd0Rating! > filters.maxSatisfaction!)) {
+        return false;
+      }
+      
+      // CC Awareness filter
+      if (filters.ccAware != null) {
+        final isAware = (f.cc0Rating ?? 0) >= 3;
+        if (filters.ccAware! != isAware) {
+          return false;
+        }
+      }
+      
+      return true;
+    }).toList();
+    
+    return filtered.map((f) => f.toJson()).toList();
+  }
+  
+  /// Get unique client types from feedbacks
+  List<String> getUniqueClientTypes() {
+    final types = _feedbacks
+        .map((f) => f.clientType)
+        .where((t) => t != null && t.isNotEmpty)
+        .cast<String>()
+        .toSet()
+        .toList();
+    types.sort();
+    return types;
+  }
+  
+  /// Get unique regions from feedbacks
+  List<String> getUniqueRegions() {
+    final regions = _feedbacks
+        .map((f) => f.regionOfResidence)
+        .where((r) => r != null && r.isNotEmpty)
+        .cast<String>()
+        .toSet()
+        .toList();
+    regions.sort();
+    return regions;
+  }
+  
+  /// Get unique services from feedbacks
+  List<String> getUniqueServices() {
+    final services = _feedbacks
+        .map((f) => f.serviceAvailed)
+        .where((s) => s != null && s.isNotEmpty)
+        .cast<String>()
+        .toSet()
+        .toList();
+    services.sort();
+    return services;
+  }
+  
+  /// Get date range of available feedbacks
+  (DateTime?, DateTime?) getFeedbackDateRange() {
+    if (_feedbacks.isEmpty) return (null, null);
+    
+    DateTime? earliest;
+    DateTime? latest;
+    
+    for (final f in _feedbacks) {
+      final date = f.submittedAt ?? f.date;
+      if (date != null) {
+        if (earliest == null || date.isBefore(earliest)) {
+          earliest = date;
+        }
+        if (latest == null || date.isAfter(latest)) {
+          latest = date;
+        }
+      }
+    }
+    
+    return (earliest, latest);
   }
   
   /// Refresh data

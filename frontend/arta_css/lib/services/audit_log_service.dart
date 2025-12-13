@@ -20,6 +20,9 @@ class AuditLogService extends ChangeNotifier with CachingMixin {
   String? _error;
   DateTime? _lastFetch;
   
+  // Total count of logs in Firestore (not limited by fetch)
+  int _totalLogsCount = 0;
+  
   // Filtering options
   AuditActionType? _filterActionType;
   String? _filterActorId;
@@ -509,6 +512,7 @@ class AuditLogService extends ChangeNotifier with CachingMixin {
     notifyListeners();
 
     try {
+      // Fetch logs with limit
       final snapshot = await _firestore
           .collection(_collectionName)
           .orderBy('timestamp', descending: true)
@@ -520,6 +524,19 @@ class AuditLogService extends ChangeNotifier with CachingMixin {
         data['id'] = doc.id;
         return AuditLogEntry.fromJson(data);
       }).toList();
+
+      // Fetch total count separately using count() aggregation
+      try {
+        final countQuery = await _firestore
+            .collection(_collectionName)
+            .count()
+            .get();
+        _totalLogsCount = countQuery.count ?? _logs.length;
+      } catch (e) {
+        // Fallback to using _logs.length if count() not supported
+        _totalLogsCount = _logs.length;
+        debugPrint('AuditLogService: Count aggregation failed, using logs length: $e');
+      }
 
       _lastFetch = DateTime.now();
       _isLoading = false;
@@ -633,7 +650,7 @@ class AuditLogService extends ChangeNotifier with CachingMixin {
     final thisWeek = today.subtract(const Duration(days: 7));
     
     return {
-      'totalLogs': _logs.length,
+      'totalLogs': _totalLogsCount > 0 ? _totalLogsCount : _logs.length,
       'logsToday': _logs.where((l) => l.timestamp.isAfter(today)).length,
       'logsThisWeek': _logs.where((l) => l.timestamp.isAfter(thisWeek)).length,
       'loginAttempts': _logs.where((l) => 
