@@ -182,7 +182,7 @@ class UserManagementService extends ChangeNotifier with CachingMixin {
   // Role counts
   int get administratorCount => _users.where((u) => u.role == 'Administrator' && u.status == 'Active').length;
   int get editorCount => _users.where((u) => u.role == 'Editor' && u.status == 'Active').length;
-  int get analystCount => _users.where((u) => u.role == 'Analyst/Viewer' && u.status == 'Active').length;
+  int get analystCount => _users.where((u) => (u.role == 'Analyst/Viewer' || u.role == 'Viewer') && u.status == 'Active').length;
 
   // Available departments
   List<String> get departments => _users.map((u) => u.department).where((d) => d.isNotEmpty).toSet().toList()..sort();
@@ -203,7 +203,11 @@ class UserManagementService extends ChangeNotifier with CachingMixin {
 
     // Apply role filter
     if (_filterRole != null) {
-      filtered = filtered.where((u) => u.role == _filterRole).toList();
+      if (_filterRole == 'Analyst/Viewer' || _filterRole == 'Viewer') {
+        filtered = filtered.where((u) => u.role == 'Analyst/Viewer' || u.role == 'Viewer').toList();
+      } else {
+        filtered = filtered.where((u) => u.role == _filterRole).toList();
+      }
     }
 
     // Apply status filter

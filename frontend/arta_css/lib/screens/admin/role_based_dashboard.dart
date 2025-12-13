@@ -989,6 +989,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       case 'Editor':
         return Colors.purple;
       case 'Analyst/Viewer':
+      case 'Viewer':
         return Colors.blue;
       default:
         return Colors.grey;
@@ -1175,7 +1176,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         childAspectRatio: aspectRatio,
                         children: [
                           _buildRoleCard('ADMINISTRATOR', '${userService.administratorCount} Active', 'Full System Access', Icons.admin_panel_settings, Colors.red),
-                          _buildRoleCard('ANALYST / VIEWER', '${userService.analystCount} Active', 'View Reports & Analytics', Icons.analytics, Colors.green),
+                          _buildRoleCard('VIEWER', '${userService.analystCount} Active', 'View Reports & Analytics', Icons.analytics, Colors.green),
                         ],
                       );
                     },
