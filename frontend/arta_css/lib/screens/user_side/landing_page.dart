@@ -26,9 +26,9 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
   bool _isHoveringButton = false;
 
   final List<String> _carouselImages = [
-    'assets/nai_1.jpg',
-    'assets/nai_2.jpg',
-    'assets/nai_3.png',
+    'assets/arta_1.jpg',
+    'assets/arta_2.jpg',
+    'assets/arta_3.jpg',
   ];
 
   @override
