@@ -210,8 +210,8 @@ class _SQDScreenState extends State<SQDScreen> {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
     final configService = context.watch<SurveyConfigService>();
-    // Calculate current step: 1 (profile) + 1 if CC enabled
-    final currentStep = configService.ccEnabled ? 3 : 2;
+    // Calculate current step dynamically
+    final currentStep = configService.getStepNumber(SurveyStep.sqd);
     final totalSteps = configService.totalSteps;
 
     return Scaffold(

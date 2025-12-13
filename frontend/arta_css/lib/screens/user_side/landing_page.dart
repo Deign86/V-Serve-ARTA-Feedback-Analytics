@@ -6,6 +6,9 @@ import '../../services/survey_config_service.dart';
 import '../../services/audit_log_service.dart';
 import '../../widgets/offline_queue_widget.dart';
 import 'user_profile.dart';
+import 'citizen_charter.dart';
+import 'sqd.dart';
+import 'suggestions.dart';
 import '../../widgets/smooth_scroll_view.dart';
 
 class LandingScreen extends StatefulWidget {
@@ -291,10 +294,30 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                                 } catch (e) {
                                   debugPrint('Audit log error (non-critical): $e');
                                 }
-                                
-                                navigator.push(
-                                  MaterialPageRoute(builder: (_) => UserProfileScreen(isPreviewMode: widget.isPreviewMode)),
-                                );
+
+                                final configService = context.read<SurveyConfigService>();
+
+                                if (configService.demographicsEnabled) {
+                                  navigator.push(
+                                    MaterialPageRoute(builder: (_) => UserProfileScreen(isPreviewMode: widget.isPreviewMode)),
+                                  );
+                                } else if (configService.ccEnabled) {
+                                  navigator.push(
+                                    MaterialPageRoute(builder: (_) => CitizenCharterScreen(isPreviewMode: widget.isPreviewMode)),
+                                  );
+                                } else if (configService.sqdEnabled) {
+                                  navigator.push(
+                                    MaterialPageRoute(builder: (_) => SQDScreen(isPreviewMode: widget.isPreviewMode)),
+                                  );
+                                } else if (configService.suggestionsEnabled) {
+                                  navigator.push(
+                                    MaterialPageRoute(builder: (_) => SuggestionsScreen(isPreviewMode: widget.isPreviewMode)),
+                                  );
+                                } else {
+                                  navigator.push(
+                                    MaterialPageRoute(builder: (_) => ThankYouScreen(isPreviewMode: widget.isPreviewMode)),
+                                  );
+                                }
                               },
                               child: Text(
                                 "I Agree",

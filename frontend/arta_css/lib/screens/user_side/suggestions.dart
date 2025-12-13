@@ -76,8 +76,8 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                     _buildHeader(isMobile),
                     SizedBox(height: isMobile ? 16 : 24),
                     SurveyProgressBar(
-                      currentStep: 4,
-                      totalSteps: 4,
+                      currentStep: context.watch<SurveyConfigService>().getStepNumber(SurveyStep.suggestions),
+                      totalSteps: context.watch<SurveyConfigService>().totalSteps,
                       isMobile: isMobile,
                     ),
                     SizedBox(height: isMobile ? 16 : 24),

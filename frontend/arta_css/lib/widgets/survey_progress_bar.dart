@@ -6,7 +6,7 @@ class SurveyProgressBar extends StatefulWidget {
   final int currentStep; // 1-based index
   final int totalSteps;
   final bool isMobile;
-  final List<SurveyStep>? customSteps;
+  final List<ProgressBarStep>? customSteps;
 
   const SurveyProgressBar({
     super.key,
@@ -26,11 +26,11 @@ class _SurveyProgressBarState extends State<SurveyProgressBar>
   late Animation<double> _pulseAnimation;
 
   // Default steps configuration
-  static const List<SurveyStep> _defaultSteps = [
-    SurveyStep(icon: Icons.person_outline, label: 'Profile'),
-    SurveyStep(icon: Icons.article_outlined, label: 'Charter'),
-    SurveyStep(icon: Icons.star_outline, label: 'Ratings'),
-    SurveyStep(icon: Icons.chat_bubble_outline, label: 'Feedback'),
+  static const List<ProgressBarStep> _defaultSteps = [
+    ProgressBarStep(icon: Icons.person_outline, label: 'Profile'),
+    ProgressBarStep(icon: Icons.article_outlined, label: 'Charter'),
+    ProgressBarStep(icon: Icons.star_outline, label: 'Ratings'),
+    ProgressBarStep(icon: Icons.chat_bubble_outline, label: 'Feedback'),
   ];
 
   @override
@@ -55,7 +55,7 @@ class _SurveyProgressBarState extends State<SurveyProgressBar>
     super.dispose();
   }
 
-  List<SurveyStep> get _steps {
+  List<ProgressBarStep> get _steps {
     if (widget.customSteps != null && widget.customSteps!.length == widget.totalSteps) {
       return widget.customSteps!;
     }
@@ -122,7 +122,7 @@ class _SurveyProgressBarState extends State<SurveyProgressBar>
   }
 
   Widget _buildStepCircle({
-    required SurveyStep step,
+    required ProgressBarStep step,
     required bool isCompleted,
     required bool isActive,
     required double circleSize,
@@ -272,11 +272,11 @@ class _SurveyProgressBarState extends State<SurveyProgressBar>
 }
 
 /// Represents a single step in the survey progress
-class SurveyStep {
+class ProgressBarStep {
   final IconData icon;
   final String label;
 
-  const SurveyStep({
+  const ProgressBarStep({
     required this.icon,
     required this.label,
   });

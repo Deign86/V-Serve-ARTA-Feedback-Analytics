@@ -139,20 +139,24 @@ class SurveyConfigService extends ChangeNotifier {
 
   /// Get the number of survey steps based on current configuration
   int get totalSteps {
-    int steps = 1; // Always have user profile (demographics)
+    int steps = 0;
+    if (_demographicsEnabled) steps++; // User Profile
     if (_ccEnabled) steps++;
     if (_sqdEnabled) steps++;
     if (_suggestionsEnabled) steps++;
-    return steps;
+    return steps > 0 ? steps : 1; // Ensure at least 1 step for safety
   }
 
   /// Calculate dynamic step number for a given screen
   int getStepNumber(SurveyStep step) {
     int stepNum = 0;
 
-    // Profile is always step 1
-    if (step == SurveyStep.profile) return 1;
-    stepNum = 1;
+    // Profile is step 1 if enabled
+    if (step == SurveyStep.profile) {
+      return _demographicsEnabled ? 1 : -1;
+    }
+    
+    if (_demographicsEnabled) stepNum++;
 
     // CC comes after profile if enabled
     if (step == SurveyStep.citizenCharter) {

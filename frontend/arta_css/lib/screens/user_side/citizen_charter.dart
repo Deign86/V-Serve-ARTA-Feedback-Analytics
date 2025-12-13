@@ -245,7 +245,7 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
     final configService = context.watch<SurveyConfigService>();
-    final currentStep = 2; // CC is always step 2 when enabled
+    final currentStep = configService.getStepNumber(SurveyStep.citizenCharter);
     final totalSteps = configService.totalSteps;
 
     return Scaffold(
