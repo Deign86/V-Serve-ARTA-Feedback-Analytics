@@ -8,7 +8,9 @@ import '../../services/survey_config_service.dart';
 import 'suggestions.dart'; // ThankYouScreen is defined here
 
 class SQDScreen extends StatefulWidget {
-  const SQDScreen({super.key});
+  final bool isPreviewMode;
+  
+  const SQDScreen({super.key, this.isPreviewMode = false});
 
   @override
   State<SQDScreen> createState() => _SQDScreenState();
@@ -166,11 +168,22 @@ class _SQDScreenState extends State<SQDScreen> {
         // Go to suggestions screen
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const SuggestionsScreen()),
+          MaterialPageRoute(builder: (_) => SuggestionsScreen(isPreviewMode: widget.isPreviewMode)),
         );
       } else {
         // Skip suggestions - submit directly and go to thank you
         setState(() => _isSubmitting = true);
+        
+        // Skip database submission in preview mode
+        if (widget.isPreviewMode) {
+          if (!mounted) return;
+          context.read<SurveyProvider>().resetSurvey();
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => ThankYouScreen(isPreviewMode: widget.isPreviewMode)),
+          );
+          return;
+        }
         
         try {
           await OfflineQueue.enqueue(surveyData.toJson());

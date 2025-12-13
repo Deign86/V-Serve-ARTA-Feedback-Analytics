@@ -9,7 +9,9 @@ import 'suggestions.dart'; // ThankYouScreen is defined here
 import '../../widgets/smooth_scroll_view.dart';
 
 class CitizenCharterScreen extends StatefulWidget {
-  const CitizenCharterScreen({super.key});
+  final bool isPreviewMode;
+  
+  const CitizenCharterScreen({super.key, this.isPreviewMode = false});
 
   @override
   State<CitizenCharterScreen> createState() => _CitizenCharterScreenState();
@@ -157,16 +159,27 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
         // Go to SQD
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const SQDScreen()),
+          MaterialPageRoute(builder: (_) => SQDScreen(isPreviewMode: widget.isPreviewMode)),
         );
       } else if (configService.suggestionsEnabled) {
         // Skip SQD, go to Suggestions
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const SuggestionsScreen()),
+          MaterialPageRoute(builder: (_) => SuggestionsScreen(isPreviewMode: widget.isPreviewMode)),
         );
       } else {
         // All remaining sections disabled - submit directly
+        // Skip database submission in preview mode
+        if (widget.isPreviewMode) {
+          if (!mounted) return;
+          context.read<SurveyProvider>().resetSurvey();
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => ThankYouScreen(isPreviewMode: widget.isPreviewMode)),
+          );
+          return;
+        }
+        
         try {
           await OfflineQueue.enqueue(surveyData.toJson());
           await OfflineQueue.flush();

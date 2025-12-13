@@ -264,8 +264,6 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   _buildCredential('Admin', 'admin@valenzuela.gov.ph', 'admin123'),
-                                  _buildCredential('Editor', 'editor@valenzuela.gov.ph', 'editor123'),
-                                  _buildCredential('Analyst', 'analyst@valenzuela.gov.ph', 'analyst123'),
                                   _buildCredential('Viewer', 'viewer@valenzuela.gov.ph', 'viewer123'),
                                 ],
                               ),

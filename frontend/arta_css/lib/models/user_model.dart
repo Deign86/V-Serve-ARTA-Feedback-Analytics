@@ -3,8 +3,8 @@
 // lib/models/user_model.dart
 enum UserRole {
   administrator,
-  editor,
-  analyst,
+  editor, // Legacy - treated as viewer
+  analyst, // Legacy - treated as viewer
   viewer,
 }
 
@@ -29,22 +29,28 @@ class UserModel {
     required this.createdAt,
   });
 
-  // Permissions based on role
-  bool get canCreateSurveys => role == UserRole.administrator || role == UserRole.editor;
-  bool get canEditSurveys => role == UserRole.administrator || role == UserRole.editor;
-  bool get canViewAnalytics => true; // All roles can view analytics
-  bool get canExportData => role != UserRole.viewer;
-  bool get canManageUsers => role == UserRole.administrator;
-  bool get canDeleteSurveys => role == UserRole.administrator;
+  /// Check if user is an administrator (full access)
+  bool get isAdmin => role == UserRole.administrator;
+  
+  /// Check if user is a viewer (limited access)
+  bool get isViewer => role == UserRole.viewer || role == UserRole.editor || role == UserRole.analyst;
+
+  // Permissions based on role - RBAC: Admin (full access) vs Viewer (limited access)
+  bool get canCreateSurveys => isAdmin;
+  bool get canEditSurveys => isAdmin;
+  bool get canViewAnalytics => true; // All roles can view basic analytics
+  bool get canAccessDetailedAnalytics => isAdmin; // Only admin can access detailed analytics
+  bool get canExportData => true; // All roles can export data
+  bool get canManageUsers => isAdmin; // Only admin can manage users
+  bool get canAccessConfiguration => isAdmin; // Only admin can access ARTA configuration
+  bool get canDeleteSurveys => isAdmin;
 
   String get roleDisplayName {
     switch (role) {
       case UserRole.administrator:
         return 'Administrator';
       case UserRole.editor:
-        return 'Editor';
       case UserRole.analyst:
-        return 'Analyst';
       case UserRole.viewer:
         return 'Viewer';
     }

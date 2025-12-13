@@ -8,7 +8,9 @@ import 'landing_page.dart';
 import '../../widgets/smooth_scroll_view.dart';
 
 class SuggestionsScreen extends StatefulWidget {
-  const SuggestionsScreen({super.key});
+  final bool isPreviewMode;
+  
+  const SuggestionsScreen({super.key, this.isPreviewMode = false});
 
   @override
   State<SuggestionsScreen> createState() => _SuggestionsScreenState();
@@ -349,6 +351,17 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
               
               setState(() => _isSubmitting = true);
               
+              // Skip database submission in preview mode
+              if (widget.isPreviewMode) {
+                if (!mounted) return;
+                context.read<SurveyProvider>().resetSurvey();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => ThankYouScreen(isPreviewMode: widget.isPreviewMode)),
+                );
+                return;
+              }
+              
               try {
                 await OfflineQueue.enqueue(surveyData.toJson());
                 await OfflineQueue.flush();
@@ -404,7 +417,9 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
 // ------------------ THANK YOU SCREEN ------------------
 
 class ThankYouScreen extends StatefulWidget {
-  const ThankYouScreen({super.key});
+  final bool isPreviewMode;
+  
+  const ThankYouScreen({super.key, this.isPreviewMode = false});
 
   @override
   State<ThankYouScreen> createState() => _ThankYouScreenState();
@@ -512,7 +527,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> {
 
   void _goHome() {
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LandingScreen()),
+      MaterialPageRoute(builder: (_) => LandingScreen(isPreviewMode: widget.isPreviewMode)),
       (Route<dynamic> route) => false,
     );
   }

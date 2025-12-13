@@ -757,7 +757,7 @@ class _MobilePreviewScreenState extends State<MobilePreviewScreen> {
                     key: _nestedNavigatorKey,
                     onGenerateRoute: (settings) {
                       return MaterialPageRoute(
-                        builder: (context) => const LandingScreen(),
+                        builder: (context) => const LandingScreen(isPreviewMode: true),
                         settings: settings,
                       );
                     },

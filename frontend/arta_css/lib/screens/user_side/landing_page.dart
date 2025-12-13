@@ -7,7 +7,9 @@ import 'user_profile.dart';
 import '../../widgets/smooth_scroll_view.dart';
 
 class LandingScreen extends StatefulWidget {
-  const LandingScreen({super.key});
+  final bool isPreviewMode;
+  
+  const LandingScreen({super.key, this.isPreviewMode = false});
 
   @override
   State<LandingScreen> createState() => _LandingScreenState();
@@ -131,11 +133,15 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
   void _showPrivacyDialog(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final dialogWidth = size.width > 600 ? 450.0 : size.width * 0.9;
+    
+    // Capture the navigator before opening dialog to ensure we use the correct navigator
+    // (important for nested navigators like in Mobile Preview)
+    final navigator = Navigator.of(context);
 
     showDialog(
       context: context,
       barrierDismissible: false, // User must choose an option
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
@@ -245,7 +251,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                           children: [
                             TextButton(
                               onPressed: () {
-                                Navigator.of(context).pop();
+                                Navigator.of(dialogContext).pop();
                               },
                               child: Text(
                                 "I Disagree",
@@ -266,10 +272,9 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                                 ),
                               ),
                               onPressed: () {
-                                Navigator.of(context).pop(); // Close dialog
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const UserProfileScreen()),
+                                Navigator.of(dialogContext).pop(); // Close dialog
+                                navigator.push(
+                                  MaterialPageRoute(builder: (_) => UserProfileScreen(isPreviewMode: widget.isPreviewMode)),
                                 );
                               },
                               child: Text(

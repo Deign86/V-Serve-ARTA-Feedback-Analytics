@@ -200,16 +200,26 @@ class AuthService extends ChangeNotifier with CachingMixin {
         return _currentUser!.canEditSurveys;
       case 'view_analytics':
         return _currentUser!.canViewAnalytics;
+      case 'detailed_analytics':
+        return _currentUser!.canAccessDetailedAnalytics;
       case 'export_data':
         return _currentUser!.canExportData;
       case 'manage_users':
         return _currentUser!.canManageUsers;
+      case 'configuration':
+        return _currentUser!.canAccessConfiguration;
       case 'delete_surveys':
         return _currentUser!.canDeleteSurveys;
       default:
         return false;
     }
   }
+  
+  /// Check if current user is an administrator
+  bool get isAdmin => _currentUser?.isAdmin ?? false;
+  
+  /// Check if current user is a viewer (non-admin)
+  bool get isViewer => _currentUser?.isViewer ?? true;
 
   // Auto-login for testing (optional) - fetches from Firestore
   Future<void> autoLogin(UserRole role) async {

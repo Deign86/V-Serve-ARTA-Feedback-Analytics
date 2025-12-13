@@ -12,7 +12,9 @@ import 'suggestions.dart'; // ThankYouScreen is defined here
 import '../../widgets/smooth_scroll_view.dart';
 
 class UserProfileScreen extends StatefulWidget {
-  const UserProfileScreen({super.key});
+  final bool isPreviewMode;
+  
+  const UserProfileScreen({super.key, this.isPreviewMode = false});
 
   @override
   State<UserProfileScreen> createState() => _UserProfileScreenState();
@@ -193,22 +195,33 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       // Go to Citizen's Charter
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const CitizenCharterScreen()),
+        MaterialPageRoute(builder: (_) => CitizenCharterScreen(isPreviewMode: widget.isPreviewMode)),
       );
     } else if (configService.sqdEnabled) {
       // Skip CC, go to SQD
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const SQDScreen()),
+        MaterialPageRoute(builder: (_) => SQDScreen(isPreviewMode: widget.isPreviewMode)),
       );
     } else if (configService.suggestionsEnabled) {
       // Skip CC and SQD, go to Suggestions
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const SuggestionsScreen()),
+        MaterialPageRoute(builder: (_) => SuggestionsScreen(isPreviewMode: widget.isPreviewMode)),
       );
     } else {
       // All optional sections disabled - submit directly
+      // Skip database submission in preview mode
+      if (widget.isPreviewMode) {
+        if (!mounted) return;
+        context.read<SurveyProvider>().resetSurvey();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => ThankYouScreen(isPreviewMode: widget.isPreviewMode)),
+        );
+        return;
+      }
+      
       try {
         await OfflineQueue.enqueue(surveyData.toJson());
         await OfflineQueue.flush();
@@ -766,7 +779,7 @@ Widget _buildAgeField(bool isMobile) {
       ),
       SizedBox(height: isMobile ? 4 : 8),
       DropdownButtonFormField<String>(
-        value: region,
+        initialValue: region,
         isExpanded: true,
         items: regions.map((r) {
           return DropdownMenuItem(
@@ -816,7 +829,7 @@ Widget _buildServiceAvailedField(bool isMobile) {
       ),
       SizedBox(height: isMobile ? 4 : 10),
       DropdownButtonFormField<String>(
-        value: serviceAvailed,
+        initialValue: serviceAvailed,
         isExpanded: true,
         items: services.map((s) {
           return DropdownMenuItem(

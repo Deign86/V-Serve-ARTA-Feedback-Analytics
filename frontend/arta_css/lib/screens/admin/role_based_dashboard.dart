@@ -24,19 +24,57 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
 
-  // Note: Removed 'const' from widgets that use Consumer/Provider 
-  // to ensure they rebuild properly on state changes
-  final List<Widget> _screens = [
-    const DashboardOverview(),  // Uses Consumer internally, so const is OK
-    const ArtaConfigurationScreen(),
-    const UserManagementScreen(),
-    const DetailedAnalyticsScreen(),
-    const DataExportsScreen(),
+  /// Menu item configuration with role-based access
+  /// Each item contains: icon, label, screen widget, and required permission (null = all access)
+  static const List<Map<String, dynamic>> _menuConfig = [
+    {'icon': Icons.dashboard, 'label': 'Dashboard', 'permission': null},
+    {'icon': Icons.settings_applications, 'label': 'ARTA Configuration', 'permission': 'configuration'},
+    {'icon': Icons.people, 'label': 'User Management', 'permission': 'manage_users'},
+    {'icon': Icons.analytics, 'label': 'Detailed Analytics', 'permission': 'detailed_analytics'},
+    {'icon': Icons.download, 'label': 'Data Exports', 'permission': null},
   ];
+
+  /// Get the list of accessible menu items for the current user
+  List<Map<String, dynamic>> _getAccessibleMenuItems(AuthService authService) {
+    return _menuConfig.where((item) {
+      final permission = item['permission'] as String?;
+      return permission == null || authService.hasPermission(permission);
+    }).toList();
+  }
+
+  /// Get the screen widget for the given menu index
+  Widget _getScreenForIndex(int index, List<Map<String, dynamic>> accessibleItems) {
+    if (index < 0 || index >= accessibleItems.length) {
+      return const DashboardOverview();
+    }
+    
+    final label = accessibleItems[index]['label'] as String;
+    switch (label) {
+      case 'Dashboard':
+        return const DashboardOverview();
+      case 'ARTA Configuration':
+        return const ArtaConfigurationScreen();
+      case 'User Management':
+        return const UserManagementScreen();
+      case 'Detailed Analytics':
+        return const DetailedAnalyticsScreen();
+      case 'Data Exports':
+        return const DataExportsScreen();
+      default:
+        return const DashboardOverview();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 900;
+    final authService = context.watch<AuthService>();
+    final accessibleMenuItems = _getAccessibleMenuItems(authService);
+    
+    // Ensure selected index is within bounds
+    if (_selectedIndex >= accessibleMenuItems.length) {
+      _selectedIndex = 0;
+    }
 
     return Scaffold(
       body: Stack(
@@ -125,15 +163,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const Divider(color: Colors.white24, height: 1),
                 const SizedBox(height: 20),
-                // Menu items
-                _buildMenuItem(0, Icons.dashboard, 'Dashboard', isDesktop),
-                _buildMenuItem(1, Icons.settings_applications, 'ARTA Configuration', isDesktop),
-                _buildMenuItem(2, Icons.people, 'User Management', isDesktop),
-                _buildMenuItem(3, Icons.analytics, 'Detailed Analytics', isDesktop),
-                _buildMenuItem(4, Icons.download, 'Data Exports', isDesktop),
+                // Menu items - dynamically generated based on user permissions
+                ...List.generate(accessibleMenuItems.length, (index) {
+                  final item = accessibleMenuItems[index];
+                  return _buildMenuItem(
+                    index,
+                    item['icon'] as IconData,
+                    item['label'] as String,
+                    isDesktop,
+                    accessibleMenuItems.length,
+                  );
+                }),
                 const Spacer(),
-                // Bottom menu
-                _buildMenuItem(5, Icons.exit_to_app, 'Sign Out', isDesktop),
+                // Bottom menu - Sign out (always visible)
+                _buildMenuItem(-1, Icons.exit_to_app, 'Sign Out', isDesktop, accessibleMenuItems.length),
                 const SizedBox(height: 20),
               ],
             ),
@@ -142,7 +185,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Expanded(
             child: Container(
                color: Colors.transparent, // Transparent to show background
-               child: _screens[_selectedIndex],
+               child: _getScreenForIndex(_selectedIndex, accessibleMenuItems),
             ),
           ),
             ], // end Row children
@@ -152,8 +195,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ); // end Scaffold
   }
 
-  Widget _buildMenuItem(int index, IconData icon, String label, bool isDesktop) {
-    final isSelected = _selectedIndex == index;
+  Widget _buildMenuItem(int index, IconData icon, String label, bool isDesktop, int totalItems) {
+    // index == -1 is used for Sign Out button
+    final isSignOut = index == -1;
+    final isSelected = !isSignOut && _selectedIndex == index;
     
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -171,7 +216,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             hoverColor: Colors.white.withValues(alpha: 0.1),
             splashColor: Colors.white.withValues(alpha: 0.2),
             onTap: () {
-              if (index == 5) {
+              if (isSignOut) {
                 // Sign out - logout and navigate to admin login
                 context.read<AuthService>().logout();
                 Navigator.pushNamedAndRemoveUntil(
@@ -179,7 +224,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   '/admin/login',
                   (route) => false, // Clear all routes for security
                 );
-              } else if (index < 5) {
+              } else if (index >= 0 && index < totalItems) {
                 setState(() {
                   _selectedIndex = index;
                 });
