@@ -14,7 +14,6 @@ class LandingScreen extends StatefulWidget {
 }
 
 class _LandingScreenState extends State<LandingScreen> with SingleTickerProviderStateMixin {
-  final PageController _pageController = PageController();
   int _currentPage = 0;
   
   // --- ARTA Text Animation Controllers ---
@@ -26,9 +25,9 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
   bool _isHoveringButton = false;
 
   final List<String> _carouselImages = [
-    'assets/nai_1.jpg',
-    'assets/nai_2.jpg',
-    'assets/nai_3.png',
+    'assets/bg1.png',
+    'assets/bg2.png',
+    'assets/bg3.png',
   ];
 
   @override
@@ -65,21 +64,18 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
     );
 
     // Auto-slide carousel
+    // Auto-slide carousel
     Timer.periodic(const Duration(seconds: 4), (timer) {
-      if (_pageController.hasClients && mounted) {
-        int nextPage = (_currentPage + 1) % _carouselImages.length;
-        _pageController.animateToPage(
-          nextPage,
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.easeInOut,
-        );
+      if (mounted) {
+        setState(() {
+          _currentPage = (_currentPage + 1) % _carouselImages.length;
+        });
       }
     });
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
     _expandController.dispose();
     _hoverTimer?.cancel(); 
     super.dispose();
@@ -590,33 +586,17 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
       child: Stack(
         children: [
           Positioned.fill(
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: _carouselImages.length,
-              onPageChanged: (index) {
-                setState(() {
-                  _currentPage = index;
-                });
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 1000),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return FadeTransition(opacity: animation, child: child);
               },
-              itemBuilder: (context, index) {
-                return Image.asset(
-                  _carouselImages[index],
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                );
-              },
-            ),
-          ),
-          Positioned(
-            bottom: 20,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                _carouselImages.length,
-                (index) => _buildDot(index == _currentPage),
+              child: Image.asset(
+                _carouselImages[_currentPage],
+                key: ValueKey<String>(_carouselImages[_currentPage]),
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
               ),
             ),
           ),
@@ -625,19 +605,6 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildDot(bool isActive) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.symmetric(horizontal: 5),
-      width: isActive ? 16 : 10,
-      height: isActive ? 16 : 10,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isActive ? const Color(0xFF003366) : Colors.white.withValues(alpha: 0.8),
-        boxShadow: const [BoxShadow(blurRadius: 2, color: Colors.black26)],
-      ),
-    );
-  }
 }
 
 

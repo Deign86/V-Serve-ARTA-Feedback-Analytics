@@ -4,6 +4,8 @@ import 'firebase_options.dart';
 import 'services/offline_queue.dart';
 import 'services/cache_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'screens/splash_screen.dart';
+
 import 'screens/user_side/landing_page.dart';
 import 'screens/user_side/user_profile.dart';
 import 'package:provider/provider.dart';
@@ -31,19 +33,26 @@ void main() async {
   // Set URL strategy for web (removes # from URLs and enables proper history handling)
   url_strategy.configureUrlStrategy();
 
+  print('ARTAV_LOG: App Main Starting...'); // Use print for immediate feedback
+
   try {
+    print('ARTAV_LOG: Initializing Firebase...');
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
-    );
-    debugPrint('Firebase initialized with generated options');
+    ).timeout(const Duration(seconds: 3), onTimeout: () {
+      print('ARTAV_LOG: Firebase init timed out - continuing without Firebase');
+      return Firebase.app(); // Return dummy/incomplete app or just continue
+    });
+    print('ARTAV_LOG: Firebase initialized with generated options');
+    
     try {
-      final flushed = await OfflineQueue.flush();
-      if (flushed > 0) debugPrint('Flushed $flushed pending feedbacks');
+      final flushed = await OfflineQueue.flush().timeout(const Duration(seconds: 2), onTimeout: () => 0);
+      if (flushed > 0) print('ARTAV_LOG: Flushed $flushed pending feedbacks');
     } catch (e) {
-      debugPrint('Failed flushing offline queue: $e');
+      print('ARTAV_LOG: Failed flushing offline queue: $e');
     }
   } catch (e) {
-    debugPrint('Firebase initializeApp failed: $e');
+    print('ARTAV_LOG: Firebase initializeApp failed: $e');
   }
 
   try {
@@ -57,7 +66,17 @@ void main() async {
 
   // Initialize cache service and warmup
   final cacheService = CacheService.instance;
-  await cacheService.warmupCache();
+  try {
+    debugPrint('Starting cache warmup...');
+    await cacheService.warmupCache().timeout(
+      const Duration(seconds: 2),
+      onTimeout: () {
+        debugPrint('Cache warmup timed out - continuing startup');
+      },
+    );
+  } catch (e) {
+    debugPrint('Cache warmup failed: $e');
+  }
   debugPrint('CacheService initialized');
 
   runApp(
@@ -232,7 +251,7 @@ class MyApp extends StatelessWidget {
       // Public routes - accessible to everyone (survey/feedback)
       case '/':
         return MaterialPageRoute(
-          builder: (context) => const LandingScreen(),
+          builder: (context) => const SplashScreen(nextScreen: LandingScreen()),
           settings: settings,
         );
       case '/profile':
