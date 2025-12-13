@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'services/offline_queue.dart';
 import 'services/cache_service.dart';
+import 'widgets/global_offline_indicator.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'screens/splash_screen.dart';
 
@@ -254,8 +255,9 @@ class _MyAppState extends State<MyApp> {
     // Use Consumer to properly listen to AuthService changes
     return Consumer<AuthService>(
       builder: (context, authService, _) {
-        return MaterialApp(
-          scrollBehavior: const SmoothScrollBehavior(),
+        return GlobalOfflineIndicator(
+          child: MaterialApp(
+            scrollBehavior: const SmoothScrollBehavior(),
           theme: ThemeData(
             textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
             pageTransitionsTheme: const PageTransitionsTheme(
@@ -273,6 +275,7 @@ class _MyAppState extends State<MyApp> {
           navigatorObservers: [AuthRouteObserver(authService)],
           onGenerateRoute: (settings) => _generateRoute(settings, authService),
           debugShowCheckedModeBanner: false,
+          ),
         );
       },
     );

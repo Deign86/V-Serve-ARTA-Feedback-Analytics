@@ -6,6 +6,8 @@ import 'admin_screens.dart';
 import '../../services/export_service.dart';
 import '../../services/auth_services.dart';
 import '../../services/user_management_service.dart';
+import '../../services/audit_log_service.dart';
+import '../../widgets/global_offline_indicator.dart';
 import '../../utils/admin_theme.dart';
 
 // NOTE: This file provides screens (DashboardScreen, etc.)
@@ -34,6 +36,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     {'icon': Icons.download, 'label': 'Data Exports', 'permission': null},
     {'icon': Icons.history, 'label': 'Audit Log', 'permission': 'manage_users'},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Log initial dashboard view after frame is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _logScreenView('Dashboard');
+    });
+  }
 
   /// Get the list of accessible menu items for the current user
   List<Map<String, dynamic>> _getAccessibleMenuItems(AuthService authService) {
@@ -65,6 +76,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return const AuditLogScreen();
       default:
         return const DashboardOverview();
+    }
+  }
+
+  /// Log screen view to audit log
+  void _logScreenView(String label) {
+    try {
+      final auditService = Provider.of<AuditLogService>(context, listen: false);
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final actor = authService.currentUser;
+      
+      switch (label) {
+        case 'Dashboard':
+          auditService.logDashboardViewed(actor: actor);
+          break;
+        case 'Detailed Analytics':
+          auditService.logAnalyticsViewed(actor: actor);
+          break;
+        case 'User Management':
+          auditService.logUserListViewed(actor: actor);
+          break;
+        case 'Audit Log':
+          auditService.logAuditLogViewed(actor: actor);
+          break;
+        case 'Data Exports':
+          auditService.logDataExportsViewed(actor: actor);
+          break;
+        case 'ARTA Configuration':
+          auditService.logArtaConfigViewed(actor: actor);
+          break;
+      }
+    } catch (e) {
+      debugPrint('Audit log error (non-critical): $e');
     }
   }
 
@@ -228,6 +271,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   (route) => false, // Clear all routes for security
                 );
               } else if (index >= 0 && index < totalItems) {
+                // Log screen view to audit log
+                _logScreenView(label);
                 setState(() {
                   _selectedIndex = index;
                 });
@@ -374,6 +419,8 @@ class _DashboardOverviewState extends State<DashboardOverview> with SingleTicker
                         spacing: 8,
                         runSpacing: 8,
                         children: [
+                          // Connection status indicator
+                          const ConnectionStatusIndicator(showWhenOnline: false),
                           // Real-time indicator
                           if (feedbackService.isListening)
                             Container(

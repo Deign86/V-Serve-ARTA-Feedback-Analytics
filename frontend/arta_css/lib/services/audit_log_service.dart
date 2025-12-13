@@ -322,6 +322,134 @@ class AuditLogService extends ChangeNotifier with CachingMixin {
     );
   }
 
+  // ==================== Survey/User Actions ====================
+
+  /// Log when a survey is submitted by a citizen/user
+  Future<bool> logSurveySubmitted({
+    String? clientType,
+    String? serviceAvailed,
+    String? region,
+  }) async {
+    return logAction(
+      actionType: AuditActionType.surveySubmitted,
+      actionDescription: 'Survey submitted by ${clientType ?? "Anonymous"} user',
+      actor: null, // Anonymous user
+      targetType: 'survey',
+      additionalInfo: {
+        'clientType': clientType ?? 'Unknown',
+        'serviceAvailed': serviceAvailed ?? 'Unknown',
+        'region': region ?? 'Unknown',
+        'submittedAt': DateTime.now().toIso8601String(),
+      },
+    );
+  }
+
+  /// Log when a user starts a new survey
+  Future<bool> logSurveyStarted({
+    String? clientType,
+  }) async {
+    return logAction(
+      actionType: AuditActionType.surveyStarted,
+      actionDescription: 'New survey started by ${clientType ?? "Anonymous"} user',
+      actor: null, // Anonymous user
+      targetType: 'survey',
+      additionalInfo: {
+        'clientType': clientType ?? 'Unknown',
+        'startedAt': DateTime.now().toIso8601String(),
+      },
+    );
+  }
+
+  // ==================== Admin Data Access Actions ====================
+
+  /// Log when admin views the dashboard
+  Future<bool> logDashboardViewed({
+    required UserModel? actor,
+  }) async {
+    return logAction(
+      actionType: AuditActionType.dashboardViewed,
+      actionDescription: 'Viewed admin dashboard',
+      actor: actor,
+      targetType: 'dashboard',
+    );
+  }
+
+  /// Log when admin views detailed analytics
+  Future<bool> logAnalyticsViewed({
+    required UserModel? actor,
+    String? analyticsType,
+  }) async {
+    return logAction(
+      actionType: AuditActionType.analyticsViewed,
+      actionDescription: 'Viewed ${analyticsType ?? "detailed"} analytics',
+      actor: actor,
+      targetType: 'analytics',
+      additionalInfo: analyticsType != null ? {'analyticsType': analyticsType} : null,
+    );
+  }
+
+  /// Log when admin browses feedback data
+  Future<bool> logFeedbackBrowserViewed({
+    required UserModel? actor,
+    int? recordCount,
+  }) async {
+    return logAction(
+      actionType: AuditActionType.feedbackBrowserViewed,
+      actionDescription: 'Browsed feedback data${recordCount != null ? " ($recordCount records)" : ""}',
+      actor: actor,
+      targetType: 'feedback_browser',
+      additionalInfo: recordCount != null ? {'recordCount': recordCount} : null,
+    );
+  }
+
+  /// Log when admin views user list
+  Future<bool> logUserListViewed({
+    required UserModel? actor,
+  }) async {
+    return logAction(
+      actionType: AuditActionType.userListViewed,
+      actionDescription: 'Viewed user management list',
+      actor: actor,
+      targetType: 'user_list',
+    );
+  }
+
+  /// Log when admin views audit logs
+  Future<bool> logAuditLogViewed({
+    required UserModel? actor,
+  }) async {
+    return logAction(
+      actionType: AuditActionType.auditLogViewed,
+      actionDescription: 'Viewed audit log history',
+      actor: actor,
+      targetType: 'audit_log',
+    );
+  }
+
+  /// Log when admin views data exports screen
+  Future<bool> logDataExportsViewed({
+    required UserModel? actor,
+  }) async {
+    return logAction(
+      actionType: AuditActionType.dataExportsViewed,
+      actionDescription: 'Viewed data exports screen',
+      actor: actor,
+      targetType: 'data_exports',
+    );
+  }
+
+  /// Log when admin views ARTA configuration screen
+  Future<bool> logArtaConfigViewed({
+    required UserModel? actor,
+  }) async {
+    return logAction(
+      actionType: AuditActionType.artaConfigViewed,
+      actionDescription: 'Viewed ARTA configuration settings',
+      actor: actor,
+      targetType: 'arta_config',
+    );
+  }
+
   // ==================== Retrieval methods ====================
 
   /// Get filtered logs based on current filters

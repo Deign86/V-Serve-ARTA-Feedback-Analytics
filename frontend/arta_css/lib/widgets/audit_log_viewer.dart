@@ -557,9 +557,27 @@ class _AuditLogViewerState extends State<AuditLogViewer> {
         return Icons.logout;
       case AuditActionType.surveyConfigChanged:
         return Icons.settings;
+      case AuditActionType.artaConfigViewed:
+        return Icons.settings_applications;
       case AuditActionType.feedbackDeleted:
         return Icons.delete;
       case AuditActionType.feedbackExported:
+        return Icons.download;
+      case AuditActionType.surveySubmitted:
+        return Icons.send;
+      case AuditActionType.surveyStarted:
+        return Icons.play_arrow;
+      case AuditActionType.dashboardViewed:
+        return Icons.dashboard;
+      case AuditActionType.analyticsViewed:
+        return Icons.analytics;
+      case AuditActionType.feedbackBrowserViewed:
+        return Icons.list_alt;
+      case AuditActionType.userListViewed:
+        return Icons.people;
+      case AuditActionType.auditLogViewed:
+        return Icons.history;
+      case AuditActionType.dataExportsViewed:
         return Icons.download;
       case AuditActionType.settingsChanged:
         return Icons.tune;
@@ -586,10 +604,28 @@ class _AuditLogViewerState extends State<AuditLogViewer> {
         return 'Logout';
       case AuditActionType.surveyConfigChanged:
         return 'Config Changed';
+      case AuditActionType.artaConfigViewed:
+        return 'ARTA Config Viewed';
       case AuditActionType.feedbackDeleted:
         return 'Feedback Deleted';
       case AuditActionType.feedbackExported:
         return 'Data Exported';
+      case AuditActionType.surveySubmitted:
+        return 'Survey Submitted';
+      case AuditActionType.surveyStarted:
+        return 'Survey Started';
+      case AuditActionType.dashboardViewed:
+        return 'Dashboard Viewed';
+      case AuditActionType.analyticsViewed:
+        return 'Analytics Viewed';
+      case AuditActionType.feedbackBrowserViewed:
+        return 'Feedback Viewed';
+      case AuditActionType.userListViewed:
+        return 'User List Viewed';
+      case AuditActionType.auditLogViewed:
+        return 'Audit Log Viewed';
+      case AuditActionType.dataExportsViewed:
+        return 'Exports Viewed';
       case AuditActionType.settingsChanged:
         return 'Settings Changed';
     }

@@ -16,10 +16,21 @@ enum AuditActionType {
   
   // Survey Configuration Actions
   surveyConfigChanged,
+  artaConfigViewed,     // Admin viewed ARTA configuration
   
-  // Feedback Actions
+  // Feedback/Survey Actions
   feedbackDeleted,
   feedbackExported,
+  surveySubmitted,      // User submitted a survey
+  surveyStarted,        // User started a new survey
+  
+  // Admin Data Access Actions
+  dashboardViewed,      // Admin viewed dashboard
+  analyticsViewed,      // Admin viewed detailed analytics
+  feedbackBrowserViewed, // Admin browsed feedback data
+  userListViewed,       // Admin viewed user list
+  auditLogViewed,       // Admin viewed audit logs
+  dataExportsViewed,    // Admin viewed data exports screen
   
   // System Actions
   settingsChanged,
@@ -156,10 +167,28 @@ class AuditLogEntry {
         return 'Logout';
       case AuditActionType.surveyConfigChanged:
         return 'Survey Config Changed';
+      case AuditActionType.artaConfigViewed:
+        return 'ARTA Config Viewed';
       case AuditActionType.feedbackDeleted:
         return 'Feedback Deleted';
       case AuditActionType.feedbackExported:
         return 'Feedback Exported';
+      case AuditActionType.surveySubmitted:
+        return 'Survey Submitted';
+      case AuditActionType.surveyStarted:
+        return 'Survey Started';
+      case AuditActionType.dashboardViewed:
+        return 'Dashboard Viewed';
+      case AuditActionType.analyticsViewed:
+        return 'Analytics Viewed';
+      case AuditActionType.feedbackBrowserViewed:
+        return 'Feedback Browser Viewed';
+      case AuditActionType.userListViewed:
+        return 'User List Viewed';
+      case AuditActionType.auditLogViewed:
+        return 'Audit Log Viewed';
+      case AuditActionType.dataExportsViewed:
+        return 'Data Exports Viewed';
       case AuditActionType.settingsChanged:
         return 'Settings Changed';
     }
@@ -186,9 +215,27 @@ class AuditLogEntry {
         return 'logout';
       case AuditActionType.surveyConfigChanged:
         return 'settings';
+      case AuditActionType.artaConfigViewed:
+        return 'settings_applications';
       case AuditActionType.feedbackDeleted:
         return 'delete';
       case AuditActionType.feedbackExported:
+        return 'download';
+      case AuditActionType.surveySubmitted:
+        return 'send';
+      case AuditActionType.surveyStarted:
+        return 'play_arrow';
+      case AuditActionType.dashboardViewed:
+        return 'dashboard';
+      case AuditActionType.analyticsViewed:
+        return 'analytics';
+      case AuditActionType.feedbackBrowserViewed:
+        return 'list_alt';
+      case AuditActionType.userListViewed:
+        return 'people';
+      case AuditActionType.auditLogViewed:
+        return 'history';
+      case AuditActionType.dataExportsViewed:
         return 'download';
       case AuditActionType.settingsChanged:
         return 'tune';

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../services/offline_queue.dart';
 import '../../services/survey_config_service.dart';
+import '../../services/audit_log_service.dart';
 import '../../widgets/offline_queue_widget.dart';
 import '../../widgets/survey_progress_bar.dart';
 import 'landing_page.dart';
@@ -357,6 +358,18 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
               try {
                 await OfflineQueue.enqueue(surveyData.toJson());
                 await OfflineQueue.flush();
+                
+                // Log the survey submission to audit log
+                try {
+                  final auditService = Provider.of<AuditLogService>(context, listen: false);
+                  await auditService.logSurveySubmitted(
+                    clientType: surveyData.clientType,
+                    serviceAvailed: surveyData.serviceAvailed,
+                    region: surveyData.regionOfResidence,
+                  );
+                } catch (e) {
+                  debugPrint('Audit log error (non-critical): $e');
+                }
                 
                 if (!mounted) return;
                 
