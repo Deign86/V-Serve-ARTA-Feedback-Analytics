@@ -1646,9 +1646,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     DropdownButtonFormField<String>(
                       initialValue: selectedRole,
                       decoration: InputDecoration(labelText: 'Role', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.security)),
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('All Roles')),
-                        ...['Administrator', 'Editor', 'Analyst/Viewer'].map((role) => DropdownMenuItem(value: role, child: Text(role))),
+                      items: const [
+                        DropdownMenuItem(value: null, child: Text('All Roles')),
+                        DropdownMenuItem(value: 'Administrator', child: Text('Administrator')),
+                        DropdownMenuItem(value: 'Analyst/Viewer', child: Text('Viewer')),
                       ],
                       onChanged: (val) => setState(() => selectedRole = val),
                     ),
