@@ -59,13 +59,11 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
     final surveyData = context.read<SurveyProvider>().surveyData;
     
     // CC1
-    print("DEBUG: CitizenCharterScreen initState. SurveyData cc0Rating: ${surveyData.cc0Rating}");
     if (surveyData.cc0Rating != null) {
       // Find the option string that corresponds to the rating
       // 1-based index in options
       if (surveyData.cc0Rating! >= 1 && surveyData.cc0Rating! <= 4) {
         cc1Answer = cc1Options[surveyData.cc0Rating! - 1];
-        print("DEBUG: Restored cc1Answer: $cc1Answer");
       }
     }
     
