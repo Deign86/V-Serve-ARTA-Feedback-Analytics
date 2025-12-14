@@ -397,19 +397,45 @@ app.delete('/feedback/:id', async (req, res) => {
 /**
  * GET /users
  * List all system users
+ * Returns users with normalized fields for frontend compatibility
  */
 app.get('/users', async (req, res) => {
   try {
     const snapshot = await db.collection(COLLECTIONS.SYSTEM_USERS).get();
-    const users = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      // Don't expose password hash
-      passwordHash: undefined,
-      createdAt: doc.data().createdAt?.toDate?.()?.toISOString(),
-      lastLogin: doc.data().lastLogin?.toDate?.()?.toISOString(),
-      updatedAt: doc.data().updatedAt?.toDate?.()?.toISOString(),
-    }));
+    const users = snapshot.docs.map(doc => {
+      const data = doc.data();
+      
+      // Normalize lastLoginAt - handle both Firestore Timestamp and already converted values
+      let lastLoginAt = null;
+      if (data.lastLogin) {
+        lastLoginAt = data.lastLogin?.toDate?.()?.toISOString() || data.lastLogin;
+      } else if (data.lastLoginAt) {
+        // Handle Firestore Timestamp object
+        if (data.lastLoginAt._seconds) {
+          lastLoginAt = new Date(data.lastLoginAt._seconds * 1000).toISOString();
+        } else if (data.lastLoginAt?.toDate) {
+          lastLoginAt = data.lastLoginAt.toDate().toISOString();
+        } else {
+          lastLoginAt = data.lastLoginAt;
+        }
+      }
+      
+      return {
+        id: doc.id,
+        name: data.name || '',
+        email: data.email || '',
+        role: data.role || 'Viewer',
+        department: data.department || '',
+        // Normalize status to isActive boolean for frontend
+        isActive: data.status === 'Active',
+        status: data.status || 'Active',
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+        lastLoginAt: lastLoginAt,
+        updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
+        // Include Firebase UID if available (for reference)
+        firebaseUid: data.firebaseUid || null,
+      };
+    });
 
     res.json({ count: users.length, users });
   } catch (err) {
@@ -716,7 +742,7 @@ app.get('/auth/users/:id', (req, res, next) => {
 });
 
 app.patch('/auth/users/:id', async (req, res) => {
-  // PATCH handler - forward to PUT logic
+  // PATCH handler - handles partial updates from frontend
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -728,14 +754,28 @@ app.patch('/auth/users/:id', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
+    const firestoreUpdates = {
+      updatedAt: new Date(),
+    };
+    
     // Handle password update if provided
     if (updates.password) {
-      updates.passwordHash = await bcrypt.hash(updates.password, 10);
-      delete updates.password;
+      firestoreUpdates.passwordHash = await bcrypt.hash(updates.password, 10);
     }
     
-    updates.updatedAt = new Date();
-    await docRef.update(updates);
+    // Convert isActive boolean to status string for Firestore storage
+    if (updates.isActive !== undefined) {
+      firestoreUpdates.status = updates.isActive ? 'Active' : 'Inactive';
+    }
+    
+    // Copy other allowed fields
+    if (updates.name) firestoreUpdates.name = updates.name;
+    if (updates.email) firestoreUpdates.email = updates.email.toLowerCase().trim();
+    if (updates.role) firestoreUpdates.role = updates.role;
+    if (updates.department !== undefined) firestoreUpdates.department = updates.department;
+    if (updates.status) firestoreUpdates.status = updates.status;
+    
+    await docRef.update(firestoreUpdates);
     
     const updatedDoc = await docRef.get();
     const userData = updatedDoc.data();
@@ -744,10 +784,14 @@ app.patch('/auth/users/:id', async (req, res) => {
       success: true,
       user: {
         id: updatedDoc.id,
-        ...userData,
-        passwordHash: undefined,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        department: userData.department,
+        isActive: userData.status === 'Active',
+        status: userData.status,
         createdAt: userData.createdAt?.toDate?.()?.toISOString(),
-        lastLogin: userData.lastLogin?.toDate?.()?.toISOString(),
+        lastLoginAt: userData.lastLogin?.toDate?.()?.toISOString() || userData.lastLoginAt,
         updatedAt: userData.updatedAt?.toDate?.()?.toISOString(),
       }
     });
