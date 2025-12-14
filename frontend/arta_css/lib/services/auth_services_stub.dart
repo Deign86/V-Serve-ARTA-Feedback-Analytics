@@ -33,6 +33,7 @@ class AuthService extends ChangeNotifier with CachingMixin {
   DateTime? _lockoutUntil;
   
   // Audit log service reference
+  // ignore: unused_field - Required for interface compatibility with HTTP service
   dynamic _auditLogService;
   
   void setAuditService(dynamic auditService) {

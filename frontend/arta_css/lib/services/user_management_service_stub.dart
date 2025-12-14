@@ -3,7 +3,6 @@
 
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../models/user_model.dart';
 import 'cache_service.dart';
 import 'audit_log_service_stub.dart';
 
@@ -106,10 +105,11 @@ class SystemUser {
 /// Stub UserManagementService for native desktop platforms
 /// On these platforms, use UserManagementServiceHttp instead
 class UserManagementService extends ChangeNotifier with CachingMixin {
-  List<SystemUser> _users = [];
-  bool _isLoading = false;
+  final List<SystemUser> _users = [];
+  final bool _isLoading = false;
   String? _error;
   
+  // ignore: unused_field - Required for interface compatibility with HTTP service
   AuditLogService? _auditLogService;
 
   List<SystemUser> get users => _users;
@@ -153,8 +153,4 @@ class UserManagementService extends ChangeNotifier with CachingMixin {
     throw UnimplementedError('Use UserManagementServiceHttp on native desktop platforms');
   }
   
-  @override
-  void dispose() {
-    super.dispose();
-  }
 }

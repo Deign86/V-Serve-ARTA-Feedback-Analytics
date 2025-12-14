@@ -15,12 +15,14 @@ class RecaptchaService {
   static const double minScore = 0.5;
   
   // Exact domains where reCAPTCHA is enforced (must match Google Cloud Console)
+  // ignore: unused_field - Reserved for future domain-based enforcement
   static const List<String> _enforcedDomains = [
     'v-serve-arta-feedback.vercel.app',  // Production
     'localhost',                          // Local dev
   ];
   
   // Domain suffixes to also enforce (for Vercel previews)
+  // ignore: unused_field - Reserved for future domain-based enforcement
   static const List<String> _enforcedSuffixes = [
     '.vercel.app',  // All Vercel deployments (matches vercel.app in console)
   ];

@@ -282,8 +282,7 @@ class _MyAppState extends State<MyApp> {
       final auditLogService = context.read<AuditLogServiceHttp>();
       final authService = context.read<AuthServiceHttp>();
       final userManagementService = context.read<UserManagementServiceHttp>();
-      // ignore: unused_local_variable - Will be used when survey config audit logging is enabled
-      final _ = context.read<SurveyConfigService>();
+      final surveyConfigService = context.read<SurveyConfigService>();
       
       // Connect audit service to auth service
       authService.setAuditService(auditLogService);
@@ -538,6 +537,5 @@ class _SessionRestoreScreenState extends State<_SessionRestoreScreen> {
     );
   }
 }
-
 
 

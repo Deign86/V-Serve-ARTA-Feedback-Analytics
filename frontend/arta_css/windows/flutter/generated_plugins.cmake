@@ -6,8 +6,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   local_notifier
   permission_handler_windows
   printing
-  screen_retriever
-  window_manager
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

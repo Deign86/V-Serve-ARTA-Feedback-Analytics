@@ -11,10 +11,10 @@ import 'cache_service.dart';
 /// Stub AuditLogService for native desktop platforms
 /// On these platforms, use AuditLogServiceHttp instead
 class AuditLogService extends ChangeNotifier with CachingMixin {
-  List<AuditLogEntry> _logs = [];
-  bool _isLoading = false;
+  final List<AuditLogEntry> _logs = [];
+  final bool _isLoading = false;
   String? _error;
-  bool _isListening = false;
+  final bool _isListening = false;
   
   AuditActionType? _filterActionType;
   String? _filterActorId;
@@ -130,9 +130,165 @@ class AuditLogService extends ChangeNotifier with CachingMixin {
       },
     );
   }
-  
-  @override
-  void dispose() {
-    super.dispose();
+
+  /// Log user creation
+  Future<bool> logUserCreated({
+    required UserModel? actor,
+    required String newUserId,
+    required String newUserName,
+    required String newUserEmail,
+    required String newUserRole,
+    required String newUserDepartment,
+  }) async {
+    return logAction(
+      actionType: AuditActionType.userCreated,
+      actionDescription: 'Created new user account for $newUserName',
+      actor: actor,
+      targetId: newUserId,
+      targetType: 'user',
+      targetName: newUserName,
+      newValues: {
+        'name': newUserName,
+        'email': newUserEmail,
+        'role': newUserRole,
+        'department': newUserDepartment,
+        'status': 'Active',
+      },
+    );
   }
+
+  /// Log user update
+  Future<bool> logUserUpdated({
+    required UserModel? actor,
+    required String targetUserId,
+    required String targetUserName,
+    required Map<String, dynamic> previousValues,
+    required Map<String, dynamic> newValues,
+  }) async {
+    final changes = <String>[];
+    for (final key in newValues.keys) {
+      if (previousValues[key] != newValues[key]) {
+        changes.add(key);
+      }
+    }
+    
+    return logAction(
+      actionType: AuditActionType.userUpdated,
+      actionDescription: 'Updated user $targetUserName (changed: ${changes.join(", ")})',
+      actor: actor,
+      targetId: targetUserId,
+      targetType: 'user',
+      targetName: targetUserName,
+      previousValues: previousValues,
+      newValues: newValues,
+    );
+  }
+
+  /// Log user deletion
+  Future<bool> logUserDeleted({
+    required UserModel? actor,
+    required String deletedUserId,
+    required String deletedUserName,
+    required String deletedUserEmail,
+  }) async {
+    return logAction(
+      actionType: AuditActionType.userDeleted,
+      actionDescription: 'Deleted user account: $deletedUserName ($deletedUserEmail)',
+      actor: actor,
+      targetId: deletedUserId,
+      targetType: 'user',
+      targetName: deletedUserName,
+      previousValues: {
+        'name': deletedUserName,
+        'email': deletedUserEmail,
+      },
+    );
+  }
+
+  /// Log user status change
+  Future<bool> logUserStatusChanged({
+    required UserModel? actor,
+    required String targetUserId,
+    required String targetUserName,
+    required String previousStatus,
+    required String newStatus,
+  }) async {
+    return logAction(
+      actionType: AuditActionType.userStatusChanged,
+      actionDescription: 'Changed status of $targetUserName from $previousStatus to $newStatus',
+      actor: actor,
+      targetId: targetUserId,
+      targetType: 'user',
+      targetName: targetUserName,
+      previousValues: {'status': previousStatus},
+      newValues: {'status': newStatus},
+    );
+  }
+
+  /// Log user role change
+  Future<bool> logUserRoleChanged({
+    required UserModel? actor,
+    required String targetUserId,
+    required String targetUserName,
+    required String previousRole,
+    required String newRole,
+  }) async {
+    return logAction(
+      actionType: AuditActionType.userRoleChanged,
+      actionDescription: 'Changed role of $targetUserName from $previousRole to $newRole',
+      actor: actor,
+      targetId: targetUserId,
+      targetType: 'user',
+      targetName: targetUserName,
+      previousValues: {'role': previousRole},
+      newValues: {'role': newRole},
+    );
+  }
+
+  /// Log successful login
+  Future<bool> logLoginSuccess({
+    required UserModel user,
+  }) async {
+    return logAction(
+      actionType: AuditActionType.loginSuccess,
+      actionDescription: 'User ${user.name} logged in successfully',
+      actor: user,
+      targetId: user.id,
+      targetType: 'session',
+      targetName: user.email,
+    );
+  }
+
+  /// Log failed login attempt
+  Future<bool> logLoginFailed({
+    required String attemptedEmail,
+    String? reason,
+  }) async {
+    return logAction(
+      actionType: AuditActionType.loginFailed,
+      actionDescription: 'Failed login attempt for $attemptedEmail',
+      actor: null,
+      targetType: 'session',
+      targetName: attemptedEmail,
+      additionalInfo: {
+        'attemptedEmail': attemptedEmail,
+        'reason': reason ?? 'Invalid credentials',
+      },
+    );
+  }
+
+  /// Log logout
+  Future<bool> logLogout({
+    required UserModel user,
+  }) async {
+    return logAction(
+      actionType: AuditActionType.logout,
+      actionDescription: 'User ${user.name} logged out',
+      actor: user,
+      targetId: user.id,
+      targetType: 'session',
+      targetName: user.email,
+    );
+  }
+  
 }

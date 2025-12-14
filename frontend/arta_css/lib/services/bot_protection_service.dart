@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:crypto/crypto.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:uuid/uuid.dart';
 import 'recaptcha_service.dart';
 
@@ -155,33 +154,13 @@ class BotProtectionService {
       // Check if we already have a device ID
       String? deviceId = prefs.getString(_prefsKeyDeviceId);
       
-      if (deviceId == null) {
-        // Generate new device fingerprint
-        final deviceInfo = DeviceInfoPlugin();
-        String rawFingerprint = '';
-        
-        if (defaultTargetPlatform == TargetPlatform.windows) {
-          final windowsInfo = await deviceInfo.windowsInfo;
-          rawFingerprint = '${windowsInfo.computerName}-${windowsInfo.numberOfCores}-${windowsInfo.systemMemoryInMegabytes}';
-        } else if (defaultTargetPlatform == TargetPlatform.macOS) {
-          final macInfo = await deviceInfo.macOsInfo;
-          rawFingerprint = '${macInfo.computerName}-${macInfo.model}-${macInfo.systemGUID}';
-        } else if (defaultTargetPlatform == TargetPlatform.linux) {
-          final linuxInfo = await deviceInfo.linuxInfo;
-          rawFingerprint = '${linuxInfo.name}-${linuxInfo.machineId}';
-        }
-        
-        // Add a random component for uniqueness
-        final uuid = const Uuid().v4();
-        rawFingerprint += '-$uuid';
-        
-        // Hash the fingerprint
-        deviceId = sha256.convert(utf8.encode(rawFingerprint)).toString().substring(0, 32);
-        
-        // Save for future use
-        await prefs.setString(_prefsKeyDeviceId, deviceId);
+      if (deviceId != null) {
+        return deviceId;
       }
       
+      // Generate new device ID if none exists
+      deviceId = const Uuid().v4().replaceAll('-', '').substring(0, 32);
+      await prefs.setString(_prefsKeyDeviceId, deviceId);
       return deviceId;
     } catch (e) {
       if (kDebugMode) {

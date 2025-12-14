@@ -90,10 +90,11 @@ class AlertEntry {
 /// Stub AlertService for native desktop platforms
 /// On these platforms, alerts would be fetched via HTTP if needed
 class AlertService extends ChangeNotifier {
+  // ignore: unused_field - kept for API compatibility with real AlertService
   static const String _alertsCollection = 'alerts';
   
-  List<AlertEntry> _alerts = [];
-  bool _isLoading = false;
+  final List<AlertEntry> _alerts = [];
+  final bool _isLoading = false;
   
   List<AlertEntry> get alerts => _alerts;
   List<AlertEntry> get unreadAlerts => _alerts.where((a) => !a.isRead).toList();
@@ -128,5 +129,8 @@ class AlertService extends ChangeNotifier {
   
   Future<void> deleteAlert(String alertId) async {}
   
-  void dispose() {}
+  @override
+  void dispose() {
+    super.dispose();
+  }
 }

@@ -176,17 +176,18 @@ class CacheStatusWidget extends StatelessWidget {
             onPressed: () async {
               Navigator.pop(context);
               
-              // Capture services before async gap
-              final feedbackService = context.read<FeedbackService>();
-              final userService = context.read<UserManagementService>();
+              // Capture services before async gap (using HTTP services)
+              final feedbackService = context.read<FeedbackServiceHttp>();
+              final userService = context.read<UserManagementServiceHttp>();
               final messenger = ScaffoldMessenger.of(context);
               
               // Clear all caches
               await cacheService.clearAllCaches();
               
-              // Also clear service-specific caches
+              // Also clear service-specific caches (feedbackService.clearCache is async)
               await feedbackService.clearCache();
-              await userService.clearCache();
+              // userService.clearCache is sync
+              userService.clearCache();
               
               messenger.showSnackBar(
                 const SnackBar(

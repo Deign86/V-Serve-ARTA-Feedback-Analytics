@@ -361,6 +361,15 @@ class FeedbackService extends ChangeNotifier with CachingMixin {
     fetchAllFeedbacks(forceRefresh: true);
   }
 
+  /// Clear the cache and reset state
+  Future<void> clearCache() async {
+    _feedbacks = [];
+    _dashboardStats = null;
+    _lastFetch = null;
+    _error = null;
+    notifyListeners();
+  }
+
   Future<List<SurveyData>> fetchFeedbacksByDateRange(DateTime start, DateTime end) async {
     throw UnimplementedError('Use FeedbackServiceHttp on native desktop platforms');
   }
@@ -516,8 +525,4 @@ class FeedbackService extends ChangeNotifier with CachingMixin {
     return filtered.map((f) => f.toJson()).toList();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
 }
