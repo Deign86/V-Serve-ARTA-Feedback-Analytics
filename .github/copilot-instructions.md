@@ -50,11 +50,14 @@ From repo root, prefer the bundled SDK:
 # Run in debug mode (web)
 .\flutter\bin\flutter.bat run -d chrome
 
-# Run in debug mode (desktop)
+# Run in debug mode (desktop) - requires VS Build Tools 2022
 .\flutter\bin\flutter.bat run -d windows
 
 # Build for production (web)
 .\flutter\bin\flutter.bat build web --release
+
+# Build for production (Windows) - requires VS Build Tools 2022
+.\frontend\arta_css\build_windows.ps1
 
 # Run tests
 .\flutter\bin\flutter.bat test
@@ -163,6 +166,14 @@ From repo root, prefer the bundled SDK:
 - **Current branch**: Check with `git branch --show-current`
 - **Deploy**: Vercel for web hosting (see `vercel.json` at repo root)
 - **Build output**: `frontend/arta_css/build/web/`
+
+## Windows build requirements
+
+- **Visual Studio Build Tools 2022** is required (do NOT use VS 2019)
+- CMake is included with VS Build Tools
+- Firebase C++ SDK is disabled for Windows builds due to MSVC compatibility
+- Use `build_windows.ps1` script for Windows release builds
+- The app uses HTTP backend services on Windows instead of Firebase
 
 ---
 *Last updated: December 2025. Ping the maintainer if sections become stale.*

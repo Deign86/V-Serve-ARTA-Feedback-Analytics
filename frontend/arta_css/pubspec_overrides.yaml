@@ -1,0 +1,4 @@
+# This file overrides dependencies for Windows builds
+# Firebase C++ SDK has compatibility issues with Visual Studio 2026
+# Note: This approach doesn't work for native plugin compilation
+# Use the build script approach instead

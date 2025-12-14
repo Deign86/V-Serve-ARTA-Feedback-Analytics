@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart'; // For Icons
 import 'package:arta_css/widgets/survey_progress_bar.dart'; // For ProgressBarStep
 import 'package:shared_preferences/shared_preferences.dart';
-import 'audit_log_service.dart';
+import 'audit_log_service_stub.dart';
 import '../models/user_model.dart';
 
 /// Service to manage survey configuration settings

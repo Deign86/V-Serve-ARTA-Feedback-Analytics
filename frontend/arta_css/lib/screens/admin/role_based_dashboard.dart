@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../services/feedback_service.dart';
+// HTTP services for cross-platform compatibility (no Firebase dependency)
+import '../../services/feedback_service_http.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'admin_screens.dart';
-import '../../services/auth_services.dart';
-import '../../services/user_management_service.dart';
-import '../../services/audit_log_service.dart';
+import '../../services/auth_services_http.dart';
+import '../../services/user_management_service_http.dart';
+import '../../services/audit_log_service_http.dart';
 import '../../widgets/global_offline_indicator.dart';
 import '../../widgets/export_filter_dialog.dart';
 import '../../utils/admin_theme.dart';
@@ -48,7 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   /// Get the list of accessible menu items for the current user
-  List<Map<String, dynamic>> _getAccessibleMenuItems(AuthService authService) {
+  List<Map<String, dynamic>> _getAccessibleMenuItems(AuthServiceHttp authService) {
     return _menuConfig.where((item) {
       final permission = item['permission'] as String?;
       return permission == null || authService.hasPermission(permission);
@@ -85,8 +86,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   /// Log screen view to audit log
   void _logScreenView(String label) {
     try {
-      final auditService = Provider.of<AuditLogService>(context, listen: false);
-      final authService = Provider.of<AuthService>(context, listen: false);
+      final auditService = Provider.of<AuditLogServiceHttp>(context, listen: false);
+      final authService = Provider.of<AuthServiceHttp>(context, listen: false);
       final actor = authService.currentUser;
       
       switch (label) {
@@ -120,7 +121,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 900;
-    final authService = context.watch<AuthService>();
+    final authService = context.watch<AuthServiceHttp>();
     final accessibleMenuItems = _getAccessibleMenuItems(authService);
     
     // Ensure selected index is within bounds
@@ -270,7 +271,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onTap: () {
               if (isSignOut) {
                 // Sign out - logout and navigate to admin login
-                context.read<AuthService>().logout();
+                context.read<AuthServiceHttp>().logout();
                 Navigator.pushNamedAndRemoveUntil(
                   context, 
                   '/admin/login',
@@ -349,7 +350,7 @@ class _DashboardOverviewState extends State<DashboardOverview> with SingleTicker
     
     // Start real-time listener when widget initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final feedbackService = context.read<FeedbackService>();
+      final feedbackService = context.read<FeedbackServiceHttp>();
       // Start real-time updates if not already listening
       if (!feedbackService.isListening) {
         feedbackService.startRealtimeUpdates();
@@ -365,7 +366,7 @@ class _DashboardOverviewState extends State<DashboardOverview> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<FeedbackService>(
+    return Consumer<FeedbackServiceHttp>(
       builder: (context, feedbackService, child) {
         final stats = feedbackService.dashboardStats;
         
@@ -974,7 +975,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userService = context.read<UserManagementService>();
+      final userService = context.read<UserManagementServiceHttp>();
       if (!userService.isListening) {
         userService.startRealtimeUpdates();
       }
@@ -1016,7 +1017,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<UserManagementService>(
+    return Consumer<UserManagementServiceHttp>(
       builder: (context, userService, child) {
         final users = userService.users;
         final isLoading = userService.isLoading;
@@ -1227,7 +1228,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
-  Widget _buildUserItem(BuildContext context, SystemUser user, UserManagementService userService) {
+  Widget _buildUserItem(BuildContext context, SystemUser user, UserManagementServiceHttp userService) {
     final roleColor = _getRoleColor(user.role);
     final statusColor = _getStatusColor(user.status);
 
@@ -1294,7 +1295,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 
   // Compact version of user item for smaller screens
-  Widget _buildUserItemCompact(BuildContext context, SystemUser user, UserManagementService userService) {
+  Widget _buildUserItemCompact(BuildContext context, SystemUser user, UserManagementServiceHttp userService) {
     final roleColor = _getRoleColor(user.role);
     final statusColor = _getStatusColor(user.status);
 
@@ -1372,7 +1373,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
-  Future<void> _handleUserAction(BuildContext context, String action, SystemUser user, UserManagementService userService) async {
+  Future<void> _handleUserAction(BuildContext context, String action, SystemUser user, UserManagementServiceHttp userService) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     
     switch (action) {
@@ -1417,7 +1418,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     }
   }
 
-  Future<void> _showAddUserDialog(BuildContext context, UserManagementService userService) async {
+  Future<void> _showAddUserDialog(BuildContext context, UserManagementServiceHttp userService) async {
     final formKey = GlobalKey<FormState>();
     String name = '';
     String email = '';
@@ -1537,7 +1538,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
-  Future<void> _showEditUserDialog(BuildContext context, SystemUser user, UserManagementService userService) async {
+  Future<void> _showEditUserDialog(BuildContext context, SystemUser user, UserManagementServiceHttp userService) async {
     final formKey = GlobalKey<FormState>();
     String name = user.name;
     String email = user.email;
@@ -1626,7 +1627,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
-  Future<void> _showUserFilterDialog(BuildContext context, UserManagementService userService) async {
+  Future<void> _showUserFilterDialog(BuildContext context, UserManagementServiceHttp userService) async {
     String? selectedRole = userService.filterRole;
     String? selectedStatus = userService.filterStatus;
 
@@ -1719,7 +1720,7 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
     super.initState();
     // Ensure data is loaded
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<FeedbackService>().fetchAllFeedbacks();
+      context.read<FeedbackServiceHttp>().fetchAllFeedbacks();
     });
   }
 
@@ -1736,7 +1737,7 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<FeedbackService>(
+    return Consumer<FeedbackServiceHttp>(
       builder: (context, feedbackService, child) {
         final stats = feedbackService.dashboardStats;
         final recentFeedbacks = stats?.recentFeedbacks ?? [];
@@ -2005,7 +2006,7 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
     );
   }
 
-  Widget _buildExportCard(BuildContext context, FeedbackService feedbackService, String title, String sub, IconData icon, Color color, {bool isPdf = false, bool isCsv = false, bool isJson = false}) {
+  Widget _buildExportCard(BuildContext context, FeedbackServiceHttp feedbackService, String title, String sub, IconData icon, Color color, {bool isPdf = false, bool isCsv = false, bool isJson = false}) {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),

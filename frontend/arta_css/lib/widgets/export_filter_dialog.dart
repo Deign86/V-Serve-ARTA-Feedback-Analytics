@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/export_filters.dart';
-import '../services/feedback_service.dart';
+// HTTP services for cross-platform compatibility (no Firebase dependency)
+import '../services/feedback_service_http.dart';
 import '../services/export_service.dart';
-import '../services/audit_log_service.dart';
-import '../services/auth_services.dart';
+import '../services/audit_log_service_http.dart';
+import '../services/auth_services_http.dart';
 import '../screens/admin/admin_screens.dart' show brandBlue, brandRed;
 import 'package:provider/provider.dart';
 
@@ -12,7 +13,7 @@ enum ExportType { csv, json, pdfCompliance, pdfDetailed }
 
 /// Dialog for selecting export filters and format
 class ExportFilterDialog extends StatefulWidget {
-  final FeedbackService feedbackService;
+  final FeedbackServiceHttp feedbackService;
   final ExportType? preselectedType;
 
   const ExportFilterDialog({
@@ -697,11 +698,11 @@ class _ExportFilterDialogState extends State<ExportFilterDialog> {
     final navigator = Navigator.of(context);
     
     // Capture providers before async gap
-    AuditLogService? auditService;
-    AuthService? authService;
+    AuditLogServiceHttp? auditService;
+    AuthServiceHttp? authService;
     try {
-      auditService = context.read<AuditLogService>();
-      authService = context.read<AuthService>();
+      auditService = context.read<AuditLogServiceHttp>();
+      authService = context.read<AuthServiceHttp>();
     } catch (_) {
       // Services might not be available
     }
@@ -783,7 +784,7 @@ class _ExportFilterDialogState extends State<ExportFilterDialog> {
 /// Helper function to show the export dialog
 Future<void> showExportFilterDialog(
   BuildContext context,
-  FeedbackService feedbackService, {
+  FeedbackServiceHttp feedbackService, {
   ExportType? preselectedType,
 }) {
   return showDialog(

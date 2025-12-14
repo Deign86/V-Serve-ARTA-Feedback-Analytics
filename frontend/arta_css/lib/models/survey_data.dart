@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+// Survey data model - no Firebase dependencies for cross-platform support
 
 /// Model to hold complete survey response data across all parts
 class SurveyData {
@@ -108,17 +108,21 @@ class SurveyData {
   }
 
   /// Helper to safely parse DateTime from dynamic
+  /// Handles ISO strings, Firestore Timestamps (as Map), and DateTime objects
   static DateTime? _parseDateTime(dynamic value) {
     if (value == null) return null;
     if (value is DateTime) return value;
     if (value is String) return DateTime.tryParse(value);
-    // Handle Firestore Timestamp object
-    if (value is Timestamp) {
-      return value.toDate();
-    }
-    // Handle Firestore Timestamp as Map (from JSON serialization)
-    if (value is Map && value['_seconds'] != null) {
-      return DateTime.fromMillisecondsSinceEpoch(value['_seconds'] * 1000);
+    // Handle Firestore Timestamp as Map (from JSON serialization via API)
+    if (value is Map) {
+      // Firebase Admin SDK format: { _seconds, _nanoseconds }
+      if (value['_seconds'] != null) {
+        return DateTime.fromMillisecondsSinceEpoch((value['_seconds'] as int) * 1000);
+      }
+      // Alternative format: { seconds, nanoseconds }
+      if (value['seconds'] != null) {
+        return DateTime.fromMillisecondsSinceEpoch((value['seconds'] as int) * 1000);
+      }
     }
     return null;
   }

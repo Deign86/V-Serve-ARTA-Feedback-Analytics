@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../../models/survey_data.dart';
 import '../../services/survey_config_service.dart';
 import '../../services/survey_questions_service.dart';
-import '../../services/offline_queue.dart';
+import '../../services/offline_queue_stub.dart';
 import '../../widgets/offline_queue_widget.dart';
 import '../../widgets/survey_progress_bar.dart';
 import 'citizen_charter.dart';

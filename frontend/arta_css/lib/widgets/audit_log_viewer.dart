@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/audit_log_model.dart';
-import '../services/audit_log_service.dart';
+// HTTP services for cross-platform compatibility (no Firebase dependency)
+import '../services/audit_log_service_http.dart';
 import 'package:intl/intl.dart';
 
 /// Widget for displaying audit logs in the admin dashboard
@@ -19,14 +20,14 @@ class _AuditLogViewerState extends State<AuditLogViewer> {
     super.initState();
     // Start fetching audit logs
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auditService = context.read<AuditLogService>();
+      final auditService = context.read<AuditLogServiceHttp>();
       auditService.fetchLogs();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AuditLogService>(
+    return Consumer<AuditLogServiceHttp>(
       builder: (context, auditService, child) {
         if (auditService.isLoading && auditService.logs.isEmpty) {
           return const Center(
@@ -95,7 +96,7 @@ class _AuditLogViewerState extends State<AuditLogViewer> {
     );
   }
 
-  Widget _buildHeader(AuditLogService auditService) {
+  Widget _buildHeader(AuditLogServiceHttp auditService) {
     return Row(
       children: [
         Icon(
@@ -158,7 +159,7 @@ class _AuditLogViewerState extends State<AuditLogViewer> {
     );
   }
 
-  Widget _buildStatsRow(AuditLogService auditService) {
+  Widget _buildStatsRow(AuditLogServiceHttp auditService) {
     final stats = auditService.getAuditStats();
     
     return Row(

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/offline_queue.dart';
+// HTTP services for cross-platform compatibility (no Firebase dependency)
+import '../services/offline_queue_http.dart';
 
 /// Compact banner widget to show queue status in survey screens
 /// This is the primary widget for user-side survey screens

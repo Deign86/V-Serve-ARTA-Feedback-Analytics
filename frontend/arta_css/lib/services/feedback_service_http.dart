@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/survey_data.dart';
 import 'api_config.dart';
-import 'feedback_service.dart';
+import 'feedback_service_stub.dart';
 
 /// HTTP-based implementation of FeedbackService
 /// Uses the backend API instead of direct Firebase/Firestore access

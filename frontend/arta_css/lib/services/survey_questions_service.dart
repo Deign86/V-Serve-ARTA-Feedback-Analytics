@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'audit_log_service.dart';
+import 'audit_log_service_stub.dart';
 import '../models/user_model.dart';
 
 /// Model for a single survey question
