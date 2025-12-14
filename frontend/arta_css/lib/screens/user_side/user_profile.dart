@@ -326,7 +326,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  SizedBox(
+                    SizedBox(
                     width: isMobile ? 150 : 180,
                     height: isMobile ? 44 : 50,
                     child: OutlinedButton(
@@ -347,18 +347,30 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         Navigator.of(context).maybePop();
                       },
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.grey.shade400),
+                        side: const BorderSide(color: Color(0xFF003366), width: 2),
+                        backgroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
                       ),
-                      child: Text(
-                        'PREVIOUS PAGE',
-                        style: GoogleFonts.montserrat(
-                          fontSize: isMobile ? 11 : 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade400,
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.arrow_back,
+                            size: isMobile ? 16 : 18,
+                            color: const Color(0xFF003366),
+                          ),
+                          SizedBox(width: isMobile ? 4 : 8),
+                          Text(
+                            'PREVIOUS',
+                            style: GoogleFonts.montserrat(
+                              fontSize: isMobile ? 11 : 14,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF003366),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -532,6 +544,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildDateField(bool isMobile) {
+  // Minimum date for transactions - January 1, 2020
+  final minTransactionDate = DateTime(2020, 1, 1);
+  
   return Column(
     key: _dateKey,
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -565,8 +580,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 ),
                 child: DatePickerDialog(
                   initialDate: selectedDate ?? DateTime.now(),
-                  firstDate: DateTime(2000),
+                  firstDate: minTransactionDate,
                   lastDate: DateTime.now(),
+                  helpText: 'Select transaction date (from Jan 2020)',
                 ),
               );
             },

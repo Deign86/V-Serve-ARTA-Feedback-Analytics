@@ -4,7 +4,7 @@ import 'firebase_options.dart';
 import 'services/offline_queue.dart';
 import 'services/cache_service.dart';
 import 'widgets/global_offline_indicator.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'screens/splash_screen.dart';
 
 import 'screens/user_side/landing_page.dart';
@@ -36,26 +36,26 @@ void main() async {
   // Set URL strategy for web (removes # from URLs and enables proper history handling)
   url_strategy.configureUrlStrategy();
 
-  debugPrint('ARTAV_LOG: App Main Starting...');
+  if (kDebugMode) debugPrint('ARTAV_LOG: App Main Starting...');
 
   try {
-    debugPrint('ARTAV_LOG: Initializing Firebase...');
+    if (kDebugMode) debugPrint('ARTAV_LOG: Initializing Firebase...');
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     ).timeout(const Duration(seconds: 3), onTimeout: () {
-      debugPrint('ARTAV_LOG: Firebase init timed out - continuing without Firebase');
+      if (kDebugMode) debugPrint('ARTAV_LOG: Firebase init timed out - continuing without Firebase');
       return Firebase.app(); // Return dummy/incomplete app or just continue
     });
-    debugPrint('ARTAV_LOG: Firebase initialized with generated options');
+    if (kDebugMode) debugPrint('ARTAV_LOG: Firebase initialized with generated options');
     
     try {
       final flushed = await OfflineQueue.flush().timeout(const Duration(seconds: 2), onTimeout: () => 0);
-      if (flushed > 0) debugPrint('ARTAV_LOG: Flushed $flushed pending feedbacks');
+      if (flushed > 0 && kDebugMode) debugPrint('ARTAV_LOG: Flushed $flushed pending feedbacks');
     } catch (e) {
-      debugPrint('ARTAV_LOG: Failed flushing offline queue: $e');
+      if (kDebugMode) debugPrint('ARTAV_LOG: Failed flushing offline queue: $e');
     }
   } catch (e) {
-    debugPrint('ARTAV_LOG: Firebase initializeApp failed: $e');
+    if (kDebugMode) debugPrint('ARTAV_LOG: Firebase initializeApp failed: $e');
   }
 
   try {
@@ -64,27 +64,27 @@ void main() async {
       await window_helper.initializeWindow();
     }
   } catch (e) {
-    debugPrint('Window manager not available: $e');
+    if (kDebugMode) debugPrint('Window manager not available: $e');
   }
 
   // Initialize cache service and warmup
   final cacheService = CacheService.instance;
   try {
-    debugPrint('Starting cache warmup...');
+    if (kDebugMode) debugPrint('Starting cache warmup...');
     await cacheService.warmupCache().timeout(
       const Duration(seconds: 2),
       onTimeout: () {
-        debugPrint('Cache warmup timed out - continuing startup');
+        if (kDebugMode) debugPrint('Cache warmup timed out - continuing startup');
       },
     );
   } catch (e) {
-    debugPrint('Cache warmup failed: $e');
+    if (kDebugMode) debugPrint('Cache warmup failed: $e');
   }
-  debugPrint('CacheService initialized');
+  if (kDebugMode) debugPrint('CacheService initialized');
 
   // Initialize offline queue service
   final offlineQueueService = OfflineQueueService.instance;
-  debugPrint('OfflineQueueService initialized');
+  if (kDebugMode) debugPrint('OfflineQueueService initialized');
 
   runApp(
     MultiProvider(
@@ -164,7 +164,7 @@ class AuthRouteObserver extends NavigatorObserver {
     
     // Ignore overlay routes (dialogs, modals, popups)
     if (_isOverlayRoute(route)) {
-      debugPrint('RouteObserver: Ignoring overlay push: ${route.runtimeType}');
+      if (kDebugMode) debugPrint('RouteObserver: Ignoring overlay push: ${route.runtimeType}');
       return;
     }
     
@@ -178,7 +178,7 @@ class AuthRouteObserver extends NavigatorObserver {
     
     // Ignore overlay routes being dismissed
     if (_isOverlayRoute(route)) {
-      debugPrint('RouteObserver: Ignoring overlay pop: ${route.runtimeType}');
+      if (kDebugMode) debugPrint('RouteObserver: Ignoring overlay pop: ${route.runtimeType}');
       return;
     }
     
@@ -204,7 +204,7 @@ class AuthRouteObserver extends NavigatorObserver {
   void _handlePageNavigation(String? toRoute, String? fromRoute) {
     // Security check: if navigating FROM admin TO public while authenticated, logout
     if (_isAdminRoute(fromRoute) && _isPublicRoute(toRoute) && authService.isAuthenticated) {
-      debugPrint('Security: User navigated from admin ($fromRoute) to public ($toRoute) - logging out');
+      if (kDebugMode) debugPrint('Security: User navigated from admin ($fromRoute) to public ($toRoute) - logging out');
       authService.logout();
     }
   }
@@ -250,9 +250,9 @@ class _MyAppState extends State<MyApp> {
         surveyConfigService.setAuditService(auditLogService, authService.currentUser);
       });
       
-      debugPrint('AuditLogging: Services initialized and connected');
+      if (kDebugMode) debugPrint('AuditLogging: Services initialized and connected');
     } catch (e) {
-      debugPrint('AuditLogging: Failed to initialize - $e');
+      if (kDebugMode) debugPrint('AuditLogging: Failed to initialize - $e');
     }
   }
 
@@ -301,7 +301,7 @@ class _MyAppState extends State<MyApp> {
     
     // If trying to access protected route without authentication, redirect to login
     if (isProtectedRoute && !authService.isAuthenticated) {
-      debugPrint('Security: Blocked unauthenticated access to $routeName - redirecting to login');
+      if (kDebugMode) debugPrint('Security: Blocked unauthenticated access to $routeName - redirecting to login');
       return MaterialPageRoute(
         builder: (context) => const RoleBasedLoginScreen(),
         settings: const RouteSettings(name: '/admin/login'),

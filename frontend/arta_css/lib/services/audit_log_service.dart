@@ -99,12 +99,149 @@ class AuditLogService extends ChangeNotifier with CachingMixin {
         // Note: ipAddress and userAgent would be added server-side in production
       };
 
-      await _firestore.collection(_collectionName).add(logEntry);
-      debugPrint('AuditLogService: Logged action - ${actionType.name}: $actionDescription');
+      final docRef = await _firestore.collection(_collectionName).add(logEntry);
+      if (kDebugMode) {
+        debugPrint('AuditLogService: Logged action - ${actionType.name}: $actionDescription');
+      }
+      
+      // Trigger alert for high-severity actions
+      await _triggerAlertIfNeeded(actionType, actionDescription, docRef.id, actor);
+      
       return true;
     } catch (e) {
-      debugPrint('AuditLogService: Error logging action: $e');
+      if (kDebugMode) {
+        debugPrint('AuditLogService: Error logging action: $e');
+      }
       return false;
+    }
+  }
+  
+  /// Trigger alert for high-severity audit actions
+  Future<void> _triggerAlertIfNeeded(
+    AuditActionType actionType,
+    String description,
+    String logId,
+    UserModel? actor,
+  ) async {
+    // High-severity actions that require admin notification
+    const highSeverityActions = [
+      AuditActionType.loginFailed,
+      AuditActionType.userDeleted,
+      AuditActionType.feedbackDeleted,
+      AuditActionType.userStatusChanged,
+      AuditActionType.userRoleChanged,
+    ];
+    
+    if (!highSeverityActions.contains(actionType)) return;
+    
+    try {
+      // Create alert entry in Firestore for the alert service to pick up
+      await _firestore.collection('alerts').add({
+        'title': _getAlertTitle(actionType),
+        'message': description,
+        'severity': _getAlertSeverity(actionType),
+        'timestamp': FieldValue.serverTimestamp(),
+        'sourceLogId': logId,
+        'isRead': false,
+        'emailSent': false,
+      });
+      
+      // Queue email notification for critical events
+      if (actionType == AuditActionType.userDeleted || 
+          actionType == AuditActionType.feedbackDeleted) {
+        await _queueAdminEmailNotification(actionType, description);
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('AuditLogService: Error triggering alert: $e');
+      }
+    }
+  }
+  
+  String _getAlertTitle(AuditActionType actionType) {
+    switch (actionType) {
+      case AuditActionType.loginFailed:
+        return 'Failed Login Attempt';
+      case AuditActionType.userDeleted:
+        return 'User Account Deleted';
+      case AuditActionType.feedbackDeleted:
+        return 'Feedback Data Deleted';
+      case AuditActionType.userStatusChanged:
+        return 'User Status Changed';
+      case AuditActionType.userRoleChanged:
+        return 'User Role Changed';
+      default:
+        return 'System Event';
+    }
+  }
+  
+  String _getAlertSeverity(AuditActionType actionType) {
+    switch (actionType) {
+      case AuditActionType.userDeleted:
+      case AuditActionType.feedbackDeleted:
+        return 'critical';
+      case AuditActionType.loginFailed:
+      case AuditActionType.userStatusChanged:
+      case AuditActionType.userRoleChanged:
+        return 'high';
+      default:
+        return 'medium';
+    }
+  }
+  
+  /// Queue email notification for admin users
+  Future<void> _queueAdminEmailNotification(
+    AuditActionType actionType,
+    String description,
+  ) async {
+    try {
+      // Get all active admin users
+      final adminsSnapshot = await _firestore
+          .collection('system_users')
+          .where('role', isEqualTo: 'Administrator')
+          .where('status', isEqualTo: 'Active')
+          .get();
+      
+      if (adminsSnapshot.docs.isEmpty) return;
+      
+      // Queue email for each admin
+      for (final adminDoc in adminsSnapshot.docs) {
+        final email = adminDoc.data()['email'] as String?;
+        final name = adminDoc.data()['name'] as String? ?? 'Admin';
+        
+        if (email == null || email.isEmpty) continue;
+        
+        await _firestore.collection('email_queue').add({
+          'to': email,
+          'subject': '[ARTA CSS Alert] ${_getAlertSeverity(actionType).toUpperCase()}: ${_getAlertTitle(actionType)}',
+          'body': '''
+Dear $name,
+
+A ${_getAlertSeverity(actionType).toUpperCase()} severity event has occurred in the ARTA Client Satisfaction Survey system.
+
+Event: ${_getAlertTitle(actionType)}
+Details: $description
+Time: ${DateTime.now().toLocal()}
+
+Please review the audit logs in the admin dashboard for more details.
+
+---
+ARTA CSS Alert System
+City Government of Valenzuela
+''',
+          'status': 'pending',
+          'createdAt': FieldValue.serverTimestamp(),
+          'retries': 0,
+        });
+        
+        if (kDebugMode) {
+          debugPrint('AuditLogService: Queued email notification to $email');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('AuditLogService: Error queueing email: $e');
+      }
     }
   }
 

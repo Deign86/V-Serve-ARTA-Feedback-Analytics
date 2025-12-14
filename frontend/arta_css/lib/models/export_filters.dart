@@ -7,6 +7,7 @@ class ExportFilters {
   final String? serviceAvailed;
   final int? minSatisfaction;
   final int? maxSatisfaction;
+  final Set<int>? selectedRatings; // Individual rating selection (1-5)
   final bool? ccAware; // true = Aware (cc0Rating >= 3), false = Not Aware
 
   const ExportFilters({
@@ -17,8 +18,31 @@ class ExportFilters {
     this.serviceAvailed,
     this.minSatisfaction,
     this.maxSatisfaction,
+    this.selectedRatings,
     this.ccAware,
   });
+  
+  /// Check if a specific rating is selected
+  bool isRatingSelected(int rating) {
+    if (selectedRatings == null || selectedRatings!.isEmpty) return true; // All selected by default
+    return selectedRatings!.contains(rating);
+  }
+  
+  /// Toggle a specific rating selection
+  ExportFilters toggleRating(int rating) {
+    final current = selectedRatings ?? <int>{};
+    final newSet = Set<int>.from(current);
+    if (newSet.contains(rating)) {
+      newSet.remove(rating);
+    } else {
+      newSet.add(rating);
+    }
+    // If all 5 are selected or none, clear the filter
+    if (newSet.length == 5 || newSet.isEmpty) {
+      return copyWith(clearSelectedRatings: true);
+    }
+    return copyWith(selectedRatings: newSet);
+  }
 
   /// Create a copy with updated values
   ExportFilters copyWith({
@@ -29,6 +53,7 @@ class ExportFilters {
     String? serviceAvailed,
     int? minSatisfaction,
     int? maxSatisfaction,
+    Set<int>? selectedRatings,
     bool? ccAware,
     bool clearStartDate = false,
     bool clearEndDate = false,
@@ -37,6 +62,7 @@ class ExportFilters {
     bool clearServiceAvailed = false,
     bool clearMinSatisfaction = false,
     bool clearMaxSatisfaction = false,
+    bool clearSelectedRatings = false,
     bool clearCcAware = false,
   }) {
     return ExportFilters(
@@ -47,6 +73,7 @@ class ExportFilters {
       serviceAvailed: clearServiceAvailed ? null : (serviceAvailed ?? this.serviceAvailed),
       minSatisfaction: clearMinSatisfaction ? null : (minSatisfaction ?? this.minSatisfaction),
       maxSatisfaction: clearMaxSatisfaction ? null : (maxSatisfaction ?? this.maxSatisfaction),
+      selectedRatings: clearSelectedRatings ? null : (selectedRatings ?? this.selectedRatings),
       ccAware: clearCcAware ? null : (ccAware ?? this.ccAware),
     );
   }
@@ -60,6 +87,7 @@ class ExportFilters {
       serviceAvailed != null ||
       minSatisfaction != null ||
       maxSatisfaction != null ||
+      (selectedRatings != null && selectedRatings!.isNotEmpty) ||
       ccAware != null;
 
   /// Get a summary of active filters for display
@@ -78,7 +106,10 @@ class ExportFilters {
     if (region != null) parts.add(region!);
     if (serviceAvailed != null) parts.add(serviceAvailed!);
     
-    if (minSatisfaction != null && maxSatisfaction != null) {
+    if (selectedRatings != null && selectedRatings!.isNotEmpty) {
+      final sorted = selectedRatings!.toList()..sort();
+      parts.add('Rating: ${sorted.join(", ")}');
+    } else if (minSatisfaction != null && maxSatisfaction != null) {
       parts.add('Rating: $minSatisfaction-$maxSatisfaction');
     } else if (minSatisfaction != null) {
       parts.add('Rating ≥ $minSatisfaction');
@@ -105,7 +136,11 @@ class ExportFilters {
     if (clientType != null) count++;
     if (region != null) count++;
     if (serviceAvailed != null) count++;
-    if (minSatisfaction != null || maxSatisfaction != null) count++;
+    if (selectedRatings != null && selectedRatings!.isNotEmpty) {
+      count++;
+    } else if (minSatisfaction != null || maxSatisfaction != null) {
+      count++;
+    }
     if (ccAware != null) count++;
     return count;
   }

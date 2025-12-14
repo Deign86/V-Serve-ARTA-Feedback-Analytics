@@ -477,48 +477,56 @@ class _ExportFilterDialogState extends State<ExportFilterDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Satisfaction Rating',
-          style: TextStyle(fontSize: 12, color: Colors.grey),
+        Row(
+          children: [
+            const Text(
+              'Satisfaction Rating',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const Spacer(),
+            if (_filters.selectedRatings != null && _filters.selectedRatings!.isNotEmpty)
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _filters = _filters.copyWith(clearSelectedRatings: true);
+                  });
+                },
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(50, 20),
+                ),
+                child: const Text('Select All', style: TextStyle(fontSize: 11)),
+              ),
+          ],
         ),
         const SizedBox(height: 8),
         Row(
           children: List.generate(5, (index) {
             final rating = index + 1;
-            final isInRange = (_filters.minSatisfaction ?? 1) <= rating && 
-                              rating <= (_filters.maxSatisfaction ?? 5);
+            final isSelected = _filters.isRatingSelected(rating);
+            final hasFilter = _filters.selectedRatings != null && _filters.selectedRatings!.isNotEmpty;
             return Expanded(
               child: GestureDetector(
                 onTap: () {
                   setState(() {
-                    if (_filters.minSatisfaction == rating && _filters.maxSatisfaction == rating) {
-                      // Deselect
-                      _filters = _filters.copyWith(clearMinSatisfaction: true, clearMaxSatisfaction: true);
-                    } else if (_filters.minSatisfaction == null) {
-                      // First selection
-                      _filters = _filters.copyWith(minSatisfaction: rating, maxSatisfaction: rating);
-                    } else if (rating < _filters.minSatisfaction!) {
-                      _filters = _filters.copyWith(minSatisfaction: rating);
-                    } else if (rating > (_filters.maxSatisfaction ?? _filters.minSatisfaction!)) {
-                      _filters = _filters.copyWith(maxSatisfaction: rating);
-                    } else {
-                      // Reset and start new selection
-                      _filters = _filters.copyWith(minSatisfaction: rating, maxSatisfaction: rating);
-                    }
+                    _filters = _filters.toggleRating(rating);
                   });
                 },
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 2),
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
-                    color: isInRange && (_filters.minSatisfaction != null || _filters.maxSatisfaction != null)
+                    color: isSelected && hasFilter
                         ? Colors.amber.shade100
-                        : Colors.grey.shade100,
+                        : isSelected && !hasFilter
+                            ? Colors.grey.shade50
+                            : Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(
-                      color: isInRange && (_filters.minSatisfaction != null || _filters.maxSatisfaction != null)
+                      color: isSelected && hasFilter
                           ? Colors.amber
                           : Colors.grey.shade300,
+                      width: isSelected && hasFilter ? 2 : 1,
                     ),
                   ),
                   child: Center(
@@ -528,18 +536,22 @@ class _ExportFilterDialogState extends State<ExportFilterDialog> {
                         Icon(
                           Icons.star,
                           size: 14,
-                          color: isInRange && (_filters.minSatisfaction != null || _filters.maxSatisfaction != null)
+                          color: isSelected && hasFilter
                               ? Colors.amber
-                              : Colors.grey,
+                              : isSelected && !hasFilter
+                                  ? Colors.amber.shade300
+                                  : Colors.grey,
                         ),
                         Text(
                           '$rating',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: isInRange && (_filters.minSatisfaction != null || _filters.maxSatisfaction != null)
+                            color: isSelected && hasFilter
                                 ? Colors.amber.shade800
-                                : Colors.grey,
+                                : isSelected && !hasFilter
+                                    ? Colors.grey.shade600
+                                    : Colors.grey,
                           ),
                         ),
                       ],
@@ -549,6 +561,11 @@ class _ExportFilterDialogState extends State<ExportFilterDialog> {
               ),
             );
           }),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Tap ratings to select/deselect individually',
+          style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontStyle: FontStyle.italic),
         ),
       ],
     );

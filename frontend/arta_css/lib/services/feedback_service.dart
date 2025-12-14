@@ -560,14 +560,22 @@ class FeedbackService extends ChangeNotifier with CachingMixin {
         return false;
       }
       
-      // Satisfaction rating filter
-      if (filters.minSatisfaction != null && 
-          (f.sqd0Rating == null || f.sqd0Rating! < filters.minSatisfaction!)) {
-        return false;
-      }
-      if (filters.maxSatisfaction != null && 
-          (f.sqd0Rating == null || f.sqd0Rating! > filters.maxSatisfaction!)) {
-        return false;
+      // Satisfaction rating filter - support both individual selection and range
+      if (filters.selectedRatings != null && filters.selectedRatings!.isNotEmpty) {
+        // Individual rating selection
+        if (f.sqd0Rating == null || !filters.selectedRatings!.contains(f.sqd0Rating!)) {
+          return false;
+        }
+      } else {
+        // Range-based filter (legacy support)
+        if (filters.minSatisfaction != null && 
+            (f.sqd0Rating == null || f.sqd0Rating! < filters.minSatisfaction!)) {
+          return false;
+        }
+        if (filters.maxSatisfaction != null && 
+            (f.sqd0Rating == null || f.sqd0Rating! > filters.maxSatisfaction!)) {
+          return false;
+        }
       }
       
       // CC Awareness filter

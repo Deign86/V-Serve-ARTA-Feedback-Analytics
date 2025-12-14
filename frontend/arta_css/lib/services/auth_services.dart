@@ -27,6 +27,37 @@ class AuthService extends ChangeNotifier with CachingMixin {
   
   static const String _sessionCacheKey = 'cached_session';
   static const String _sessionTimestampKey = 'session_timestamp';
+  
+  // Login attempt rate limiting
+  static const int _maxLoginAttempts = 5;
+  static const Duration _lockoutDuration = Duration(minutes: 15);
+  static const String _loginAttemptsKey = 'login_attempts';
+  static const String _lockoutUntilKey = 'lockout_until';
+  
+  int _loginAttempts = 0;
+  DateTime? _lockoutUntil;
+  
+  /// Check if account is currently locked out
+  bool get isLockedOut {
+    if (_lockoutUntil == null) return false;
+    if (DateTime.now().isAfter(_lockoutUntil!)) {
+      _lockoutUntil = null;
+      _loginAttempts = 0;
+      _clearLoginAttempts();
+      return false;
+    }
+    return true;
+  }
+  
+  /// Get remaining lockout time in minutes
+  int get remainingLockoutMinutes {
+    if (_lockoutUntil == null) return 0;
+    final remaining = _lockoutUntil!.difference(DateTime.now());
+    return remaining.inMinutes + 1; // Round up
+  }
+  
+  /// Get remaining login attempts
+  int get remainingAttempts => _maxLoginAttempts - _loginAttempts;
 
   UserModel? get currentUser => _currentUser;
   bool get isAuthenticated => _isAuthenticated;
@@ -35,6 +66,68 @@ class AuthService extends ChangeNotifier with CachingMixin {
   /// Constructor - try to restore session from cache
   AuthService() {
     _restoreSession();
+    _restoreLoginAttempts();
+  }
+  
+  /// Restore login attempt state from cache
+  Future<void> _restoreLoginAttempts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _loginAttempts = prefs.getInt(_loginAttemptsKey) ?? 0;
+      final lockoutStr = prefs.getString(_lockoutUntilKey);
+      if (lockoutStr != null) {
+        _lockoutUntil = DateTime.tryParse(lockoutStr);
+        // Clear if lockout has expired
+        if (_lockoutUntil != null && DateTime.now().isAfter(_lockoutUntil!)) {
+          _lockoutUntil = null;
+          _loginAttempts = 0;
+          await _clearLoginAttempts();
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('AuthService: Error restoring login attempts: $e');
+    }
+  }
+  
+  /// Save login attempt state
+  Future<void> _saveLoginAttempts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_loginAttemptsKey, _loginAttempts);
+      if (_lockoutUntil != null) {
+        await prefs.setString(_lockoutUntilKey, _lockoutUntil!.toIso8601String());
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('AuthService: Error saving login attempts: $e');
+    }
+  }
+  
+  /// Clear login attempt state
+  Future<void> _clearLoginAttempts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_loginAttemptsKey);
+      await prefs.remove(_lockoutUntilKey);
+    } catch (e) {
+      if (kDebugMode) debugPrint('AuthService: Error clearing login attempts: $e');
+    }
+  }
+  
+  /// Record a failed login attempt
+  Future<void> _recordFailedAttempt() async {
+    _loginAttempts++;
+    if (_loginAttempts >= _maxLoginAttempts) {
+      _lockoutUntil = DateTime.now().add(_lockoutDuration);
+    }
+    await _saveLoginAttempts();
+    notifyListeners();
+  }
+  
+  /// Reset login attempts on successful login
+  Future<void> _resetLoginAttempts() async {
+    _loginAttempts = 0;
+    _lockoutUntil = null;
+    await _clearLoginAttempts();
   }
   
   /// Restore session from persistent cache
@@ -144,6 +237,15 @@ class AuthService extends ChangeNotifier with CachingMixin {
   }
 
   Future<bool> login(String email, String password) async {
+    // Check for lockout first
+    if (isLockedOut) {
+      await _auditLogService?.logLoginFailed(
+        attemptedEmail: email,
+        reason: 'Account locked - too many failed attempts',
+      );
+      return false;
+    }
+    
     try {
       // Query Firestore for user with matching email
       final querySnapshot = await _firestore
@@ -154,7 +256,9 @@ class AuthService extends ChangeNotifier with CachingMixin {
           .get();
 
       if (querySnapshot.docs.isEmpty) {
-        debugPrint('Login failed: User not found or inactive - $email');
+        if (kDebugMode) debugPrint('Login failed: User not found or inactive - $email');
+        // Record failed attempt
+        await _recordFailedAttempt();
         // Log failed login attempt
         await _auditLogService?.logLoginFailed(
           attemptedEmail: email,
@@ -169,7 +273,9 @@ class AuthService extends ChangeNotifier with CachingMixin {
       // Verify password using bcrypt
       final storedHash = userData['passwordHash'] as String?;
       if (storedHash == null || !verifyPassword(password, storedHash)) {
-        debugPrint('Login failed: Invalid password for $email');
+        if (kDebugMode) debugPrint('Login failed: Invalid password for $email');
+        // Record failed attempt
+        await _recordFailedAttempt();
         // Log failed login attempt
         await _auditLogService?.logLoginFailed(
           attemptedEmail: email,
@@ -199,16 +305,19 @@ class AuthService extends ChangeNotifier with CachingMixin {
       _isAuthenticated = true;
       notifyListeners();
       
+      // Reset login attempts on successful login
+      await _resetLoginAttempts();
+      
       // Save session to cache for faster subsequent logins
       await _saveSession();
       
       // Log successful login
       await _auditLogService?.logLoginSuccess(user: _currentUser!);
       
-      debugPrint('Login successful for ${_currentUser!.name} (${_currentUser!.role})');
+      if (kDebugMode) debugPrint('Login successful for ${_currentUser!.name} (${_currentUser!.role})');
       return true;
     } catch (e) {
-      debugPrint('Login error: $e');
+      if (kDebugMode) debugPrint('Login error: $e');
       // Log failed login attempt with error
       await _auditLogService?.logLoginFailed(
         attemptedEmail: email,

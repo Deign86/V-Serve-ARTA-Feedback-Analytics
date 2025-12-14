@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../services/survey_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +7,7 @@ import '../../services/offline_queue.dart';
 import '../../services/survey_config_service.dart';
 import '../../services/survey_questions_service.dart';
 import '../../services/audit_log_service.dart';
+import '../../services/recaptcha_service.dart';
 import '../../widgets/offline_queue_widget.dart';
 import '../../widgets/survey_progress_bar.dart';
 import 'landing_page.dart';
@@ -318,18 +320,30 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
               Navigator.of(context).maybePop();
             },
             style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Color(0xFF003366), width: 1.5),
+              side: const BorderSide(color: Color(0xFF003366), width: 2),
+              backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
               ),
             ),
-            child: Text(
-              'PREVIOUS',
-              style: GoogleFonts.montserrat(
-                fontSize: isMobile ? 12 : 14,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF003366),
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.arrow_back,
+                  size: isMobile ? 16 : 18,
+                  color: const Color(0xFF003366),
+                ),
+                SizedBox(width: isMobile ? 4 : 8),
+                Text(
+                  'PREVIOUS',
+                  style: GoogleFonts.montserrat(
+                    fontSize: isMobile ? 12 : 14,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF003366),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -360,6 +374,24 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
               }
               
               try {
+                // Execute reCAPTCHA verification for web
+                if (kIsWeb) {
+                  final recaptchaToken = await RecaptchaService.executeForSurvey();
+                  if (recaptchaToken == null) {
+                    if (!mounted) return;
+                    setState(() => _isSubmitting = false);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('reCAPTCHA verification failed. Please try again.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+                  // Token can be verified on backend if needed
+                  debugPrint('reCAPTCHA token obtained successfully');
+                }
+                
                 await OfflineQueue.enqueue(surveyData.toJson());
                 await OfflineQueue.flush();
                 

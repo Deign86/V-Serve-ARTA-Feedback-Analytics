@@ -2,9 +2,11 @@
 
 // lib/screens/role_based_login_screen.dart
 import 'dart:ui';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_services.dart';
+import '../services/recaptcha_service.dart';
 
 class RoleBasedLoginScreen extends StatefulWidget {
   const RoleBasedLoginScreen({super.key});
@@ -29,13 +31,34 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    final authService = Provider.of<AuthService>(context, listen: false);
+    
+    // Check if locked out
+    if (authService.isLockedOut) {
+      setState(() {
+        _errorMessage = 'Too many failed attempts. Please try again in ${authService.remainingLockoutMinutes} minute(s).';
+      });
+      return;
+    }
 
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    final authService = Provider.of<AuthService>(context, listen: false);
+    // Execute reCAPTCHA verification for web
+    if (kIsWeb) {
+      final recaptchaToken = await RecaptchaService.executeForLogin();
+      if (recaptchaToken == null) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'reCAPTCHA verification failed. Please try again.';
+        });
+        return;
+      }
+    }
+
     final success = await authService.login(
       _emailController.text.trim(),
       _passwordController.text,
@@ -55,9 +78,16 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
         );
       }
     } else {
-      setState(() {
-        _errorMessage = 'Invalid email or password';
-      });
+      // Check if now locked out
+      if (authService.isLockedOut) {
+        setState(() {
+          _errorMessage = 'Too many failed attempts. Please try again in ${authService.remainingLockoutMinutes} minute(s).';
+        });
+      } else {
+        setState(() {
+          _errorMessage = 'Invalid email or password. ${authService.remainingAttempts} attempt(s) remaining.';
+        });
+      }
     }
   }
 

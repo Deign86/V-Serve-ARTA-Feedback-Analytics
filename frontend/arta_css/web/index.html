@@ -32,6 +32,37 @@
 
   <title>V-Serve | ARTA Feedback Analytics</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Google reCAPTCHA v3 
+       Domains registered:
+       - v-serve-arta-feedback.vercel.app
+       - localhost
+       - 127.0.0.1
+  -->
+  <script src="https://www.google.com/recaptcha/api.js?render=6Le-DSssAAAAAH0ozh7fb6Y-uW7gBGdf1uB8X8Ip"></script>
+  <script>
+    // Function to execute reCAPTCHA and return token
+    function executeRecaptcha(action) {
+      return new Promise((resolve, reject) => {
+        // Check if grecaptcha is available
+        if (typeof grecaptcha === 'undefined') {
+          console.warn('reCAPTCHA not loaded, skipping verification');
+          resolve('recaptcha-not-loaded');
+          return;
+        }
+        grecaptcha.ready(function() {
+          grecaptcha.execute('6Le-DSssAAAAAH0ozh7fb6Y-uW7gBGdf1uB8X8Ip', {action: action})
+            .then(function(token) {
+              resolve(token);
+            })
+            .catch(function(error) {
+              console.warn('reCAPTCHA error:', error);
+              reject(error);
+            });
+        });
+      });
+    }
+  </script>
 </head>
 
 <body>

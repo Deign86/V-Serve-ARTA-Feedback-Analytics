@@ -522,16 +522,28 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
                       Navigator.of(context).maybePop();
                     },
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF003366), width: 1.5),
+                      side: const BorderSide(color: Color(0xFF003366), width: 2),
+                      backgroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     ),
-                    child: Text(
-                      'PREVIOUS',
-                      style: GoogleFonts.montserrat(
-                        fontSize: isMobile ? 12 : 14,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF003366),
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.arrow_back,
+                          size: isMobile ? 16 : 18,
+                          color: const Color(0xFF003366),
+                        ),
+                        SizedBox(width: isMobile ? 4 : 8),
+                        Text(
+                          'PREVIOUS',
+                          style: GoogleFonts.montserrat(
+                            fontSize: isMobile ? 12 : 14,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF003366),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
