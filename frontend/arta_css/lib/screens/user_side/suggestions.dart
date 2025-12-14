@@ -389,13 +389,12 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                     return;
                   }
                   // Token can be verified on backend if needed
-                  debugPrint('reCAPTCHA token obtained successfully');
                 }
                 
                 await OfflineQueue.enqueue(surveyData.toJson());
                 await OfflineQueue.flush();
                 
-                // Log the survey submission to audit log
+                // Log the survey submission to audit log (silent fail)
                 try {
                   final auditService = Provider.of<AuditLogService>(context, listen: false);
                   await auditService.logSurveySubmitted(
@@ -403,8 +402,8 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                     serviceAvailed: surveyData.serviceAvailed,
                     region: surveyData.regionOfResidence,
                   );
-                } catch (e) {
-                  debugPrint('Audit log error (non-critical): $e');
+                } catch (_) {
+                  // Silent fail - audit logging is non-critical
                 }
                 
                 if (!mounted) return;

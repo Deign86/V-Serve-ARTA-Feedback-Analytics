@@ -287,12 +287,12 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                               onPressed: () {
                                 Navigator.of(dialogContext).pop(); // Close dialog
                                 
-                                // Log survey started (non-blocking)
+                                // Log survey started (non-blocking, silent fail)
                                 try {
                                   final auditService = Provider.of<AuditLogService>(context, listen: false);
                                   auditService.logSurveyStarted();
-                                } catch (e) {
-                                  debugPrint('Audit log error (non-critical): $e');
+                                } catch (_) {
+                                  // Silent fail - audit logging is non-critical
                                 }
 
                                 final configService = context.read<SurveyConfigService>();

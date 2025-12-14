@@ -106,8 +106,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           auditService.logArtaConfigViewed(actor: actor);
           break;
       }
-    } catch (e) {
-      debugPrint('Audit log error (non-critical): $e');
+    } catch (_) {
+      // Silent fail - audit logging is non-critical
     }
   }
 

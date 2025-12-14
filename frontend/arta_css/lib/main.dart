@@ -21,6 +21,7 @@ import 'services/audit_log_service.dart';
 import 'screens/role_based_login_screen.dart';
 import 'screens/admin/role_based_dashboard.dart';
 import 'utils/app_transitions.dart';
+import 'utils/app_logger.dart';
 
 // Conditional import for window_manager (desktop only)
 import 'platform/window_helper_stub.dart'
@@ -32,6 +33,9 @@ import 'platform/url_strategy_stub.dart'
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Configure logging - disables all logs in production
+  configureLogging();
   
   // Set URL strategy for web (removes # from URLs and enables proper history handling)
   url_strategy.configureUrlStrategy();
