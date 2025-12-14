@@ -303,13 +303,26 @@ class _MyAppState extends State<MyApp> {
     // Check if this is a protected route
     final isProtectedRoute = protectedRoutes.contains(routeName);
     
-    // If trying to access protected route without authentication, redirect to login
-    if (isProtectedRoute && !authService.isAuthenticated) {
-      if (kDebugMode) debugPrint('Security: Blocked unauthenticated access to $routeName - redirecting to login');
-      return MaterialPageRoute(
-        builder: (context) => const RoleBasedLoginScreen(),
-        settings: const RouteSettings(name: '/admin/login'),
-      );
+    // If trying to access protected route, wait for session to be restored first
+    if (isProtectedRoute) {
+      // If not initialized yet, show loading while waiting for session restore
+      if (!authService.isInitialized) {
+        return MaterialPageRoute(
+          builder: (context) => _SessionRestoreScreen(
+            authService: authService,
+            targetRoute: routeName,
+          ),
+          settings: settings,
+        );
+      }
+      // After initialization, check authentication
+      if (!authService.isAuthenticated) {
+        if (kDebugMode) debugPrint('Security: Blocked unauthenticated access to $routeName - redirecting to login');
+        return MaterialPageRoute(
+          builder: (context) => const RoleBasedLoginScreen(),
+          settings: const RouteSettings(name: '/admin/login'),
+        );
+      }
     }
     
     // Route mapping
@@ -336,13 +349,7 @@ class _MyAppState extends State<MyApp> {
         );
       case '/admin/dashboard':
       case '/dashboard':
-        // Double-check authentication (belt and suspenders)
-        if (!authService.isAuthenticated) {
-          return MaterialPageRoute(
-            builder: (context) => const RoleBasedLoginScreen(),
-            settings: const RouteSettings(name: '/admin/login'),
-          );
-        }
+        // Protected route check already handled above, just render dashboard
         return MaterialPageRoute(
           builder: (context) => const AuthGuard(child: DashboardScreen()),
           settings: settings,
@@ -408,6 +415,80 @@ class _AuthGuardState extends State<AuthGuard> {
         // User is authenticated, show the protected content
         return widget.child;
       },
+    );
+  }
+}
+
+/// Screen shown while waiting for session restoration to complete
+class _SessionRestoreScreen extends StatefulWidget {
+  final AuthService authService;
+  final String targetRoute;
+  
+  const _SessionRestoreScreen({
+    required this.authService,
+    required this.targetRoute,
+  });
+
+  @override
+  State<_SessionRestoreScreen> createState() => _SessionRestoreScreenState();
+}
+
+class _SessionRestoreScreenState extends State<_SessionRestoreScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _waitForSession();
+  }
+  
+  Future<void> _waitForSession() async {
+    // Wait for session restoration to complete
+    await widget.authService.sessionRestored;
+    
+    if (!mounted) return;
+    
+    // After session is restored, navigate based on auth state
+    if (widget.authService.isAuthenticated) {
+      // Session restored successfully, go to dashboard
+      Navigator.of(context).pushReplacementNamed(widget.targetRoute);
+    } else {
+      // No valid session, go to login
+      Navigator.of(context).pushReplacementNamed('/admin/login');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF003366),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              'assets/valenzuela_logo.png',
+              width: 100,
+              height: 100,
+              errorBuilder: (_, __, ___) => const Icon(
+                Icons.account_circle,
+                size: 100,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Restoring session...',
+              style: GoogleFonts.montserrat(
+                fontSize: 16,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

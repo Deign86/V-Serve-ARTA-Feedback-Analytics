@@ -24,6 +24,10 @@ class AuthService extends ChangeNotifier with CachingMixin {
   
   UserModel? _currentUser;
   bool _isAuthenticated = false;
+  bool _isInitialized = false;
+  
+  /// Completer to track when session restoration is complete
+  late final Future<void> sessionRestored;
   
   static const String _sessionCacheKey = 'cached_session';
   static const String _sessionTimestampKey = 'session_timestamp';
@@ -61,12 +65,20 @@ class AuthService extends ChangeNotifier with CachingMixin {
 
   UserModel? get currentUser => _currentUser;
   bool get isAuthenticated => _isAuthenticated;
+  bool get isInitialized => _isInitialized;
   UserRole? get userRole => _currentUser?.role;
   
   /// Constructor - try to restore session from cache
   AuthService() {
-    _restoreSession();
-    _restoreLoginAttempts();
+    sessionRestored = _initializeSession();
+  }
+  
+  /// Initialize session restoration
+  Future<void> _initializeSession() async {
+    await _restoreSession();
+    await _restoreLoginAttempts();
+    _isInitialized = true;
+    notifyListeners();
   }
   
   /// Restore login attempt state from cache
