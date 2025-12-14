@@ -68,16 +68,16 @@
     function showRecaptchaBadge() {
       var badge = document.querySelector('.grecaptcha-badge');
       if (badge) {
-        badge.style.visibility = 'visible';
-        badge.style.opacity = '1';
+        badge.style.setProperty('visibility', 'visible', 'important');
+        badge.style.setProperty('opacity', '1', 'important');
       }
     }
     
     function hideRecaptchaBadge() {
       var badge = document.querySelector('.grecaptcha-badge');
       if (badge) {
-        badge.style.visibility = 'hidden';
-        badge.style.opacity = '0';
+        badge.style.setProperty('visibility', 'hidden', 'important');
+        badge.style.setProperty('opacity', '0', 'important');
       }
     }
   </script>

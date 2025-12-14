@@ -50,6 +50,31 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   final _regionKey = GlobalKey();
   final _serviceKey = GlobalKey();
 
+  /// Returns true if all required form fields are filled in
+  bool get _isFormComplete {
+    final configService = context.read<SurveyConfigService>();
+    final demographicsEnabled = configService.demographicsEnabled;
+
+    // Date is always required
+    if (selectedDate == null) return false;
+
+    if (demographicsEnabled) {
+      // Age is required and must be valid
+      if (age == null || age!.trim().isEmpty) return false;
+      final parsedAge = int.tryParse(age!);
+      if (parsedAge == null || parsedAge < 18 || parsedAge > 120) return false;
+
+      // Region is required
+      if (region == null || region!.trim().length < 3) return false;
+    }
+
+    // Service is always required
+    if (serviceAvailed == null) return false;
+    if (_isOtherService && _otherServiceController.text.trim().isEmpty) return false;
+
+    return true;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -378,9 +403,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     width: isMobile ? 140 : 160,
                     height: isMobile ? 44 : 50,
                     child: ElevatedButton(
-                      onPressed: _validateAndSubmit,
+                      onPressed: _isFormComplete ? _validateAndSubmit : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF003366),
+                        disabledBackgroundColor: Colors.grey.shade400,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
@@ -390,7 +416,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         style: GoogleFonts.montserrat(
                           fontSize: isMobile ? 12 : 14,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: _isFormComplete ? Colors.white : Colors.grey.shade600,
                         ),
                       ),
                     ),

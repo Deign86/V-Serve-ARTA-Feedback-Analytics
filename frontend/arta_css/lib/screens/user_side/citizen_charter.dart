@@ -89,6 +89,18 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
     super.dispose();
   }
 
+  /// Returns true if all required CC questions are answered
+  bool get _isFormComplete {
+    // CC1 is always required
+    if (cc1Answer == null) return false;
+    
+    // CC2 and CC3 are required
+    if (cc2Answer == null) return false;
+    if (cc3Answer == null) return false;
+    
+    return true;
+  }
+
   bool _validateForm() {
     _errorFields.clear();
     
@@ -551,9 +563,10 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
                   width: isMobile ? 140 : 180,
                   height: isMobile ? 48 : 55,
                   child: ElevatedButton(
-                    onPressed: _onNextPressed,
+                    onPressed: _isFormComplete ? _onNextPressed : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF003366),
+                      disabledBackgroundColor: Colors.grey.shade400,
                       elevation: 5,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     ),
@@ -562,7 +575,7 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
                       style: GoogleFonts.montserrat(
                         fontSize: isMobile ? 12 : 14,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: _isFormComplete ? Colors.white : Colors.grey.shade600,
                       ),
                     ),
                   ),

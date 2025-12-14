@@ -78,6 +78,11 @@ class _SQDScreenState extends State<SQDScreen> {
     super.dispose();
   }
 
+  /// Returns true if all SQD questions have been answered
+  bool get _isFormComplete {
+    return answers.every((answer) => answer != null);
+  }
+
   bool _validateForm() {
     _errorIndices.clear();
     for (int i = 0; i < answers.length; i++) {
@@ -460,9 +465,10 @@ class _SQDScreenState extends State<SQDScreen> {
                   width: isMobile ? 140 : 180,
                   height: isMobile ? 48 : 55,
                   child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _onNextPressed,
+                    onPressed: (_isSubmitting || !_isFormComplete) ? null : _onNextPressed,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF003366),
+                      disabledBackgroundColor: Colors.grey.shade400,
                       elevation: 5,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
@@ -482,7 +488,7 @@ class _SQDScreenState extends State<SQDScreen> {
                             style: GoogleFonts.montserrat(
                               fontSize: isMobile ? 12 : 14,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: _isFormComplete ? Colors.white : Colors.grey.shade600,
                             ),
                           ),
                   ),
