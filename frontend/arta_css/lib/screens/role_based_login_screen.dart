@@ -2,12 +2,13 @@
 
 // lib/screens/role_based_login_screen.dart
 import 'dart:ui';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 // HTTP services for cross-platform compatibility (no Firebase dependency)
 import '../services/auth_services_http.dart';
 import '../services/recaptcha_service.dart';
+import '../services/bot_protection_service.dart';
 
 class RoleBasedLoginScreen extends StatefulWidget {
   const RoleBasedLoginScreen({super.key});
@@ -26,11 +27,14 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
   @override
   void initState() {
     super.initState();
-    // Show reCAPTCHA badge on login page
+    // Show reCAPTCHA badge on login page (web only)
     if (kIsWeb) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         RecaptchaService.showBadge();
       });
+    } else {
+      // Initialize bot protection for native platforms
+      BotProtectionService.instance.onFormOpened();
     }
   }
 
@@ -63,7 +67,7 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
       _errorMessage = null;
     });
 
-    // Execute reCAPTCHA verification for web
+    // Execute reCAPTCHA verification for web, bot protection for native
     if (kIsWeb) {
       final recaptchaToken = await RecaptchaService.executeForLogin();
       if (recaptchaToken == null) {
@@ -71,6 +75,19 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
           _isLoading = false;
           _errorMessage = 'reCAPTCHA verification failed. Please try again.';
         });
+        return;
+      }
+    } else {
+      // Native platform: use BotProtectionService
+      final botResult = await BotProtectionService.instance.validateSubmission('LOGIN');
+      if (!botResult.isValid) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = botResult.reason ?? 'Security verification failed. Please try again.';
+        });
+        if (kDebugMode) {
+          debugPrint('BotProtection blocked login: ${botResult.reason}');
+        }
         return;
       }
     }
