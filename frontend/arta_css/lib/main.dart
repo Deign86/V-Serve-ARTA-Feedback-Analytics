@@ -17,9 +17,9 @@ import 'services/audit_log_service_http.dart';
 
 // Notification services - conditional imports for platform support
 import 'services/push_notification_service_stub.dart' as push_notif;
-// Native notifications: stub for web, native implementation for desktop
+// Native notifications: stub for web, IO implementation for native (handles mobile vs desktop internally)
 import 'services/native_notification_service_stub.dart'
-    if (dart.library.io) 'services/native_notification_service_native.dart' as native_notif;
+    if (dart.library.io) 'services/native_notification_service_io.dart' as native_notif;
 
 // Non-Firebase services (work on all platforms)
 import 'services/survey_config_service.dart';
@@ -38,7 +38,7 @@ import 'services/offline_queue_http.dart';
 
 // Conditional import for window_manager (desktop only)
 import 'platform/window_helper_stub.dart'
-    if (dart.library.io) 'platform/window_helper_native.dart' as window_helper;
+    if (dart.library.io) 'platform/window_helper_io.dart' as window_helper;
 
 // Conditional import for web URL strategy
 import 'platform/url_strategy_stub.dart'

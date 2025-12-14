@@ -351,9 +351,12 @@ class UserManagementServiceHttp extends ChangeNotifier with CachingMixin {
   }
   
   /// Delete a user
-  Future<bool> deleteUser(String userId, {String? userName, String? userEmail}) async {
+  /// Set [hardDelete] to true to permanently delete from database (default: true)
+  /// Set [hardDelete] to false to only disable/deactivate the account
+  Future<bool> deleteUser(String userId, {String? userName, String? userEmail, bool hardDelete = true}) async {
     try {
-      final response = await _apiClient.delete('/auth/users/$userId');
+      // Pass hardDelete query parameter to actually remove from database
+      final response = await _apiClient.delete('/auth/users/$userId?hardDelete=$hardDelete');
       
       if (!response.isSuccess) {
         _error = response.error ?? 'Failed to delete user';

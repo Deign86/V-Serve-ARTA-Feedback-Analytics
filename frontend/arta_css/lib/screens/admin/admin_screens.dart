@@ -14,9 +14,9 @@ import '../../services/qr_code_service.dart';
 import '../../services/audit_log_service_http.dart';
 import '../../services/auth_services_http.dart';
 import '../../services/push_notification_service_stub.dart';
-// Native notifications: stub for web, native implementation for desktop
+// Native notifications: stub for web, IO implementation for native (handles mobile vs desktop internally)
 import '../../services/native_notification_service_stub.dart'
-    if (dart.library.io) '../../services/native_notification_service_native.dart';
+    if (dart.library.io) '../../services/native_notification_service_io.dart';
 import '../../utils/admin_theme.dart';
 import '../../widgets/audit_log_viewer.dart';
 import '../../widgets/survey_question_editor.dart';

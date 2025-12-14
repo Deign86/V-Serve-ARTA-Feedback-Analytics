@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'push_notification_service_stub.dart';
-// Native notifications: stub for web, native implementation for desktop
+// Native notifications: stub for web, IO implementation for native (handles mobile vs desktop internally)
 import 'native_notification_service_stub.dart'
-    if (dart.library.io) 'native_notification_service_native.dart';
+    if (dart.library.io) 'native_notification_service_io.dart';
 
 /// Unified notification service that automatically uses the right implementation
 /// 

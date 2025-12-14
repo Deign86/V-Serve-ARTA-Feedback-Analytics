@@ -149,7 +149,7 @@ class UserManagementService extends ChangeNotifier with CachingMixin {
     throw UnimplementedError('Use UserManagementServiceHttp on native desktop platforms');
   }
   
-  Future<bool> deleteUser(String userId) async {
+  Future<bool> deleteUser(String userId, {String? userName, String? userEmail, bool hardDelete = true}) async {
     throw UnimplementedError('Use UserManagementServiceHttp on native desktop platforms');
   }
   

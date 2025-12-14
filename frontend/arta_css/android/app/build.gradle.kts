@@ -40,14 +40,13 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
-    
-    // Rename APK output to V-Serve
-    applicationVariants.all {
-        val variant = this
-        variant.outputs.all {
-            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            output.outputFileName = "V-Serve-${variant.buildType.name}.apk"
-        }
+}
+
+// Rename APK output to V-Serve
+android.applicationVariants.all {
+    outputs.all {
+        val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+        output.outputFileName = "V-Serve.apk"
     }
 }
 
