@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../services/survey_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -8,7 +8,6 @@ import '../../services/survey_config_service.dart';
 import '../../services/survey_questions_service.dart';
 import '../../services/audit_log_service_http.dart';
 import '../../services/recaptcha_service.dart';
-import '../../services/bot_protection_service.dart';
 import '../../widgets/offline_queue_widget.dart';
 import '../../widgets/survey_progress_bar.dart';
 import 'landing_page.dart';
