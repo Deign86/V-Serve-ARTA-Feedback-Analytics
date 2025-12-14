@@ -1,25 +1,19 @@
 // HTTP-compatible AuditLogService implementation
-// This version stores audit logs locally since the backend doesn't have audit endpoints yet
-// Can be extended later to sync with backend when audit endpoints are added
+// This version syncs audit logs with the centralized backend (Firestore)
+// All platforms share the same audit logs for consistency
 
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show DateTimeRange;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/audit_log_model.dart';
 import '../models/user_model.dart';
 import 'api_config.dart';
 import 'cache_service.dart';
 
 /// HTTP-compatible implementation of AuditLogService
-/// Stores logs locally for now, can sync with backend later
+/// Uses centralized backend API for global audit log storage
 class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
   final ApiClient _apiClient = ApiClient();
-  
-  static const String _storageKey = 'audit_logs_local';
-  static const String _timestampKey = 'audit_logs_timestamp';
-  static const int _maxLocalLogs = 1000; // Keep last 1000 logs locally
   
   List<AuditLogEntry> _logs = [];
   bool _isLoading = false;
@@ -32,6 +26,7 @@ class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
   
   bool _isListening = false;
   Timer? _pollingTimer;
+  static const Duration _pollingInterval = Duration(seconds: 30);
   
   // Getters
   List<AuditLogEntry> get logs => _getFilteredLogs();
@@ -55,41 +50,60 @@ class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
   ];
   
   AuditLogServiceHttp() {
-    _loadLogsFromStorage();
+    // Fetch logs from backend on initialization
+    fetchLogs();
   }
   
-  /// Load logs from local storage
-  Future<void> _loadLogsFromStorage() async {
+  /// Fetch logs from the centralized backend API
+  Future<void> _fetchLogsFromBackend({int limit = 500}) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final logsJson = prefs.getString(_storageKey);
+      final queryParams = <String, String>{
+        'limit': limit.toString(),
+      };
       
-      if (logsJson != null) {
-        final List<dynamic> decoded = jsonDecode(logsJson);
-        _logs = decoded.map((e) => AuditLogEntry.fromJson(Map<String, dynamic>.from(e))).toList();
-        debugPrint('AuditLogServiceHttp: Loaded ${_logs.length} logs from local storage');
-        notifyListeners();
+      if (_filterActionType != null) {
+        queryParams['actionType'] = _filterActionType!.name;
+      }
+      if (_filterActorId != null) {
+        queryParams['actorId'] = _filterActorId!;
+      }
+      
+      final response = await _apiClient.get('/audit-logs', queryParams: queryParams);
+      
+      if (response.isSuccess && response.data != null) {
+        final logsData = response.data!['logs'] as List<dynamic>?;
+        if (logsData != null) {
+          _logs = logsData
+              .map((e) => AuditLogEntry.fromJson(Map<String, dynamic>.from(e)))
+              .toList();
+          _error = null;
+          debugPrint('AuditLogServiceHttp: Fetched ${_logs.length} logs from backend');
+        }
+      } else {
+        _error = response.error ?? 'Failed to fetch audit logs';
+        debugPrint('AuditLogServiceHttp: Error fetching logs: $_error');
       }
     } catch (e) {
-      debugPrint('AuditLogServiceHttp: Error loading logs: $e');
+      _error = 'Network error: $e';
+      debugPrint('AuditLogServiceHttp: Error fetching logs: $e');
     }
   }
   
-  /// Save logs to local storage
-  Future<void> _saveLogsToStorage() async {
+  /// Save a log entry to the centralized backend
+  Future<bool> _saveLogToBackend(AuditLogEntry logEntry) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final response = await _apiClient.post('/audit-logs', body: logEntry.toJson());
       
-      // Keep only the most recent logs
-      final logsToSave = _logs.take(_maxLocalLogs).toList();
-      final logsJson = jsonEncode(logsToSave.map((e) => e.toJson()).toList());
-      
-      await prefs.setString(_storageKey, logsJson);
-      await prefs.setString(_timestampKey, DateTime.now().toIso8601String());
-      
-      debugPrint('AuditLogServiceHttp: Saved ${logsToSave.length} logs to local storage');
+      if (response.isSuccess) {
+        debugPrint('AuditLogServiceHttp: Saved log to backend');
+        return true;
+      } else {
+        debugPrint('AuditLogServiceHttp: Error saving log: ${response.error}');
+        return false;
+      }
     } catch (e) {
-      debugPrint('AuditLogServiceHttp: Error saving logs: $e');
+      debugPrint('AuditLogServiceHttp: Error saving log to backend: $e');
+      return false;
     }
   }
   
@@ -109,7 +123,7 @@ class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
     return sanitized;
   }
   
-  /// Log an audit entry (stored locally)
+  /// Log an audit entry (stored in centralized backend)
   Future<bool> logAction({
     required AuditActionType actionType,
     required String actionDescription,
@@ -139,24 +153,20 @@ class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
         additionalInfo: additionalInfo,
       );
       
-      // Add to beginning of list (most recent first)
-      _logs.insert(0, logEntry);
+      // Save to centralized backend first
+      final success = await _saveLogToBackend(logEntry);
       
-      // Trim list if too long
-      if (_logs.length > _maxLocalLogs) {
-        _logs = _logs.sublist(0, _maxLocalLogs);
+      if (success) {
+        // Add to local list for immediate display (most recent first)
+        _logs.insert(0, logEntry);
+        notifyListeners();
       }
-      
-      notifyListeners();
-      
-      // Save to storage asynchronously
-      _saveLogsToStorage();
       
       if (kDebugMode) {
         debugPrint('AuditLogServiceHttp: Logged action - ${actionType.name}: $actionDescription');
       }
       
-      return true;
+      return success;
     } catch (e) {
       if (kDebugMode) {
         debugPrint('AuditLogServiceHttp: Error logging action: $e');
@@ -496,10 +506,19 @@ class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
     notifyListeners();
   }
   
-  /// Start listening for updates (polling not needed for local storage)
+  /// Start listening for updates (polling from backend)
   void startRealtimeUpdates() {
+    if (_isListening) return;
+    
     _isListening = true;
     notifyListeners();
+    
+    // Start polling for updates from the centralized backend
+    _pollingTimer = Timer.periodic(_pollingInterval, (_) {
+      fetchLogs(forceRefresh: true);
+    });
+    
+    debugPrint('AuditLogServiceHttp: Started polling for updates');
   }
   
   /// Stop listening
@@ -507,14 +526,16 @@ class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
     _isListening = false;
     _pollingTimer?.cancel();
     _pollingTimer = null;
+    debugPrint('AuditLogServiceHttp: Stopped polling for updates');
   }
   
-  /// Fetch logs (reload from storage)
-  Future<void> fetchLogs({int limit = 100, bool forceRefresh = false}) async {
+  /// Fetch logs from centralized backend
+  Future<void> fetchLogs({int limit = 500, bool forceRefresh = false}) async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
     
-    await _loadLogsFromStorage();
+    await _fetchLogsFromBackend(limit: limit);
     
     _isLoading = false;
     notifyListeners();
@@ -558,11 +579,13 @@ class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
     };
   }
   
-  /// Clear all logs
+  /// Clear all logs (admin action - clears from backend would need separate endpoint)
   Future<void> clearLogs() async {
+    // Note: This only clears local cache. Backend logs are persistent.
+    // To clear backend logs, a dedicated admin endpoint would be needed.
     _logs = [];
-    await _saveLogsToStorage();
     notifyListeners();
+    debugPrint('AuditLogServiceHttp: Cleared local log cache');
   }
   
   /// Get unique actors for filtering

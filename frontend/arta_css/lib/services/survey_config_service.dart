@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart'; // For Icons
 import 'package:arta_css/widgets/survey_progress_bar.dart'; // For ProgressBarStep
-import 'package:shared_preferences/shared_preferences.dart';
 import 'audit_log_service_stub.dart';
+import 'api_config.dart';
 import '../models/user_model.dart';
 
 /// Service to manage survey configuration settings
 /// These settings control which sections are shown in the survey flow
+/// Configuration is stored in centralized backend (Firestore) for global consistency
 class SurveyConfigService extends ChangeNotifier {
-  static const String _keyCcEnabled = 'survey_cc_enabled';
-  static const String _keySqdEnabled = 'survey_sqd_enabled';
-  static const String _keyDemographicsEnabled = 'survey_demographics_enabled';
-  static const String _keySuggestionsEnabled = 'survey_suggestions_enabled';
-  static const String _keyKioskMode = 'survey_kiosk_mode';
-
+  final ApiClient _apiClient = ApiClient();
+  
   // Audit log service reference (set externally)
   AuditLogService? _auditLogService;
   UserModel? _currentActor;
@@ -31,6 +28,8 @@ class SurveyConfigService extends ChangeNotifier {
   bool _kioskMode = false;
 
   bool _isLoaded = false;
+  bool _isSaving = false;
+  String? _error;
 
   // Getters
   bool get ccEnabled => _ccEnabled;
@@ -39,45 +38,81 @@ class SurveyConfigService extends ChangeNotifier {
   bool get suggestionsEnabled => _suggestionsEnabled;
   bool get kioskMode => _kioskMode;
   bool get isLoaded => _isLoaded;
+  bool get isSaving => _isSaving;
+  String? get error => _error;
 
-  /// Load configuration from SharedPreferences
+  /// Load configuration from centralized backend
   Future<void> loadConfig() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-
-      _ccEnabled = prefs.getBool(_keyCcEnabled) ?? true;
-      _sqdEnabled = prefs.getBool(_keySqdEnabled) ?? true;
-      _demographicsEnabled = prefs.getBool(_keyDemographicsEnabled) ?? true;
-      _suggestionsEnabled = prefs.getBool(_keySuggestionsEnabled) ?? true;
-      _kioskMode = prefs.getBool(_keyKioskMode) ?? false;
-
+      _error = null;
+      final response = await _apiClient.get('/survey-config');
+      
+      if (response.isSuccess && response.data != null) {
+        _ccEnabled = response.data!['ccEnabled'] ?? true;
+        _sqdEnabled = response.data!['sqdEnabled'] ?? true;
+        _demographicsEnabled = response.data!['demographicsEnabled'] ?? true;
+        _suggestionsEnabled = response.data!['suggestionsEnabled'] ?? true;
+        _kioskMode = response.data!['kioskMode'] ?? false;
+        
+        debugPrint('SurveyConfigService: Configuration loaded from backend');
+      } else {
+        _error = response.error;
+        debugPrint('SurveyConfigService: Error loading config from backend: ${response.error}');
+        // Use defaults on error
+      }
+      
       _isLoaded = true;
       notifyListeners();
-      debugPrint('SurveyConfigService: Configuration loaded');
     } catch (e) {
       debugPrint('SurveyConfigService: Error loading config: $e');
+      _error = e.toString();
       _isLoaded = true; // Mark as loaded even on error, use defaults
       notifyListeners();
     }
   }
 
-  /// Save a single configuration value
-  Future<void> _saveValue(String key, bool value) async {
+  /// Save all configuration to centralized backend
+  Future<bool> _saveConfigToBackend() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(key, value);
-      debugPrint('SurveyConfigService: Saved $key = $value');
+      _isSaving = true;
+      notifyListeners();
+      
+      final response = await _apiClient.put('/survey-config', body: {
+        'ccEnabled': _ccEnabled,
+        'sqdEnabled': _sqdEnabled,
+        'demographicsEnabled': _demographicsEnabled,
+        'suggestionsEnabled': _suggestionsEnabled,
+        'kioskMode': _kioskMode,
+      });
+      
+      _isSaving = false;
+      
+      if (response.isSuccess) {
+        _error = null;
+        debugPrint('SurveyConfigService: Configuration saved to backend');
+        notifyListeners();
+        return true;
+      } else {
+        _error = response.error;
+        debugPrint('SurveyConfigService: Error saving config: ${response.error}');
+        notifyListeners();
+        return false;
+      }
     } catch (e) {
-      debugPrint('SurveyConfigService: Error saving $key: $e');
+      _isSaving = false;
+      _error = e.toString();
+      debugPrint('SurveyConfigService: Error saving config: $e');
+      notifyListeners();
+      return false;
     }
   }
 
-  // Setters with persistence and audit logging
+  // Setters with persistence to centralized backend and audit logging
   Future<void> setCcEnabled(bool value) async {
     final previousValue = _ccEnabled;
     _ccEnabled = value;
     notifyListeners();
-    await _saveValue(_keyCcEnabled, value);
+    await _saveConfigToBackend();
     await _auditLogService?.logSurveyConfigChanged(
       actor: _currentActor,
       configKey: 'Citizen\'s Charter Section',
@@ -90,7 +125,7 @@ class SurveyConfigService extends ChangeNotifier {
     final previousValue = _sqdEnabled;
     _sqdEnabled = value;
     notifyListeners();
-    await _saveValue(_keySqdEnabled, value);
+    await _saveConfigToBackend();
     await _auditLogService?.logSurveyConfigChanged(
       actor: _currentActor,
       configKey: 'SQD Section',
@@ -103,7 +138,7 @@ class SurveyConfigService extends ChangeNotifier {
     final previousValue = _demographicsEnabled;
     _demographicsEnabled = value;
     notifyListeners();
-    await _saveValue(_keyDemographicsEnabled, value);
+    await _saveConfigToBackend();
     await _auditLogService?.logSurveyConfigChanged(
       actor: _currentActor,
       configKey: 'Demographics Section',
@@ -116,7 +151,7 @@ class SurveyConfigService extends ChangeNotifier {
     final previousValue = _suggestionsEnabled;
     _suggestionsEnabled = value;
     notifyListeners();
-    await _saveValue(_keySuggestionsEnabled, value);
+    await _saveConfigToBackend();
     await _auditLogService?.logSurveyConfigChanged(
       actor: _currentActor,
       configKey: 'Suggestions Section',
@@ -129,13 +164,18 @@ class SurveyConfigService extends ChangeNotifier {
     final previousValue = _kioskMode;
     _kioskMode = value;
     notifyListeners();
-    await _saveValue(_keyKioskMode, value);
+    await _saveConfigToBackend();
     await _auditLogService?.logSurveyConfigChanged(
       actor: _currentActor,
       configKey: 'Kiosk Mode',
       previousValue: previousValue,
       newValue: value,
     );
+  }
+  
+  /// Reload configuration from backend (useful for syncing across platforms)
+  Future<void> refreshConfig() async {
+    await loadConfig();
   }
 
   /// Get the number of survey steps based on current configuration
@@ -205,6 +245,12 @@ class SurveyConfigService extends ChangeNotifier {
     }
 
     return stepNum;
+  }
+  
+  @override
+  void dispose() {
+    _apiClient.dispose();
+    super.dispose();
   }
 }
 
