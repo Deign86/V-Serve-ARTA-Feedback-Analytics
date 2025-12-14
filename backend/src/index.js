@@ -61,11 +61,10 @@ async function verifyFirebaseCredentials(email, password) {
 
 const app = express();
 
-// CORS configuration - allow requests from any origin in dev, restrict in production
+// CORS configuration - allow all origins for now (Vercel handles security)
+// This ensures both web frontend and Windows app can access the API
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://v-serve.vercel.app', 'http://localhost:3000', 'http://localhost:5000']
-    : true,
+  origin: true, // Allow all origins
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));

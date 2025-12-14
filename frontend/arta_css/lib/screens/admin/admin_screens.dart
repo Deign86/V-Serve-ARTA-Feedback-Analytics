@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -11,6 +12,9 @@ import '../../services/qr_code_service.dart';
 import '../../services/audit_log_service_http.dart';
 import '../../services/auth_services_http.dart';
 import '../../services/push_notification_service_stub.dart';
+// Native notifications: stub for web, native implementation for desktop
+import '../../services/native_notification_service_stub.dart'
+    if (dart.library.io) '../../services/native_notification_service_native.dart';
 import '../../utils/admin_theme.dart';
 import '../../widgets/audit_log_viewer.dart';
 import '../../widgets/survey_question_editor.dart';
@@ -2063,6 +2067,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoading = false;
   String _permissionStatus = 'unknown';
   
+  // Platform-specific services
+  final _pushService = PushNotificationService.instance;
+  final _nativeService = NativeNotificationService.instance;
+  
+  // Determine which service to use based on platform
+  bool get _isDesktop => !kIsWeb;
+  bool get _isSupported => _isDesktop ? _nativeService.isSupported : _pushService.isSupported;
+  bool get _hasPermission => _isDesktop ? _nativeService.hasPermission : _pushService.hasPermission;
+  
   @override
   void initState() {
     super.initState();
@@ -2073,13 +2086,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _isLoading = true);
     
     try {
-      final pushService = PushNotificationService.instance;
-      await pushService.initialize();
-      
-      setState(() {
-        _pushNotificationsEnabled = pushService.isEnabled;
-        _permissionStatus = pushService.permissionStatus ?? 'unknown';
-      });
+      if (_isDesktop) {
+        await _nativeService.initialize();
+        setState(() {
+          _pushNotificationsEnabled = _nativeService.isEnabled;
+          _permissionStatus = _nativeService.permissionStatus;
+        });
+      } else {
+        await _pushService.initialize();
+        setState(() {
+          _pushNotificationsEnabled = _pushService.isEnabled;
+          _permissionStatus = _pushService.permissionStatus ?? 'unknown';
+        });
+      }
     } catch (e) {
       debugPrint('Error loading settings: $e');
     }
@@ -2091,64 +2110,106 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _isLoading = true);
     
     try {
-      final pushService = PushNotificationService.instance;
       final authService = Provider.of<AuthServiceHttp>(context, listen: false);
       final currentUser = authService.currentUser;
       
-      if (enabled) {
-        // Request permission and enable
-        final success = await pushService.enableNotifications(
-          currentUser?.id ?? 'unknown',
-          currentUser?.email ?? 'unknown@example.com',
-        );
-        
-        if (success) {
-          setState(() {
-            _pushNotificationsEnabled = true;
-            _permissionStatus = pushService.permissionStatus ?? 'granted';
-          });
+      if (_isDesktop) {
+        // Desktop native notifications
+        if (enabled) {
+          final success = await _nativeService.enableNotifications(
+            currentUser?.id ?? 'unknown',
+            currentUser?.email ?? 'unknown@example.com',
+          );
+          
+          if (success) {
+            setState(() {
+              _pushNotificationsEnabled = true;
+              _permissionStatus = _nativeService.permissionStatus;
+            });
+            
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Desktop notifications enabled successfully'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          } else {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Failed to enable desktop notifications'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        } else {
+          await _nativeService.disableNotifications(currentUser?.id ?? 'unknown');
+          setState(() => _pushNotificationsEnabled = false);
           
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Push notifications enabled successfully'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  pushService.permissionStatus == 'denied'
-                      ? 'Notification permission denied. Please enable in browser settings.'
-                      : 'Failed to enable push notifications',
-                ),
-                backgroundColor: Colors.red,
+                content: Text('Desktop notifications disabled'),
+                backgroundColor: Colors.orange,
               ),
             );
           }
         }
       } else {
-        // Disable
-        await pushService.disableNotifications(currentUser?.id ?? 'unknown');
-        
-        setState(() {
-          _pushNotificationsEnabled = false;
-        });
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Push notifications disabled'),
-              backgroundColor: Colors.orange,
-            ),
+        // Web push notifications
+        if (enabled) {
+          final success = await _pushService.enableNotifications(
+            currentUser?.id ?? 'unknown',
+            currentUser?.email ?? 'unknown@example.com',
           );
+          
+          if (success) {
+            setState(() {
+              _pushNotificationsEnabled = true;
+              _permissionStatus = _pushService.permissionStatus ?? 'granted';
+            });
+            
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Push notifications enabled successfully'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          } else {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    _pushService.permissionStatus == 'denied'
+                        ? 'Notification permission denied. Please enable in browser settings.'
+                        : 'Failed to enable push notifications',
+                  ),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        } else {
+          await _pushService.disableNotifications(currentUser?.id ?? 'unknown');
+          setState(() => _pushNotificationsEnabled = false);
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Push notifications disabled'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
         }
       }
     } catch (e) {
-      debugPrint('Error toggling push notifications: $e');
+      debugPrint('Error toggling notifications: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -2164,19 +2225,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
   
   Future<void> _testNotification() async {
     try {
-      final pushService = PushNotificationService.instance;
-      await pushService.showLocalNotification(
-        title: '🔔 Test Notification',
-        body: 'This is a test notification from ARTA CSS. Push notifications are working!',
-      );
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Test notification sent! Check your browser.'),
-            backgroundColor: Colors.blue,
-          ),
+      if (_isDesktop) {
+        await _nativeService.showLocalNotification(
+          title: '🔔 Test Notification',
+          body: 'This is a test notification from V-Serve. Desktop notifications are working!',
         );
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Test notification sent! Check your desktop.'),
+              backgroundColor: Colors.blue,
+            ),
+          );
+        }
+      } else {
+        await _pushService.showLocalNotification(
+          title: '🔔 Test Notification',
+          body: 'This is a test notification from V-Serve. Push notifications are working!',
+        );
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Test notification sent! Check your browser.'),
+              backgroundColor: Colors.blue,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -2192,7 +2268,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   
   @override
   Widget build(BuildContext context) {
-    final pushService = PushNotificationService.instance;
+    // Use platform-aware helper getters instead of direct service access
+    final notificationTitle = _isDesktop ? 'Desktop Notifications' : 'Push Notifications';
+    final notificationDesc = _isDesktop 
+        ? 'Receive native desktop notifications for high-severity alerts'
+        : 'Receive instant browser notifications for high-severity alerts';
+    final supportTitle = _isDesktop ? 'Platform Support' : 'Browser Support';
+    final supportDesc = _isSupported
+        ? (_isDesktop ? 'Your system supports native notifications' : 'Your browser supports push notifications')
+        : (_isDesktop ? 'Desktop notifications not available on this platform' : 'Push notifications not supported in this browser');
     
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -2273,14 +2357,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Push Notifications',
+                              notificationTitle,
                               style: AdminTheme.headingMedium(
                                 color: brandBlue,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Receive instant browser notifications for high-severity alerts',
+                              notificationDesc,
                               style: AdminTheme.bodyMedium(
                                 color: Colors.grey[600],
                               ),
@@ -2296,14 +2380,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   
                   // Browser Support Status
                   _buildSettingRow(
-                    icon: Icons.web,
-                    title: 'Browser Support',
-                    subtitle: pushService.isSupported 
-                        ? 'Your browser supports push notifications'
-                        : 'Push notifications not supported in this browser',
+                    icon: _isDesktop ? Icons.computer : Icons.web,
+                    title: supportTitle,
+                    subtitle: supportDesc,
                     trailing: Icon(
-                      pushService.isSupported ? Icons.check_circle : Icons.cancel,
-                      color: pushService.isSupported ? Colors.green : Colors.red,
+                      _isSupported ? Icons.check_circle : Icons.cancel,
+                      color: _isSupported ? Colors.green : Colors.red,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -2333,14 +2415,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           )
                         : Switch(
                             value: _pushNotificationsEnabled,
-                            onChanged: pushService.isSupported ? _togglePushNotifications : null,
+                            onChanged: _isSupported ? _togglePushNotifications : null,
                             activeThumbColor: brandBlue,
                           ),
                   ),
                   const SizedBox(height: 24),
                   
                   // Test Notification Button
-                  if (_pushNotificationsEnabled && pushService.hasPermission)
+                  if (_pushNotificationsEnabled && _hasPermission)
                     Center(
                       child: ElevatedButton.icon(
                         onPressed: _testNotification,

@@ -15,9 +15,11 @@ import 'services/feedback_service_http.dart';
 import 'services/user_management_service_http.dart';
 import 'services/audit_log_service_http.dart';
 
-// Notification services (stubs for all platforms - no Firebase dependency)
+// Notification services - conditional imports for platform support
 import 'services/push_notification_service_stub.dart' as push_notif;
-import 'services/native_notification_service_stub.dart' as native_notif;
+// Native notifications: stub for web, native implementation for desktop
+import 'services/native_notification_service_stub.dart'
+    if (dart.library.io) 'services/native_notification_service_native.dart' as native_notif;
 
 // Non-Firebase services (work on all platforms)
 import 'services/survey_config_service.dart';
