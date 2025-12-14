@@ -2,28 +2,26 @@ import 'dart:async';
 import 'dart:js_interop';
 import 'package:flutter/foundation.dart';
 
-/// Service for handling Google reCAPTCHA v3 verification
+/// Service for handling Google reCAPTCHA Enterprise verification
 /// 
 /// SETUP INSTRUCTIONS:
-/// 1. Go to https://www.google.com/recaptcha/admin
-/// 2. Create a new site with reCAPTCHA v3
-/// 3. Add your domains: v-serve-arta-feedback.vercel.app, localhost, 127.0.0.1
-/// 4. Replace 'YOUR_RECAPTCHA_SITE_KEY' in web/index.html with your Site Key
-/// 5. Replace 'YOUR_RECAPTCHA_SECRET_KEY' in backend verification with your Secret Key
+/// 1. Go to Google Cloud Console > reCAPTCHA
+/// 2. Create a new site key with reCAPTCHA Enterprise
+/// 3. Add your domains: v-serve-arta-feedback.vercel.app, vercel.app, localhost
+/// 4. Replace the site key in web/index.html
 class RecaptchaService {
   // Minimum score threshold (0.0 - 1.0, higher is more likely human)
   static const double minScore = 0.5;
   
-  // Exact domains where reCAPTCHA is enforced
+  // Exact domains where reCAPTCHA is enforced (must match Google Cloud Console)
   static const List<String> _enforcedDomains = [
     'v-serve-arta-feedback.vercel.app',  // Production
     'localhost',                          // Local dev
-    '127.0.0.1',                         // Local dev
   ];
   
   // Domain suffixes to also enforce (for Vercel previews)
   static const List<String> _enforcedSuffixes = [
-    '.vercel.app',  // All Vercel deployments
+    '.vercel.app',  // All Vercel deployments (matches vercel.app in console)
   ];
   
   /// Check if we're on a domain that requires reCAPTCHA
