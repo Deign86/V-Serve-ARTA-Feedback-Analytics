@@ -395,6 +395,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                 await OfflineQueue.flush();
                 
                 // Log the survey submission to audit log (silent fail)
+                if (!mounted) return;
                 try {
                   final auditService = Provider.of<AuditLogService>(context, listen: false);
                   await auditService.logSurveySubmitted(

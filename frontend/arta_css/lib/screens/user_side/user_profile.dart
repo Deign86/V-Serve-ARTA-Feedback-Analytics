@@ -245,7 +245,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
     final configService = context.watch<SurveyConfigService>();
-    final currentPage = 1;
     final totalSteps = configService.totalSteps;
 
     return Scaffold(

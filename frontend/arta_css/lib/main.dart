@@ -493,7 +493,7 @@ class _SessionRestoreScreenState extends State<_SessionRestoreScreen> {
               'assets/valenzuela_logo.png',
               width: 100,
               height: 100,
-              errorBuilder: (_, __, ___) => const Icon(
+              errorBuilder: (context, error, stackTrace) => const Icon(
                 Icons.account_circle,
                 size: 100,
                 color: Colors.white,

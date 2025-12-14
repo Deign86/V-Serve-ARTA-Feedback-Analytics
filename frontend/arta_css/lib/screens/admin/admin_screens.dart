@@ -10,7 +10,6 @@ import '../../services/qr_code_service.dart';
 import '../../services/audit_log_service.dart';
 import '../../services/auth_services.dart';
 import '../../services/push_notification_service.dart';
-import '../../models/survey_data.dart';
 import '../../utils/admin_theme.dart';
 import '../../widgets/audit_log_viewer.dart';
 import '../../widgets/survey_question_editor.dart';
@@ -815,33 +814,6 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
         feedbackService.startRealtimeUpdates();
       }
     });
-  }
-
-  // Filter feedbacks based on date range, region, and service
-  List<SurveyData> _getFilteredFeedbacks(List<SurveyData> allFeedbacks) {
-    return allFeedbacks.where((feedback) {
-      // Date filter
-      if (_selectedDateRange != null) {
-        final date = feedback.submittedAt ?? feedback.date;
-        if (date == null) return false;
-        if (!date.isAfter(_selectedDateRange!.start.subtract(const Duration(days: 1))) ||
-            !date.isBefore(_selectedDateRange!.end.add(const Duration(days: 1)))) {
-          return false;
-        }
-      }
-      
-      // Region filter
-      if (_selectedRegion != null && _selectedRegion!.isNotEmpty) {
-        if (feedback.regionOfResidence != _selectedRegion) return false;
-      }
-      
-      // Service filter
-      if (_selectedService != null && _selectedService!.isNotEmpty) {
-        if (feedback.serviceAvailed != _selectedService) return false;
-      }
-      
-      return true;
-    }).toList();
   }
 
   // Set This Month filter
@@ -1953,7 +1925,7 @@ class _AdvancedFilterDialogState extends State<_AdvancedFilterDialog> {
               builder: (context, questionsService, _) {
                 final regions = questionsService.regions;
                 return DropdownButtonFormField<String>(
-                  value: _selectedRegion,
+                  initialValue: _selectedRegion,
                   decoration: InputDecoration(
                     prefixIcon: Icon(Icons.location_on, color: brandBlue),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -1977,7 +1949,7 @@ class _AdvancedFilterDialogState extends State<_AdvancedFilterDialog> {
               builder: (context, questionsService, _) {
                 final services = questionsService.services;
                 return DropdownButtonFormField<String>(
-                  value: _selectedService,
+                  initialValue: _selectedService,
                   decoration: InputDecoration(
                     prefixIcon: Icon(Icons.miscellaneous_services, color: brandBlue),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -2361,7 +2333,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         : Switch(
                             value: _pushNotificationsEnabled,
                             onChanged: pushService.isSupported ? _togglePushNotifications : null,
-                            activeColor: brandBlue,
+                            activeThumbColor: brandBlue,
                           ),
                   ),
                   const SizedBox(height: 24),

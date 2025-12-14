@@ -368,7 +368,6 @@ class _DashboardOverviewState extends State<DashboardOverview> with SingleTicker
     return Consumer<FeedbackService>(
       builder: (context, feedbackService, child) {
         final stats = feedbackService.dashboardStats;
-        final isLoading = feedbackService.isLoading;
         
         return Container(
       color: Colors.transparent, // Transparent to show background
