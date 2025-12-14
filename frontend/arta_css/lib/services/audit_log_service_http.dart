@@ -324,7 +324,7 @@ class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
     Map<String, dynamic>? filters,
   }) async {
     await logAction(
-      actionType: AuditActionType.dataExported,
+      actionType: AuditActionType.feedbackExported,
       actionDescription: 'Exported $recordCount feedback records as $exportFormat',
       actor: actor,
       targetType: 'export',
@@ -340,7 +340,7 @@ class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
   /// Log dashboard viewed
   Future<void> logDashboardViewed({UserModel? actor}) async {
     await logAction(
-      actionType: AuditActionType.configViewed,
+      actionType: AuditActionType.dashboardViewed,
       actionDescription: 'Viewed dashboard',
       actor: actor,
       targetType: 'page',
@@ -351,7 +351,7 @@ class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
   /// Log analytics viewed
   Future<void> logAnalyticsViewed({UserModel? actor}) async {
     await logAction(
-      actionType: AuditActionType.configViewed,
+      actionType: AuditActionType.analyticsViewed,
       actionDescription: 'Viewed analytics',
       actor: actor,
       targetType: 'page',
@@ -362,7 +362,7 @@ class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
   /// Log user list viewed
   Future<void> logUserListViewed({UserModel? actor}) async {
     await logAction(
-      actionType: AuditActionType.configViewed,
+      actionType: AuditActionType.userListViewed,
       actionDescription: 'Viewed user list',
       actor: actor,
       targetType: 'page',
@@ -373,7 +373,7 @@ class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
   /// Log audit log viewed
   Future<void> logAuditLogViewed({UserModel? actor}) async {
     await logAction(
-      actionType: AuditActionType.configViewed,
+      actionType: AuditActionType.auditLogViewed,
       actionDescription: 'Viewed audit log',
       actor: actor,
       targetType: 'page',
@@ -384,7 +384,7 @@ class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
   /// Log data exports viewed
   Future<void> logDataExportsViewed({UserModel? actor}) async {
     await logAction(
-      actionType: AuditActionType.configViewed,
+      actionType: AuditActionType.dataExportsViewed,
       actionDescription: 'Viewed data exports',
       actor: actor,
       targetType: 'page',
@@ -395,7 +395,7 @@ class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
   /// Log ARTA config viewed
   Future<void> logArtaConfigViewed({UserModel? actor}) async {
     await logAction(
-      actionType: AuditActionType.configViewed,
+      actionType: AuditActionType.artaConfigViewed,
       actionDescription: 'Viewed ARTA configuration',
       actor: actor,
       targetType: 'page',
@@ -406,7 +406,7 @@ class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
   /// Log settings viewed
   Future<void> logSettingsViewed({UserModel? actor}) async {
     await logAction(
-      actionType: AuditActionType.configViewed,
+      actionType: AuditActionType.settingsChanged,
       actionDescription: 'Viewed settings',
       actor: actor,
       targetType: 'page',

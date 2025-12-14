@@ -447,9 +447,8 @@ class _ExportFilterDialogState extends State<ExportFilterDialog> {
   }
 
   Widget _buildDropdownFilter(String label, String? currentValue, List<String> options, ValueChanged<String?> onChanged) {
-    // Note: Using value parameter for controlled dropdown (not initialValue which is for uncontrolled)
     return DropdownButtonFormField<String>(
-      value: currentValue,
+      initialValue: currentValue,
       decoration: InputDecoration(
         labelText: label,
         border: const OutlineInputBorder(),

@@ -41,6 +41,16 @@ class AuthService extends ChangeNotifier with CachingMixin {
   int _loginAttempts = 0;
   DateTime? _lockoutUntil;
   
+  // Protected setters for subclass access
+  @protected
+  set currentUserInternal(UserModel? user) => _currentUser = user;
+  @protected
+  set isAuthenticatedInternal(bool value) => _isAuthenticated = value;
+  @protected
+  Future<void> recordFailedAttemptInternal() => _recordFailedAttempt();
+  @protected
+  Future<void> resetLoginAttemptsInternal() => _resetLoginAttempts();
+  
   /// Check if account is currently locked out
   bool get isLockedOut {
     if (_lockoutUntil == null) return false;

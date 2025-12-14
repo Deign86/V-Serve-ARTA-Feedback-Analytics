@@ -77,6 +77,20 @@ class FeedbackService extends ChangeNotifier with CachingMixin {
   DashboardStats? get dashboardStats => _dashboardStats;
   bool get isListening => _isListening;
   
+  // Protected setters for subclass access
+  @protected
+  set feedbacksInternal(List<SurveyData> value) => _feedbacks = value;
+  @protected
+  set isLoadingInternal(bool value) => _isLoading = value;
+  @protected
+  set errorInternal(String? value) => _error = value;
+  @protected
+  set lastFetchInternal(DateTime? value) => _lastFetch = value;
+  @protected
+  set isListeningInternal(bool value) => _isListening = value;
+  @protected
+  void calculateDashboardStatsInternal() => _calculateDashboardStats();
+  
   /// Fetch all feedbacks from Firestore
   Future<List<SurveyData>> fetchAllFeedbacks({bool forceRefresh = false}) async {
     // Check memory cache first

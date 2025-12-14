@@ -7,6 +7,7 @@ import '../models/user_model.dart';
 import 'api_config.dart';
 import 'cache_service.dart';
 import 'audit_log_service_http.dart';
+import 'user_management_service.dart' show SystemUser;
 
 /// HTTP-based implementation of UserManagementService
 /// Uses the backend API for user management instead of direct Firebase access

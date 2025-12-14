@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart'; // For Icons
 import 'package:arta_css/widgets/survey_progress_bar.dart'; // For ProgressBarStep
 import 'package:shared_preferences/shared_preferences.dart';
