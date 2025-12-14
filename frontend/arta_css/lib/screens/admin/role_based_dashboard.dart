@@ -35,6 +35,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     {'icon': Icons.analytics, 'label': 'Detailed Analytics', 'permission': 'detailed_analytics'},
     {'icon': Icons.download, 'label': 'Data Exports', 'permission': null},
     {'icon': Icons.history, 'label': 'Audit Log', 'permission': 'manage_users'},
+    {'icon': Icons.settings, 'label': 'Settings', 'permission': 'manage_users'},
   ];
 
   @override
@@ -74,6 +75,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return const DataExportsScreen();
       case 'Audit Log':
         return const AuditLogScreen();
+      case 'Settings':
+        return const SettingsScreen();
       default:
         return const DashboardOverview();
     }
@@ -104,6 +107,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           break;
         case 'ARTA Configuration':
           auditService.logArtaConfigViewed(actor: actor);
+          break;
+        case 'Settings':
+          auditService.logSettingsViewed(actor: actor);
           break;
       }
     } catch (_) {

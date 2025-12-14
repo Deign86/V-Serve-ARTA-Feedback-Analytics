@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   cloud_firestore
   firebase_core
+  local_notifier
   permission_handler_windows
   printing
   screen_retriever
