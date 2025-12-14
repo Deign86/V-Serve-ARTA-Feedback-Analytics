@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'audit_log_service_stub.dart';
+import 'api_config.dart';
 import '../models/user_model.dart';
 
 /// Model for a single survey question
@@ -47,20 +47,21 @@ class SurveyQuestion {
 
 /// Service to manage customizable survey questions
 /// Allows admin to edit CC and SQD questions which reflect immediately on user side
+/// Configuration is stored in centralized backend (Firestore) for global consistency across all platforms
 class SurveyQuestionsService extends ChangeNotifier {
-  static const String _keyCcQuestions = 'survey_cc_questions';
-  static const String _keySqdQuestions = 'survey_sqd_questions';
-  static const String _keyCcConfig = 'survey_cc_config';
-  static const String _keySqdConfig = 'survey_sqd_config';
-  static const String _keyProfileConfig = 'survey_profile_config';
-  static const String _keySuggestionsConfig = 'survey_suggestions_config';
+  final ApiClient _apiClient = ApiClient();
 
   // Audit log service reference
   AuditLogService? _auditLogService;
   UserModel? _currentActor;
   
   bool _isLoaded = false;
+  bool _isSaving = false;
+  String? _error;
+  
   bool get isLoaded => _isLoaded;
+  bool get isSaving => _isSaving;
+  String? get error => _error;
 
   /// Set the audit log service for logging changes
   void setAuditService(AuditLogService auditService, UserModel? currentUser) {
@@ -277,97 +278,158 @@ class SurveyQuestionsService extends ChangeNotifier {
     return null;
   }
 
-  /// Load questions from SharedPreferences
+  /// Load questions from centralized backend
   Future<void> loadQuestions() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      _error = null;
+      final response = await _apiClient.get('/survey-questions');
+      
+      if (response.isSuccess && response.data != null) {
+        // Load CC questions
+        final ccData = response.data!['ccQuestions'];
+        if (ccData != null) {
+          final List<dynamic> ccList = ccData is String ? jsonDecode(ccData) : ccData;
+          _ccQuestions = ccList.map((e) => SurveyQuestion.fromJson(Map<String, dynamic>.from(e))).toList();
+        } else {
+          _ccQuestions = defaultCcQuestions.map((q) => q.copyWith()).toList();
+        }
 
-      // Load CC questions
-      final ccJson = prefs.getString(_keyCcQuestions);
-      if (ccJson != null) {
-        final List<dynamic> ccList = jsonDecode(ccJson);
-        _ccQuestions = ccList.map((e) => SurveyQuestion.fromJson(e)).toList();
-      } else {
-        _ccQuestions = defaultCcQuestions.map((q) => q.copyWith()).toList();
-      }
+        // Load SQD questions
+        final sqdData = response.data!['sqdQuestions'];
+        if (sqdData != null) {
+          final List<dynamic> sqdList = sqdData is String ? jsonDecode(sqdData) : sqdData;
+          _sqdQuestions = sqdList.map((e) => SurveyQuestion.fromJson(Map<String, dynamic>.from(e))).toList();
+        } else {
+          _sqdQuestions = defaultSqdQuestions.map((q) => q.copyWith()).toList();
+        }
 
-      // Load SQD questions
-      final sqdJson = prefs.getString(_keySqdQuestions);
-      if (sqdJson != null) {
-        final List<dynamic> sqdList = jsonDecode(sqdJson);
-        _sqdQuestions = sqdList.map((e) => SurveyQuestion.fromJson(e)).toList();
-      } else {
-        _sqdQuestions = defaultSqdQuestions.map((q) => q.copyWith()).toList();
-      }
+        // Load Profile config
+        final profileData = response.data!['profileConfig'];
+        if (profileData != null) {
+          _profileConfig = Map<String, dynamic>.from(profileData is String ? jsonDecode(profileData) : profileData);
+        } else {
+          _profileConfig = Map<String, dynamic>.from(defaultProfileConfig);
+        }
 
-      // Load Profile config
-      final profileJson = prefs.getString(_keyProfileConfig);
-      if (profileJson != null) {
-        _profileConfig = Map<String, dynamic>.from(jsonDecode(profileJson));
-      } else {
-        _profileConfig = Map<String, dynamic>.from(defaultProfileConfig);
-      }
+        // Load Suggestions config
+        final suggestionsData = response.data!['suggestionsConfig'];
+        if (suggestionsData != null) {
+          _suggestionsConfig = Map<String, dynamic>.from(suggestionsData is String ? jsonDecode(suggestionsData) : suggestionsData);
+        } else {
+          _suggestionsConfig = Map<String, dynamic>.from(defaultSuggestionsConfig);
+        }
 
-      // Load Suggestions config
-      final suggestionsJson = prefs.getString(_keySuggestionsConfig);
-      if (suggestionsJson != null) {
-        _suggestionsConfig = Map<String, dynamic>.from(jsonDecode(suggestionsJson));
-      } else {
-        _suggestionsConfig = Map<String, dynamic>.from(defaultSuggestionsConfig);
-      }
+        // Load CC config
+        final ccConfigData = response.data!['ccConfig'];
+        if (ccConfigData != null) {
+          _ccConfig = Map<String, dynamic>.from(ccConfigData is String ? jsonDecode(ccConfigData) : ccConfigData);
+        } else {
+          _ccConfig = Map<String, dynamic>.from(defaultCcConfig);
+        }
 
-      // Load CC config
-      final ccConfigJson = prefs.getString(_keyCcConfig);
-      if (ccConfigJson != null) {
-        _ccConfig = Map<String, dynamic>.from(jsonDecode(ccConfigJson));
-      } else {
-        _ccConfig = Map<String, dynamic>.from(defaultCcConfig);
-      }
+        // Load SQD config
+        final sqdConfigData = response.data!['sqdConfig'];
+        if (sqdConfigData != null) {
+          _sqdConfig = Map<String, dynamic>.from(sqdConfigData is String ? jsonDecode(sqdConfigData) : sqdConfigData);
+        } else {
+          _sqdConfig = Map<String, dynamic>.from(defaultSqdConfig);
+        }
 
-      // Load SQD config
-      final sqdConfigJson = prefs.getString(_keySqdConfig);
-      if (sqdConfigJson != null) {
-        _sqdConfig = Map<String, dynamic>.from(jsonDecode(sqdConfigJson));
+        debugPrint('SurveyQuestionsService: Questions loaded from backend');
       } else {
-        _sqdConfig = Map<String, dynamic>.from(defaultSqdConfig);
+        _error = response.error;
+        debugPrint('SurveyQuestionsService: Error loading from backend: ${response.error}');
+        // Use defaults on error
+        _useDefaults();
       }
 
       _isLoaded = true;
       notifyListeners();
-      debugPrint('SurveyQuestionsService: Questions loaded');
     } catch (e) {
       debugPrint('SurveyQuestionsService: Error loading questions: $e');
-      // Use defaults on error
-      _ccQuestions = defaultCcQuestions.map((q) => q.copyWith()).toList();
-      _sqdQuestions = defaultSqdQuestions.map((q) => q.copyWith()).toList();
-      _profileConfig = Map<String, dynamic>.from(defaultProfileConfig);
-      _suggestionsConfig = Map<String, dynamic>.from(defaultSuggestionsConfig);
+      _error = e.toString();
+      _useDefaults();
       _isLoaded = true;
       notifyListeners();
     }
   }
+  
+  /// Use default values for all config
+  void _useDefaults() {
+    _ccQuestions = defaultCcQuestions.map((q) => q.copyWith()).toList();
+    _sqdQuestions = defaultSqdQuestions.map((q) => q.copyWith()).toList();
+    _profileConfig = Map<String, dynamic>.from(defaultProfileConfig);
+    _suggestionsConfig = Map<String, dynamic>.from(defaultSuggestionsConfig);
+    _ccConfig = Map<String, dynamic>.from(defaultCcConfig);
+    _sqdConfig = Map<String, dynamic>.from(defaultSqdConfig);
+  }
+  
+  /// Refresh questions from backend
+  Future<void> refreshQuestions() async {
+    await loadQuestions();
+  }
 
-  /// Save CC questions to SharedPreferences
-  Future<void> _saveCcQuestions() async {
+  /// Save CC questions to centralized backend
+  Future<bool> _saveCcQuestions() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonStr = jsonEncode(_ccQuestions.map((q) => q.toJson()).toList());
-      await prefs.setString(_keyCcQuestions, jsonStr);
-      debugPrint('SurveyQuestionsService: CC questions saved');
+      _isSaving = true;
+      notifyListeners();
+      
+      final response = await _apiClient.put('/survey-questions/cc', body: {
+        'questions': _ccQuestions.map((q) => q.toJson()).toList(),
+      });
+      
+      _isSaving = false;
+      
+      if (response.isSuccess) {
+        _error = null;
+        debugPrint('SurveyQuestionsService: CC questions saved to backend');
+        notifyListeners();
+        return true;
+      } else {
+        _error = response.error;
+        debugPrint('SurveyQuestionsService: Error saving CC questions: ${response.error}');
+        notifyListeners();
+        return false;
+      }
     } catch (e) {
+      _isSaving = false;
+      _error = e.toString();
       debugPrint('SurveyQuestionsService: Error saving CC questions: $e');
+      notifyListeners();
+      return false;
     }
   }
 
-  /// Save SQD questions to SharedPreferences
-  Future<void> _saveSqdQuestions() async {
+  /// Save SQD questions to centralized backend
+  Future<bool> _saveSqdQuestions() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonStr = jsonEncode(_sqdQuestions.map((q) => q.toJson()).toList());
-      await prefs.setString(_keySqdQuestions, jsonStr);
-      debugPrint('SurveyQuestionsService: SQD questions saved');
+      _isSaving = true;
+      notifyListeners();
+      
+      final response = await _apiClient.put('/survey-questions/sqd', body: {
+        'questions': _sqdQuestions.map((q) => q.toJson()).toList(),
+      });
+      
+      _isSaving = false;
+      
+      if (response.isSuccess) {
+        _error = null;
+        debugPrint('SurveyQuestionsService: SQD questions saved to backend');
+        notifyListeners();
+        return true;
+      } else {
+        _error = response.error;
+        debugPrint('SurveyQuestionsService: Error saving SQD questions: ${response.error}');
+        notifyListeners();
+        return false;
+      }
     } catch (e) {
+      _isSaving = false;
+      _error = e.toString();
       debugPrint('SurveyQuestionsService: Error saving SQD questions: $e');
+      notifyListeners();
+      return false;
     }
   }
 
@@ -398,15 +460,35 @@ class SurveyQuestionsService extends ChangeNotifier {
     );
   }
 
-  /// Save CC config to SharedPreferences
-  Future<void> _saveCcConfig() async {
+  /// Save CC config to centralized backend
+  Future<bool> _saveCcConfig() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonStr = jsonEncode(_ccConfig);
-      await prefs.setString(_keyCcConfig, jsonStr);
-      debugPrint('SurveyQuestionsService: CC config saved');
+      _isSaving = true;
+      notifyListeners();
+      
+      final response = await _apiClient.put('/survey-questions/cc', body: {
+        'config': _ccConfig,
+      });
+      
+      _isSaving = false;
+      
+      if (response.isSuccess) {
+        _error = null;
+        debugPrint('SurveyQuestionsService: CC config saved to backend');
+        notifyListeners();
+        return true;
+      } else {
+        _error = response.error;
+        debugPrint('SurveyQuestionsService: Error saving CC config: ${response.error}');
+        notifyListeners();
+        return false;
+      }
     } catch (e) {
+      _isSaving = false;
+      _error = e.toString();
       debugPrint('SurveyQuestionsService: Error saving CC config: $e');
+      notifyListeners();
+      return false;
     }
   }
 
@@ -469,15 +551,35 @@ class SurveyQuestionsService extends ChangeNotifier {
     );
   }
 
-  /// Save SQD config to SharedPreferences
-  Future<void> _saveSqdConfig() async {
+  /// Save SQD config to centralized backend
+  Future<bool> _saveSqdConfig() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonStr = jsonEncode(_sqdConfig);
-      await prefs.setString(_keySqdConfig, jsonStr);
-      debugPrint('SurveyQuestionsService: SQD config saved');
+      _isSaving = true;
+      notifyListeners();
+      
+      final response = await _apiClient.put('/survey-questions/sqd', body: {
+        'config': _sqdConfig,
+      });
+      
+      _isSaving = false;
+      
+      if (response.isSuccess) {
+        _error = null;
+        debugPrint('SurveyQuestionsService: SQD config saved to backend');
+        notifyListeners();
+        return true;
+      } else {
+        _error = response.error;
+        debugPrint('SurveyQuestionsService: Error saving SQD config: ${response.error}');
+        notifyListeners();
+        return false;
+      }
     } catch (e) {
+      _isSaving = false;
+      _error = e.toString();
       debugPrint('SurveyQuestionsService: Error saving SQD config: $e');
+      notifyListeners();
+      return false;
     }
   }
 
@@ -557,15 +659,35 @@ class SurveyQuestionsService extends ChangeNotifier {
 
   // ========== PROFILE CONFIG METHODS ==========
 
-  /// Save profile config to SharedPreferences
-  Future<void> _saveProfileConfig() async {
+  /// Save profile config to centralized backend
+  Future<bool> _saveProfileConfig() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonStr = jsonEncode(_profileConfig);
-      await prefs.setString(_keyProfileConfig, jsonStr);
-      debugPrint('SurveyQuestionsService: Profile config saved');
+      _isSaving = true;
+      notifyListeners();
+      
+      final response = await _apiClient.put('/survey-questions/profile', body: {
+        'config': _profileConfig,
+      });
+      
+      _isSaving = false;
+      
+      if (response.isSuccess) {
+        _error = null;
+        debugPrint('SurveyQuestionsService: Profile config saved to backend');
+        notifyListeners();
+        return true;
+      } else {
+        _error = response.error;
+        debugPrint('SurveyQuestionsService: Error saving profile config: ${response.error}');
+        notifyListeners();
+        return false;
+      }
     } catch (e) {
+      _isSaving = false;
+      _error = e.toString();
       debugPrint('SurveyQuestionsService: Error saving profile config: $e');
+      notifyListeners();
+      return false;
     }
   }
 
@@ -655,15 +777,35 @@ class SurveyQuestionsService extends ChangeNotifier {
 
   // ========== SUGGESTIONS CONFIG METHODS ==========
 
-  /// Save suggestions config to SharedPreferences
-  Future<void> _saveSuggestionsConfig() async {
+  /// Save suggestions config to centralized backend
+  Future<bool> _saveSuggestionsConfig() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonStr = jsonEncode(_suggestionsConfig);
-      await prefs.setString(_keySuggestionsConfig, jsonStr);
-      debugPrint('SurveyQuestionsService: Suggestions config saved');
+      _isSaving = true;
+      notifyListeners();
+      
+      final response = await _apiClient.put('/survey-questions/suggestions', body: {
+        'config': _suggestionsConfig,
+      });
+      
+      _isSaving = false;
+      
+      if (response.isSuccess) {
+        _error = null;
+        debugPrint('SurveyQuestionsService: Suggestions config saved to backend');
+        notifyListeners();
+        return true;
+      } else {
+        _error = response.error;
+        debugPrint('SurveyQuestionsService: Error saving suggestions config: ${response.error}');
+        notifyListeners();
+        return false;
+      }
     } catch (e) {
+      _isSaving = false;
+      _error = e.toString();
       debugPrint('SurveyQuestionsService: Error saving suggestions config: $e');
+      notifyListeners();
+      return false;
     }
   }
 
@@ -704,10 +846,9 @@ class SurveyQuestionsService extends ChangeNotifier {
     _suggestionsConfig = Map<String, dynamic>.from(defaultSuggestionsConfig);
 
     notifyListeners();
-    await _saveCcQuestions();
-    await _saveSqdQuestions();
-    await _saveProfileConfig();
-    await _saveSuggestionsConfig();
+    
+    // Save all to backend
+    await _saveAllToBackend();
 
     // Reset other configs
     _ccConfig = Map<String, dynamic>.from(defaultCcConfig);
@@ -721,5 +862,48 @@ class SurveyQuestionsService extends ChangeNotifier {
       previousValue: 'Custom',
       newValue: 'Reset to Defaults',
     );
+  }
+  
+  /// Save all questions and configs to backend at once
+  Future<bool> _saveAllToBackend() async {
+    try {
+      _isSaving = true;
+      notifyListeners();
+      
+      final response = await _apiClient.put('/survey-questions', body: {
+        'ccQuestions': _ccQuestions.map((q) => q.toJson()).toList(),
+        'sqdQuestions': _sqdQuestions.map((q) => q.toJson()).toList(),
+        'ccConfig': _ccConfig,
+        'sqdConfig': _sqdConfig,
+        'profileConfig': _profileConfig,
+        'suggestionsConfig': _suggestionsConfig,
+      });
+      
+      _isSaving = false;
+      
+      if (response.isSuccess) {
+        _error = null;
+        debugPrint('SurveyQuestionsService: All data saved to backend');
+        notifyListeners();
+        return true;
+      } else {
+        _error = response.error;
+        debugPrint('SurveyQuestionsService: Error saving all data: ${response.error}');
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _isSaving = false;
+      _error = e.toString();
+      debugPrint('SurveyQuestionsService: Error saving all data: $e');
+      notifyListeners();
+      return false;
+    }
+  }
+  
+  @override
+  void dispose() {
+    _apiClient.dispose();
+    super.dispose();
   }
 }

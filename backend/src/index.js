@@ -75,6 +75,7 @@ const COLLECTIONS = {
   SYSTEM_USERS: 'system_users',
   AUDIT_LOGS: 'audit_logs',
   SURVEY_CONFIG: 'survey_config',
+  SURVEY_QUESTIONS: 'survey_questions',
   ALERTS: 'alerts',
 };
 
@@ -974,6 +975,139 @@ app.put('/survey-config', async (req, res) => {
   } catch (err) {
     console.error('Update survey config error:', err);
     res.status(500).json({ error: 'Failed to update survey config' });
+  }
+});
+
+// =============================================================================
+// SURVEY QUESTIONS ENDPOINTS
+// =============================================================================
+
+/**
+ * GET /survey-questions
+ * Get all survey questions and section configurations
+ */
+app.get('/survey-questions', async (req, res) => {
+  try {
+    const doc = await db.collection(COLLECTIONS.SURVEY_QUESTIONS).doc('current').get();
+
+    if (!doc.exists) {
+      // Return empty object if no questions configured yet
+      return res.json({
+        ccQuestions: null,
+        sqdQuestions: null,
+        ccConfig: null,
+        sqdConfig: null,
+        profileConfig: null,
+        suggestionsConfig: null,
+      });
+    }
+
+    res.json(doc.data());
+  } catch (err) {
+    console.error('Get survey questions error:', err);
+    res.status(500).json({ error: 'Failed to get survey questions' });
+  }
+});
+
+/**
+ * PUT /survey-questions
+ * Update survey questions and section configurations
+ */
+app.put('/survey-questions', async (req, res) => {
+  try {
+    const questionsData = req.body;
+
+    await db.collection(COLLECTIONS.SURVEY_QUESTIONS).doc('current').set({
+      ...questionsData,
+      updatedAt: new Date(),
+    }, { merge: true });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update survey questions error:', err);
+    res.status(500).json({ error: 'Failed to update survey questions' });
+  }
+});
+
+/**
+ * PUT /survey-questions/cc
+ * Update CC (Citizen's Charter) questions only
+ */
+app.put('/survey-questions/cc', async (req, res) => {
+  try {
+    const { questions, config } = req.body;
+
+    const updateData = { updatedAt: new Date() };
+    if (questions !== undefined) updateData.ccQuestions = questions;
+    if (config !== undefined) updateData.ccConfig = config;
+
+    await db.collection(COLLECTIONS.SURVEY_QUESTIONS).doc('current').set(updateData, { merge: true });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update CC questions error:', err);
+    res.status(500).json({ error: 'Failed to update CC questions' });
+  }
+});
+
+/**
+ * PUT /survey-questions/sqd
+ * Update SQD (Service Quality Dimensions) questions only
+ */
+app.put('/survey-questions/sqd', async (req, res) => {
+  try {
+    const { questions, config } = req.body;
+
+    const updateData = { updatedAt: new Date() };
+    if (questions !== undefined) updateData.sqdQuestions = questions;
+    if (config !== undefined) updateData.sqdConfig = config;
+
+    await db.collection(COLLECTIONS.SURVEY_QUESTIONS).doc('current').set(updateData, { merge: true });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update SQD questions error:', err);
+    res.status(500).json({ error: 'Failed to update SQD questions' });
+  }
+});
+
+/**
+ * PUT /survey-questions/profile
+ * Update profile section configuration
+ */
+app.put('/survey-questions/profile', async (req, res) => {
+  try {
+    const { config } = req.body;
+
+    await db.collection(COLLECTIONS.SURVEY_QUESTIONS).doc('current').set({
+      profileConfig: config,
+      updatedAt: new Date(),
+    }, { merge: true });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update profile config error:', err);
+    res.status(500).json({ error: 'Failed to update profile config' });
+  }
+});
+
+/**
+ * PUT /survey-questions/suggestions
+ * Update suggestions section configuration
+ */
+app.put('/survey-questions/suggestions', async (req, res) => {
+  try {
+    const { config } = req.body;
+
+    await db.collection(COLLECTIONS.SURVEY_QUESTIONS).doc('current').set({
+      suggestionsConfig: config,
+      updatedAt: new Date(),
+    }, { merge: true });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update suggestions config error:', err);
+    res.status(500).json({ error: 'Failed to update suggestions config' });
   }
 });
 
