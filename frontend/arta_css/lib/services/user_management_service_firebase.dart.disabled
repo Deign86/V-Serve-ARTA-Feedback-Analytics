@@ -1,0 +1,8 @@
+// Firebase/Firestore implementation of UserManagementService
+// For now, we use the HTTP version for simplicity since user management
+// doesn't require real-time updates as critically as feedback does.
+
+// Re-export HTTP implementation as the Firebase version
+// This allows us to use the service factory pattern without code duplication
+export 'user_management_service_http.dart';
+

@@ -145,13 +145,26 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Logo - using city logo image
-                          ClipOval(
-                            child: Image.asset(
-                              'assets/city_logo.png',
-                              width: 100,
-                              height: 100,
-                              fit: BoxFit.cover,
+                          // Logo - using city logo image (tap to go back to survey)
+                          Tooltip(
+                            message: 'Go back to survey',
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.pushNamedAndRemoveUntil(
+                                  context,
+                                  '/',
+                                  (route) => false,
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(50),
+                              child: ClipOval(
+                                child: Image.asset(
+                                  'assets/city_logo.png',
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 24),

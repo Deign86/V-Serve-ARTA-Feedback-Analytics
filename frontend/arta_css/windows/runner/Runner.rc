@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "arta_css" "\0"
+            VALUE "CompanyName", "City Government of Valenzuela" "\0"
+            VALUE "FileDescription", "V-Serve ARTA Feedback Analytics" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "arta_css" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "arta_css.exe" "\0"
-            VALUE "ProductName", "arta_css" "\0"
+            VALUE "InternalName", "V-Serve" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2025 City Government of Valenzuela. All rights reserved." "\0"
+            VALUE "OriginalFilename", "V-Serve.exe" "\0"
+            VALUE "ProductName", "V-Serve" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
