@@ -8,6 +8,8 @@ import '../../services/survey_config_service.dart';
 import '../../services/survey_questions_service.dart';
 import '../../services/qr_code_service.dart';
 import '../../services/audit_log_service.dart';
+import '../../services/auth_services.dart';
+import '../../services/push_notification_service.dart';
 import '../../models/survey_data.dart';
 import '../../utils/admin_theme.dart';
 import '../../widgets/audit_log_viewer.dart';
@@ -2072,5 +2074,441 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
         child: const AuditLogViewer(),
       ),
     );
+  }
+}
+
+// Settings Screen - For managing system settings including push notifications
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _pushNotificationsEnabled = false;
+  bool _isLoading = false;
+  String _permissionStatus = 'unknown';
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+  
+  Future<void> _loadSettings() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      final pushService = PushNotificationService.instance;
+      await pushService.initialize();
+      
+      setState(() {
+        _pushNotificationsEnabled = pushService.isEnabled;
+        _permissionStatus = pushService.permissionStatus ?? 'unknown';
+      });
+    } catch (e) {
+      debugPrint('Error loading settings: $e');
+    }
+    
+    setState(() => _isLoading = false);
+  }
+  
+  Future<void> _togglePushNotifications(bool enabled) async {
+    setState(() => _isLoading = true);
+    
+    try {
+      final pushService = PushNotificationService.instance;
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final currentUser = authService.currentUser;
+      
+      if (enabled) {
+        // Request permission and enable
+        final success = await pushService.enableNotifications(
+          currentUser?.id ?? 'unknown',
+          currentUser?.email ?? 'unknown@example.com',
+        );
+        
+        if (success) {
+          setState(() {
+            _pushNotificationsEnabled = true;
+            _permissionStatus = pushService.permissionStatus ?? 'granted';
+          });
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Push notifications enabled successfully'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  pushService.permissionStatus == 'denied'
+                      ? 'Notification permission denied. Please enable in browser settings.'
+                      : 'Failed to enable push notifications',
+                ),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } else {
+        // Disable
+        await pushService.disableNotifications(currentUser?.id ?? 'unknown');
+        
+        setState(() {
+          _pushNotificationsEnabled = false;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Push notifications disabled'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error toggling push notifications: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+    
+    setState(() => _isLoading = false);
+  }
+  
+  Future<void> _testNotification() async {
+    try {
+      final pushService = PushNotificationService.instance;
+      await pushService.showLocalNotification(
+        title: '🔔 Test Notification',
+        body: 'This is a test notification from ARTA CSS. Push notifications are working!',
+      );
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Test notification sent! Check your browser.'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sending test notification: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    final pushService = PushNotificationService.instance;
+    
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      style: AdminTheme.headingLarge(
+                        color: Colors.white,
+                      ).copyWith(fontSize: 24),
+                      children: const <TextSpan>[
+                        TextSpan(
+                          text: 'System ',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        TextSpan(
+                          text: 'Settings',
+                          style: TextStyle(color: Colors.amber),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Configure notification preferences and system behavior.',
+                    style: AdminTheme.bodyMedium(
+                      color: Colors.white,
+                    ).copyWith(fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Push Notifications Card
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: brandBlue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.notifications_active,
+                          color: brandBlue,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Push Notifications',
+                              style: AdminTheme.headingMedium(
+                                color: brandBlue,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Receive instant browser notifications for high-severity alerts',
+                              style: AdminTheme.bodyMedium(
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  
+                  // Browser Support Status
+                  _buildSettingRow(
+                    icon: Icons.web,
+                    title: 'Browser Support',
+                    subtitle: pushService.isSupported 
+                        ? 'Your browser supports push notifications'
+                        : 'Push notifications not supported in this browser',
+                    trailing: Icon(
+                      pushService.isSupported ? Icons.check_circle : Icons.cancel,
+                      color: pushService.isSupported ? Colors.green : Colors.red,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Permission Status
+                  _buildSettingRow(
+                    icon: Icons.security,
+                    title: 'Permission Status',
+                    subtitle: _getPermissionDescription(_permissionStatus),
+                    trailing: Icon(
+                      _getPermissionIcon(_permissionStatus),
+                      color: _getPermissionColor(_permissionStatus),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Enable/Disable Toggle
+                  _buildSettingRow(
+                    icon: Icons.notifications,
+                    title: 'Enable Notifications',
+                    subtitle: 'Get notified when high/critical severity events occur',
+                    trailing: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Switch(
+                            value: _pushNotificationsEnabled,
+                            onChanged: pushService.isSupported ? _togglePushNotifications : null,
+                            activeColor: brandBlue,
+                          ),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Test Notification Button
+                  if (_pushNotificationsEnabled && pushService.hasPermission)
+                    Center(
+                      child: ElevatedButton.icon(
+                        onPressed: _testNotification,
+                        icon: const Icon(Icons.send),
+                        label: const Text('Send Test Notification'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: brandBlue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Info Box
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.blue.shade700,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'About Alert Notifications',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade900,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Push notifications are triggered for HIGH and CRITICAL severity events, including:\n'
+                                '• Failed login attempts\n'
+                                '• User account deletions\n'
+                                '• Feedback data deletions\n'
+                                '• User role/status changes',
+                                style: TextStyle(
+                                  color: Colors.blue.shade800,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildSettingRow({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Widget trailing,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.grey[600], size: 24),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        ),
+        trailing,
+      ],
+    );
+  }
+  
+  String _getPermissionDescription(String status) {
+    switch (status) {
+      case 'granted':
+        return 'Permission granted - notifications can be sent';
+      case 'denied':
+        return 'Permission denied - enable in browser settings';
+      case 'default':
+        return 'Permission not yet requested';
+      default:
+        return 'Permission status unknown';
+    }
+  }
+  
+  IconData _getPermissionIcon(String status) {
+    switch (status) {
+      case 'granted':
+        return Icons.check_circle;
+      case 'denied':
+        return Icons.block;
+      default:
+        return Icons.help_outline;
+    }
+  }
+  
+  Color _getPermissionColor(String status) {
+    switch (status) {
+      case 'granted':
+        return Colors.green;
+      case 'denied':
+        return Colors.red;
+      default:
+        return Colors.orange;
+    }
   }
 }

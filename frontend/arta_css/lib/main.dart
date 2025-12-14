@@ -18,6 +18,10 @@ import 'services/survey_questions_service.dart';
 import 'services/user_management_service.dart';
 import 'services/survey_provider.dart';
 import 'services/audit_log_service.dart';
+import 'services/push_notification_service.dart';
+import 'services/native_notification_service.dart';
+import 'services/unified_notification_service.dart';
+import 'services/bot_protection_service.dart';
 import 'screens/role_based_login_screen.dart';
 import 'screens/admin/role_based_dashboard.dart';
 import 'utils/app_transitions.dart';
@@ -90,11 +94,32 @@ void main() async {
   final offlineQueueService = OfflineQueueService.instance;
   if (kDebugMode) debugPrint('OfflineQueueService initialized');
 
+  // Initialize push notification service
+  final pushNotificationService = PushNotificationService.instance;
+  pushNotificationService.initialize();
+  if (kDebugMode) debugPrint('PushNotificationService initialized');
+
+  // Initialize native notification service (for desktop platforms)
+  final nativeNotificationService = NativeNotificationService.instance;
+  nativeNotificationService.initialize();
+  if (kDebugMode) debugPrint('NativeNotificationService initialized');
+
+  // Initialize unified notification service
+  final unifiedNotificationService = UnifiedNotificationService.instance;
+  unifiedNotificationService.initialize();
+  if (kDebugMode) debugPrint('UnifiedNotificationService initialized');
+
+  // Initialize bot protection service
+  final botProtectionService = BotProtectionService.instance;
+  botProtectionService.initialize();
+  if (kDebugMode) debugPrint('BotProtectionService initialized');
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: cacheService),
         ChangeNotifierProvider.value(value: offlineQueueService),
+        ChangeNotifierProvider.value(value: pushNotificationService),
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => FeedbackService()),
         ChangeNotifierProvider(create: (_) {

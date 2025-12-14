@@ -590,6 +590,18 @@ City Government of Valenzuela
     );
   }
 
+  /// Log when admin views Settings screen
+  Future<bool> logSettingsViewed({
+    required UserModel? actor,
+  }) async {
+    return logAction(
+      actionType: AuditActionType.settingsChanged,
+      actionDescription: 'Viewed system settings',
+      actor: actor,
+      targetType: 'settings',
+    );
+  }
+
   // ==================== Retrieval methods ====================
 
   /// Get filtered logs based on current filters

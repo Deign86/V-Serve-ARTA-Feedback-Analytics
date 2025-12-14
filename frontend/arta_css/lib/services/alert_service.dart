@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/audit_log_model.dart';
+import 'push_notification_service.dart';
 
 /// Severity levels for alerts
 enum AlertSeverity {
@@ -124,6 +125,9 @@ class AlertService extends ChangeNotifier {
       // Queue email notification for admin users
       if (severity == AlertSeverity.high || severity == AlertSeverity.critical) {
         await _queueEmailNotification(docRef.id, alert);
+        
+        // Send push notification
+        await _sendPushNotification(alert);
       }
       
       notifyListeners();
@@ -180,6 +184,37 @@ class AlertService extends ChangeNotifier {
     } catch (e) {
       if (kDebugMode) {
         debugPrint('AlertService: Error queueing email notification: $e');
+      }
+    }
+  }
+  
+  /// Send push notification for high/critical severity alerts
+  Future<void> _sendPushNotification(AlertEntry alert) async {
+    try {
+      final pushService = PushNotificationService.instance;
+      
+      // Queue push notification for all subscribed admins
+      await pushService.queuePushNotification(
+        title: '🚨 ${alert.severity.name.toUpperCase()}: ${alert.title}',
+        body: alert.message,
+        severity: alert.severity.name,
+        alertId: alert.id,
+      );
+      
+      // Also show local notification if enabled
+      if (pushService.isEnabled && pushService.hasPermission) {
+        await pushService.showLocalNotification(
+          title: '🚨 ${alert.severity.name.toUpperCase()}: ${alert.title}',
+          body: alert.message,
+        );
+      }
+      
+      if (kDebugMode) {
+        debugPrint('AlertService: Push notification sent for ${alert.title}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('AlertService: Error sending push notification: $e');
       }
     }
   }

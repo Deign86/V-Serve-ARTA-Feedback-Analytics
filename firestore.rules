@@ -46,6 +46,30 @@ service cloud.firestore {
       allow read: if true;
     }
 
+    // Push notification subscriptions collection for admin notifications
+    // TODO: Add authentication check in production
+    match /push_subscriptions/{subscriptionId} {
+      allow read, write: if true;
+    }
+
+    // Push notification queue for pending notifications
+    // TODO: Add authentication check in production
+    match /push_notification_queue/{notificationId} {
+      allow read, write: if true;
+    }
+
+    // Alerts collection for system alerts
+    // TODO: Add authentication check in production
+    match /alerts/{alertId} {
+      allow read, write: if true;
+    }
+
+    // Email queue collection for email notifications
+    // TODO: Add authentication check in production
+    match /email_queue/{emailId} {
+      allow read, write: if true;
+    }
+
     // Fallback: deny everything else
     match /{document=**} {
       allow read, write: if false;
