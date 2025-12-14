@@ -23,7 +23,22 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    // Show reCAPTCHA badge on login page
+    if (kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        RecaptchaService.showBadge();
+      });
+    }
+  }
+
+  @override
   void dispose() {
+    // Hide reCAPTCHA badge when leaving login page
+    if (kIsWeb) {
+      RecaptchaService.hideBadge();
+    }
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -266,6 +281,24 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
                                     ),
                             ),
                           ),
+                          // reCAPTCHA notice
+                          if (kIsWeb) ...[
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.shield, size: 14, color: Colors.grey.shade600),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Protected by reCAPTCHA',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                           const SizedBox(height: 24),
                           // Demo credentials (tap to autofill) - FOR DEVELOPERS ONLY
                           SizedBox(

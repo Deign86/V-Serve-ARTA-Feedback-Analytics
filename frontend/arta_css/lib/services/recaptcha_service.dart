@@ -83,12 +83,32 @@ class RecaptchaService {
 
   /// Execute reCAPTCHA for login
   static Future<String?> executeForLogin() async {
-    return execute('login');
+    return execute('LOGIN');
   }
 
   /// Execute reCAPTCHA for export
   static Future<String?> executeForExport() async {
     return execute('export_data');
+  }
+  
+  /// Show the reCAPTCHA badge (call on login page)
+  static void showBadge() {
+    if (!kIsWeb) return;
+    try {
+      _jsShowRecaptchaBadge();
+    } catch (_) {
+      // Silent fail
+    }
+  }
+  
+  /// Hide the reCAPTCHA badge (call after login or on non-login pages)
+  static void hideBadge() {
+    if (!kIsWeb) return;
+    try {
+      _jsHideRecaptchaBadge();
+    } catch (_) {
+      // Silent fail
+    }
   }
 }
 
@@ -103,6 +123,13 @@ String _getCurrentHost() {
 /// JavaScript interop to call the executeRecaptcha function defined in index.html
 @JS('executeRecaptcha')
 external JSPromise<JSString> _jsExecuteRecaptcha(JSString action);
+
+/// JavaScript interop to show/hide reCAPTCHA badge
+@JS('showRecaptchaBadge')
+external void _jsShowRecaptchaBadge();
+
+@JS('hideRecaptchaBadge')
+external void _jsHideRecaptchaBadge();
 
 Future<String?> _executeRecaptcha(String action) async {
   try {

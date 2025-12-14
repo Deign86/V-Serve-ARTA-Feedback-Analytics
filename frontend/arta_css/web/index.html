@@ -33,7 +33,7 @@
   <title>V-Serve | ARTA Feedback Analytics</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- Google reCAPTCHA v3 
+  <!-- Google reCAPTCHA v3
        Domains registered:
        - v-serve-arta-feedback.vercel.app
        - localhost
@@ -41,7 +41,7 @@
   -->
   <script src="https://www.google.com/recaptcha/api.js?render=6Le-DSssAAAAAH0ozh7fb6Y-uW7gBGdf1uB8X8Ip"></script>
   <script>
-    // Function to execute reCAPTCHA and return token
+    // Function to execute reCAPTCHA v3 and return token
     function executeRecaptcha(action) {
       return new Promise((resolve, reject) => {
         // Check if grecaptcha is available
@@ -62,7 +62,34 @@
         });
       });
     }
+    
+    // Function to show/hide reCAPTCHA badge
+    function showRecaptchaBadge() {
+      var badge = document.querySelector('.grecaptcha-badge');
+      if (badge) {
+        badge.style.visibility = 'visible';
+        badge.style.opacity = '1';
+      }
+    }
+    
+    function hideRecaptchaBadge() {
+      var badge = document.querySelector('.grecaptcha-badge');
+      if (badge) {
+        badge.style.visibility = 'hidden';
+        badge.style.opacity = '0';
+      }
+    }
   </script>
+  
+  <!-- reCAPTCHA badge styling - hidden by default, shown on login page -->
+  <style>
+    .grecaptcha-badge {
+      visibility: hidden !important;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 9999 !important;
+    }
+  </style>
 </head>
 
 <body>
