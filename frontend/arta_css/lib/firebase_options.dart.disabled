@@ -1,0 +1,56 @@
+// Firebase configuration options
+// Generated for V-Serve ARTA Feedback Survey project
+
+import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
+
+class DefaultFirebaseOptions {
+  static FirebaseOptions get currentPlatform {
+    if (kIsWeb) {
+      return web;
+    }
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for android - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
+      case TargetPlatform.iOS:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for ios - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
+      case TargetPlatform.macOS:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for macos - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
+      case TargetPlatform.windows:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions are not supported for Windows. '
+          'Use HTTP API backend instead.',
+        );
+      case TargetPlatform.linux:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for linux - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
+      default:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions are not supported for this platform.',
+        );
+    }
+  }
+
+  // Web configuration for V-Serve ARTA Feedback Survey
+  // Project ID: v-serve-arta-feedback-survey
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyDz4QYoJfpGqPPzXHfGhj7jNFvPNZeZZEI',
+    appId: '1:111917377218:web:f5c3b8c8b8c8b8c8b8c8b8',
+    messagingSenderId: '111917377218',
+    projectId: 'v-serve-arta-feedback-survey',
+    authDomain: 'v-serve-arta-feedback-survey.firebaseapp.com',
+    storageBucket: 'v-serve-arta-feedback-survey.firebasestorage.app',
+  );
+}

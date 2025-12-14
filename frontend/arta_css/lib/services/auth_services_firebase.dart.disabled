@@ -1,0 +1,132 @@
+// Firebase/Firestore implementation of AuthService
+// Uses direct Firestore access (for web)
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:bcrypt/bcrypt.dart';
+import '../models/user_model.dart';
+import 'auth_services.dart';
+
+/// Firebase/Firestore implementation of AuthService
+/// Uses direct Firestore access with real-time capabilities (for web)
+class AuthServiceFirebase extends AuthService {
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
+
+  static const String _usersCollection = 'admin_users';
+  
+  // Audit log service reference (set externally to avoid circular dependency)
+  dynamic _auditLogService;
+  
+  @override
+  void setAuditService(dynamic auditService) {
+    _auditLogService = auditService;
+  }
+
+  @override
+  Future<bool> login(String email, String password) async {
+    // Check for lockout first
+    if (isLockedOut) {
+      await _auditLogService?.logLoginFailed(
+        attemptedEmail: email,
+        reason: 'Account locked - too many failed attempts',
+      );
+      return false;
+    }
+
+    try {
+      final snapshot = await _firestore
+          .collection(_usersCollection)
+          .where('email', isEqualTo: email.toLowerCase())
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        if (kDebugMode) debugPrint('AuthServiceFirebase: User not found');
+        await recordFailedAttemptInternal();
+        await _auditLogService?.logLoginFailed(
+          attemptedEmail: email,
+          reason: 'User not found',
+        );
+        return false;
+      }
+
+      final userDoc = snapshot.docs.first;
+      final userData = userDoc.data();
+
+      // Verify password
+      final passwordHash = userData['passwordHash'] as String?;
+      if (passwordHash == null || !BCrypt.checkpw(password, passwordHash)) {
+        if (kDebugMode) debugPrint('AuthServiceFirebase: Invalid credentials');
+        await recordFailedAttemptInternal();
+        await _auditLogService?.logLoginFailed(
+          attemptedEmail: email,
+          reason: 'Invalid credentials',
+        );
+        return false;
+      }
+
+      // Check if active
+      if (userData['isActive'] == false) {
+        if (kDebugMode) debugPrint('AuthServiceFirebase: Account disabled');
+        await _auditLogService?.logLoginFailed(
+          attemptedEmail: email,
+          reason: 'Account disabled',
+        );
+        return false;
+      }
+
+      // Create user model
+      currentUserInternal = UserModel(
+        id: userDoc.id,
+        email: userData['email'] ?? '',
+        name: userData['name'] ?? '',
+        role: _parseRole(userData['role']),
+        department: userData['department'] ?? '',
+        lastLogin: DateTime.now(),
+        createdAt: _parseTimestamp(userData['createdAt']) ?? DateTime.now(),
+      );
+
+      // Update last login
+      await _firestore.collection(_usersCollection).doc(userDoc.id).update({
+        'lastLogin': FieldValue.serverTimestamp(),
+      });
+
+      isAuthenticatedInternal = true;
+      notifyListeners();
+
+      // Reset login attempts on successful login
+      await resetLoginAttemptsInternal();
+
+      // Save session
+      await saveSessionInternal();
+      
+      // Log successful login
+      await _auditLogService?.logLogin(userId: userDoc.id);
+
+      return true;
+    } catch (e) {
+      debugPrint('AuthServiceFirebase: Login error: $e');
+      await recordFailedAttemptInternal();
+      return false;
+    }
+  }
+
+  UserRole _parseRole(dynamic role) {
+    if (role == null) return UserRole.viewer;
+    final roleStr = role.toString().toLowerCase();
+    if (roleStr.contains('admin')) return UserRole.administrator;
+    return UserRole.viewer;
+  }
+
+  DateTime? _parseTimestamp(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is Map) {
+      final seconds = value['_seconds'] ?? value['seconds'];
+      if (seconds != null) {
+        return DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+      }
+    }
+    return null;
+  }
+}

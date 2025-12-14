@@ -1,0 +1,279 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import '../models/survey_data.dart';
+import 'cache_service.dart';
+import 'feedback_service.dart';
+
+/// Firebase/Firestore implementation of FeedbackService
+/// Uses direct Firestore access with real-time listeners (for web)
+class FeedbackServiceFirebase extends FeedbackService {
+  // Lazy initialization of Firestore
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
+
+  // Real-time stream subscription
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _feedbackSubscription;
+
+  // Cache keys
+  static const String _feedbacksCacheKey = 'feedbacks_list';
+
+  FeedbackServiceFirebase() {
+    _loadFromPersistentCache();
+  }
+
+  /// Load cached data from persistent storage on startup
+  Future<void> _loadFromPersistentCache() async {
+    try {
+      final cachedData = await cacheService.loadFromPersistent<List<dynamic>>(
+        CacheConfig.feedbacksCacheKey,
+        timestampKey: CacheConfig.feedbacksTimestampKey,
+        maxAge: CacheConfig.longTTL,
+      );
+
+      if (cachedData != null && cachedData.isNotEmpty) {
+        feedbacksInternal = cachedData
+            .map((json) => SurveyData.fromJson(Map<String, dynamic>.from(json)))
+            .toList();
+        lastFetchInternal = DateTime.now();
+        calculateDashboardStatsInternal();
+        debugPrint('FeedbackServiceFirebase: Loaded ${feedbacks.length} feedbacks from cache');
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('FeedbackServiceFirebase: Error loading from cache: $e');
+    }
+  }
+
+  /// Save current feedbacks to persistent cache
+  Future<void> _saveToPersistentCache() async {
+    try {
+      final jsonList = feedbacks.map((f) => f.toJson()).toList();
+      await cacheService.saveToPersistent(
+        CacheConfig.feedbacksCacheKey,
+        jsonList,
+        timestampKey: CacheConfig.feedbacksTimestampKey,
+      );
+    } catch (e) {
+      debugPrint('FeedbackServiceFirebase: Error saving to cache: $e');
+    }
+  }
+
+  @override
+  Future<List<SurveyData>> fetchAllFeedbacks({bool forceRefresh = false}) async {
+    // Check memory cache first
+    if (!forceRefresh) {
+      final cachedFeedbacks = cacheService.getFromMemory<List<SurveyData>>(_feedbacksCacheKey);
+      if (cachedFeedbacks != null) {
+        feedbacksInternal = cachedFeedbacks;
+        return feedbacks;
+      }
+
+      if (feedbacks.isNotEmpty && lastFetch != null) {
+        final diff = DateTime.now().difference(lastFetch!);
+        if (diff.inMinutes < 5) {
+          return feedbacks;
+        }
+      }
+    }
+
+    isLoadingInternal = true;
+    errorInternal = null;
+    notifyListeners();
+
+    try {
+      debugPrint('=== FETCHING FEEDBACKS FROM FIRESTORE ===');
+
+      QuerySnapshot<Map<String, dynamic>> snapshot;
+      try {
+        snapshot = await _firestore
+            .collection('feedbacks')
+            .orderBy('createdAt', descending: true)
+            .get();
+      } catch (e) {
+        debugPrint('Falling back to unordered query: $e');
+        snapshot = await _firestore.collection('feedbacks').get();
+      }
+
+      debugPrint('Fetched ${snapshot.docs.length} feedback documents');
+
+      final feedbackList = snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        if (data['submittedAt'] == null && data['createdAt'] != null) {
+          data['submittedAt'] = data['createdAt'];
+        }
+        return SurveyData.fromJson(data);
+      }).toList();
+
+      // Sort by submittedAt descending
+      feedbackList.sort((a, b) {
+        final aDate = a.submittedAt ?? DateTime(1970);
+        final bDate = b.submittedAt ?? DateTime(1970);
+        return bDate.compareTo(aDate);
+      });
+      
+      feedbacksInternal = feedbackList;
+      lastFetchInternal = DateTime.now();
+      isLoadingInternal = false;
+
+      // Cache in memory
+      cacheService.setInMemory(_feedbacksCacheKey, feedbacks, ttl: CacheConfig.defaultTTL);
+
+      // Persist to storage
+      _saveToPersistentCache();
+
+      notifyListeners();
+      calculateDashboardStatsInternal();
+
+      return feedbacks;
+    } catch (e) {
+      debugPrint('Error fetching feedbacks: $e');
+      errorInternal = e.toString();
+      isLoadingInternal = false;
+      notifyListeners();
+      return [];
+    }
+  }
+
+  @override
+  void startRealtimeUpdates() {
+    if (isListening) return;
+
+    debugPrint('=== STARTING REAL-TIME FIRESTORE LISTENER ===');
+    isListeningInternal = true;
+
+    _feedbackSubscription = _firestore
+        .collection('feedbacks')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .listen(
+      (snapshot) {
+        debugPrint('Real-time update: ${snapshot.docs.length} documents');
+        
+        final feedbackList = snapshot.docs.map((doc) {
+          final data = doc.data();
+          data['id'] = doc.id;
+          if (data['submittedAt'] == null && data['createdAt'] != null) {
+            data['submittedAt'] = data['createdAt'];
+          }
+          return SurveyData.fromJson(data);
+        }).toList();
+
+        feedbackList.sort((a, b) {
+          final aDate = a.submittedAt ?? DateTime(1970);
+          final bDate = b.submittedAt ?? DateTime(1970);
+          return bDate.compareTo(aDate);
+        });
+        
+        feedbacksInternal = feedbackList;
+        lastFetchInternal = DateTime.now();
+        cacheService.setInMemory(_feedbacksCacheKey, feedbacks, ttl: CacheConfig.defaultTTL);
+        _saveToPersistentCache();
+        
+        notifyListeners();
+        calculateDashboardStatsInternal();
+      },
+      onError: (error) {
+        debugPrint('Firestore stream error: $error');
+        errorInternal = error.toString();
+        notifyListeners();
+      },
+    );
+  }
+
+  @override
+  void stopRealtimeUpdates() {
+    debugPrint('=== STOPPING FIRESTORE LISTENER ===');
+    _feedbackSubscription?.cancel();
+    _feedbackSubscription = null;
+    isListeningInternal = false;
+  }
+
+  @override
+  Future<List<SurveyData>> fetchFeedbacksByDateRange(DateTime start, DateTime end) async {
+    isLoadingInternal = true;
+    errorInternal = null;
+    notifyListeners();
+
+    try {
+      final snapshot = await _firestore
+          .collection('feedbacks')
+          .where('submittedAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+          .where('submittedAt', isLessThanOrEqualTo: Timestamp.fromDate(end))
+          .orderBy('submittedAt', descending: true)
+          .get();
+
+      final feedbackList = snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return SurveyData.fromJson(data);
+      }).toList();
+
+      isLoadingInternal = false;
+      notifyListeners();
+      return feedbackList;
+    } catch (e) {
+      debugPrint('Error fetching feedbacks by date range: $e');
+      errorInternal = e.toString();
+      isLoadingInternal = false;
+      notifyListeners();
+      return [];
+    }
+  }
+
+  @override
+  Stream<List<SurveyData>> streamFeedbacks() {
+    final controller = StreamController<List<SurveyData>>();
+
+    _firestore
+        .collection('feedbacks')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .listen(
+      (snapshot) {
+        final list = snapshot.docs.map((doc) {
+          final data = doc.data();
+          data['id'] = doc.id;
+          return SurveyData.fromJson(data);
+        }).toList();
+        controller.add(list);
+      },
+      onError: controller.addError,
+    );
+
+    return controller.stream;
+  }
+
+  /// Submit feedback to Firestore
+  Future<void> submitFeedback(Map<String, dynamic> feedbackData) async {
+    try {
+      feedbackData['createdAt'] = FieldValue.serverTimestamp();
+      feedbackData['submittedAt'] = FieldValue.serverTimestamp();
+      
+      await _firestore.collection('feedbacks').add(feedbackData);
+      debugPrint('Feedback submitted successfully to Firestore');
+    } catch (e) {
+      debugPrint('Error submitting feedback: $e');
+      rethrow;
+    }
+  }
+
+  /// Delete feedback from Firestore
+  Future<void> deleteFeedback(String id) async {
+    try {
+      await _firestore.collection('feedbacks').doc(id).delete();
+      feedbacks.removeWhere((f) => f.id == id);
+      notifyListeners();
+      calculateDashboardStatsInternal();
+    } catch (e) {
+      debugPrint('Error deleting feedback: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  void dispose() {
+    stopRealtimeUpdates();
+    super.dispose();
+  }
+}

@@ -2,7 +2,8 @@
 This file helps AI coding agents become productive in the V-Serve / ARTA Feedback Analytics repository. It documents the project's structure, key patterns, build/test commands, services architecture, and integration points.
 
 ## High-level architecture (what to know fast)
-- **Monorepo layout**: Flutter frontend at `frontend/arta_css/`, backend at `backend/`, docs in `docs/`
+- **Monorepo layout**: Flutter frontend at `frontend/arta_css/` (package name), backend at `backend/`, docs in `docs/`
+- **App name**: V-Serve (displayed to users), package name remains `arta_css`
 - **Primary deliverable**: Flutter web/desktop app for ARTA Client Satisfaction Survey feedback collection and analytics
 - **State management**: Provider pattern with ChangeNotifier services
 - **Backend**: Firebase/Firestore for data persistence, lightweight Express API under `backend/src/`
@@ -73,6 +74,7 @@ From repo root, prefer the bundled SDK:
 - Named routes defined in `main.dart`: `/profile`, `/citizenCharter`, `/sqd`, `/suggestions`, `/admin`
 - Survey flow: Landing → User Profile → Citizen Charter → SQD → Suggestions → Thank You
 - Admin flow: Login → Role-based Dashboard (Analytics, Feedback Browser, Survey Config, Settings)
+- **Back to survey**: Clicking the Valenzuela city logo on the admin login page navigates back to the public survey landing page
 
 ### UI conventions
 - **Widgets**: StatefulWidget + `setState` for local state; Provider for shared state
@@ -163,4 +165,4 @@ From repo root, prefer the bundled SDK:
 - **Build output**: `frontend/arta_css/build/web/`
 
 ---
-*Last updated: December 2024. Ping the maintainer if sections become stale.*
+*Last updated: December 2025. Ping the maintainer if sections become stale.*

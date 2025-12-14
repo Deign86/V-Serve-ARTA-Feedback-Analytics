@@ -135,7 +135,7 @@ The platform implements the official ARTA Client Satisfaction Survey methodology
 
 ### Admin Dashboard
 
-1. **Login**: Access `/admin` route with admin credentials
+1. **Login**: Access `/admin` route with admin credentials (click Valenzuela logo to return to survey)
 2. **Analytics Tab**: View real-time charts and statistics
 3. **Feedback Browser**: Search, filter, and view individual responses
 4. **Survey Config**: Toggle survey sections and edit questions
@@ -157,7 +157,7 @@ The platform implements the official ARTA Client Satisfaction Survey methodology
 
 ```
 V-Serve-ARTA-Feedback-Analytics/
-├── frontend/arta_css/          # Flutter application
+├── frontend/arta_css/          # Flutter application (V-Serve)
 │   ├── lib/
 │   │   ├── main.dart           # App entry point
 │   │   ├── models/             # Data models
