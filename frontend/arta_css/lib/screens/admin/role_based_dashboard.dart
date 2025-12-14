@@ -1409,9 +1409,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           ),
         );
         if (confirm == true) {
-          final success = await userService.deleteUser(user.id);
+          final success = await userService.deleteUser(user.id, userName: user.name, userEmail: user.email);
           if (success) {
             scaffoldMessenger.showSnackBar(SnackBar(content: Text('${user.name} deleted'), backgroundColor: Colors.red));
+          } else {
+            scaffoldMessenger.showSnackBar(SnackBar(
+              content: Text(userService.error ?? 'Failed to delete user'),
+              backgroundColor: Colors.red,
+            ));
           }
         }
         break;

@@ -801,9 +801,55 @@ app.patch('/auth/users/:id', async (req, res) => {
   }
 });
 
-app.delete('/auth/users/:id', (req, res, next) => {
-  req.url = `/users/${req.params.id}`;
-  app._router.handle(req, res, next);
+app.delete('/auth/users/:id', async (req, res) => {
+  // DELETE handler - full implementation (not a redirect)
+  try {
+    const { id } = req.params;
+    const { hardDelete } = req.query;
+
+    console.log(`DELETE /auth/users/${id} - hardDelete: ${hardDelete}`);
+
+    const docRef = db.collection(COLLECTIONS.SYSTEM_USERS).doc(id);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      console.log(`User not found: ${id}`);
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const userData = doc.data();
+    const firebaseUid = userData.firebaseUid || id;
+
+    // Handle Firebase Auth user
+    try {
+      if (hardDelete === 'true') {
+        await auth.deleteUser(firebaseUid);
+        console.log(`Deleted Firebase Auth user: ${firebaseUid}`);
+      } else {
+        await auth.updateUser(firebaseUid, { disabled: true });
+        console.log(`Disabled Firebase Auth user: ${firebaseUid}`);
+      }
+    } catch (authError) {
+      if (authError.code !== 'auth/user-not-found') {
+        console.error('Firebase Auth delete/disable error:', authError);
+      }
+    }
+
+    // Handle Firestore document
+    if (hardDelete === 'true') {
+      await docRef.delete();
+      console.log(`Hard deleted Firestore document: ${id}`);
+    } else {
+      // Soft delete - mark as inactive
+      await docRef.update({ status: 'Inactive', updatedAt: new Date() });
+      console.log(`Soft deleted (deactivated) user: ${id}`);
+    }
+
+    res.json({ success: true, id });
+  } catch (err) {
+    console.error('Delete user error:', err);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
 });
 
 // =============================================================================
