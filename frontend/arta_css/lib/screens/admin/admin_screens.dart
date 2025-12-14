@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../services/export_service.dart';
+import '../../services/export_settings_service.dart';
 // HTTP services for cross-platform compatibility (no Firebase dependency)
 import '../../services/feedback_service_http.dart';
 import '../../services/survey_config_service.dart';
@@ -2067,6 +2069,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoading = false;
   String _permissionStatus = 'unknown';
   
+  // Export settings
+  final _exportSettings = ExportSettingsService.instance;
+  String _exportPath = '';
+  bool _hasCustomExportPath = false;
+  
   // Platform-specific services
   final _pushService = PushNotificationService.instance;
   final _nativeService = NativeNotificationService.instance;
@@ -2086,6 +2093,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _isLoading = true);
     
     try {
+      // Load export settings
+      await _exportSettings.initialize();
+      setState(() {
+        _exportPath = _exportSettings.exportPath;
+        _hasCustomExportPath = _exportSettings.hasCustomPath;
+      });
+      
       if (_isDesktop) {
         await _nativeService.initialize();
         setState(() {
@@ -2104,6 +2118,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     
     setState(() => _isLoading = false);
+  }
+  
+  Future<void> _selectExportDirectory() async {
+    try {
+      final result = await FilePicker.platform.getDirectoryPath(
+        dialogTitle: 'Select Export Directory',
+        lockParentWindow: true,
+      );
+      
+      if (result != null) {
+        final success = await _exportSettings.setCustomExportPath(result);
+        if (success) {
+          setState(() {
+            _exportPath = result;
+            _hasCustomExportPath = true;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Export directory set to: $result'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Invalid directory selected'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting directory: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
+  Future<void> _resetExportDirectory() async {
+    await _exportSettings.clearCustomExportPath();
+    setState(() {
+      _exportPath = _exportSettings.exportPath;
+      _hasCustomExportPath = false;
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Export directory reset to default'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+  
+  Future<void> _openExportDirectory() async {
+    final opened = await _exportSettings.openExportDirectory();
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open export directory'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
   
   Future<void> _togglePushNotifications(bool enabled) async {
@@ -2478,6 +2565,192 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 '• User role/status changes',
                                 style: TextStyle(
                                   color: Colors.blue.shade800,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Export Settings Card
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: brandBlue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.folder_open,
+                          color: brandBlue,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Export Settings',
+                              style: AdminTheme.headingMedium(
+                                color: brandBlue,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Configure where exported files are saved',
+                              style: AdminTheme.bodyMedium(
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  
+                  // Platform Info
+                  _buildSettingRow(
+                    icon: Icons.devices,
+                    title: 'Platform',
+                    subtitle: _exportSettings.platformName,
+                    trailing: Icon(
+                      _exportSettings.supportsCustomPath ? Icons.edit : Icons.lock,
+                      color: _exportSettings.supportsCustomPath ? brandBlue : Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Current Export Path
+                  _buildSettingRow(
+                    icon: Icons.folder,
+                    title: 'Export Location',
+                    subtitle: _exportPath.isEmpty ? 'Not configured' : 
+                        (_exportPath.length > 50 ? '...${_exportPath.substring(_exportPath.length - 50)}' : _exportPath),
+                    trailing: _hasCustomExportPath
+                        ? const Icon(Icons.check_circle, color: Colors.green)
+                        : const Icon(Icons.info_outline, color: Colors.orange),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Action Buttons (Desktop only - Windows/macOS/Linux)
+                  if (_exportSettings.supportsCustomPath) ...[
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _selectExportDirectory,
+                          icon: const Icon(Icons.folder_open),
+                          label: const Text('Choose Directory'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: brandBlue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                        if (_hasCustomExportPath)
+                          OutlinedButton.icon(
+                            onPressed: _resetExportDirectory,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Reset to Default'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.orange,
+                              side: const BorderSide(color: Colors.orange),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                        OutlinedButton.icon(
+                          onPressed: _openExportDirectory,
+                          icon: const Icon(Icons.open_in_new),
+                          label: const Text('Open Folder'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: brandBlue,
+                            side: BorderSide(color: brandBlue),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Info Box based on platform
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.amber.shade200),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.lightbulb_outline,
+                          color: Colors.amber.shade700,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Export Behavior by Platform',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.amber.shade900,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                kIsWeb
+                                    ? 'On Web: Files are downloaded to your browser\'s default Downloads folder.'
+                                    : _exportSettings.isMobile
+                                        ? 'On Mobile: Files are saved to the app\'s documents folder and can be accessed via the Files app.'
+                                        : 'On Desktop: Choose a custom folder or use the default "V-Serve Exports" folder in Documents.',
+                                style: TextStyle(
+                                  color: Colors.amber.shade800,
                                   fontSize: 13,
                                 ),
                               ),

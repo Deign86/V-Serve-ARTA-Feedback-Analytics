@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/export_filters.dart';
 // HTTP services for cross-platform compatibility (no Firebase dependency)
 import '../services/feedback_service_http.dart';
 import '../services/export_service.dart';
+import '../services/export_settings_service.dart';
 import '../services/audit_log_service_http.dart';
 import '../services/auth_services_http.dart';
 import '../screens/admin/admin_screens.dart' show brandBlue, brandRed;
@@ -763,10 +765,28 @@ class _ExportFilterDialogState extends State<ExportFilterDialog> {
       }
       
       navigator.pop();
+      
+      // Show success message with location info for native platforms
+      String successMessage = '$formatLabel exported: $filename (${data.length} records)';
+      if (!kIsWeb) {
+        final exportPath = ExportSettingsService.instance.exportPath;
+        if (exportPath.isNotEmpty) {
+          successMessage = '$formatLabel exported to:\n$exportPath';
+        }
+      }
+      
       scaffoldMessenger.showSnackBar(
         SnackBar(
-          content: Text('$formatLabel exported: $filename (${data.length} records)'),
+          content: Text(successMessage),
           backgroundColor: Colors.green,
+          duration: const Duration(seconds: 5),
+          action: !kIsWeb ? SnackBarAction(
+            label: 'Open Folder',
+            textColor: Colors.white,
+            onPressed: () {
+              ExportSettingsService.instance.openExportDirectory();
+            },
+          ) : null,
         ),
       );
     } catch (e) {
