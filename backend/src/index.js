@@ -4,7 +4,8 @@
 
 const express = require('express');
 const cors = require('cors');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcryptjs'); // Keep for legacy password verification
+const admin = require('firebase-admin');
 
 // Load dotenv so PORT and other env vars can be set from .env
 try {
@@ -12,6 +13,51 @@ try {
 } catch (e) { }
 
 const db = require('./firestore');
+
+// Get Firebase Auth instance (firestore.js initializes the admin app)
+const auth = admin.auth();
+
+// Firebase Auth REST API configuration
+// Used to verify email/password credentials via HTTP (server-side)
+const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY || 'AIzaSyDz4QYoJfpGqPPzXHfGhj7jNFvPNZeZZEI';
+const FIREBASE_AUTH_URL = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`;
+
+/**
+ * Verify user credentials via Firebase Auth REST API
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @returns {Object|null} - Firebase user data or null if invalid
+ */
+async function verifyFirebaseCredentials(email, password) {
+  try {
+    const response = await fetch(FIREBASE_AUTH_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        password,
+        returnSecureToken: true,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.log('Firebase Auth error:', error.error?.message || 'Unknown error');
+      return null;
+    }
+
+    const data = await response.json();
+    return {
+      uid: data.localId,
+      email: data.email,
+      idToken: data.idToken,
+      refreshToken: data.refreshToken,
+    };
+  } catch (err) {
+    console.error('Firebase Auth verification error:', err);
+    return null;
+  }
+}
 
 const app = express();
 
@@ -56,6 +102,12 @@ app.get('/health', (req, res) => {
 /**
  * POST /auth/login
  * Authenticates a user with email and password
+ * 
+ * Authentication flow:
+ * 1. Try Firebase Auth first (new users created via create_firebase_auth_admins.js)
+ * 2. Fall back to bcrypt verification (legacy users in Firestore)
+ * 
+ * This ensures backward compatibility while migrating to Firebase Auth
  */
 app.post('/auth/login', async (req, res) => {
   try {
@@ -65,41 +117,97 @@ app.post('/auth/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Find user by email in system_users collection
-    const usersSnapshot = await db.collection(COLLECTIONS.SYSTEM_USERS)
-      .where('email', '==', email.toLowerCase().trim())
-      .limit(1)
-      .get();
+    const normalizedEmail = email.toLowerCase().trim();
+    let firebaseUser = null;
+    let userDoc = null;
+    let userData = null;
 
-    if (usersSnapshot.empty) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+    // Step 1: Try Firebase Auth verification first
+    firebaseUser = await verifyFirebaseCredentials(normalizedEmail, password);
+
+    if (firebaseUser) {
+      // Firebase Auth succeeded - get profile from Firestore
+      // Try to find by Firebase UID first, then by email
+      const byUidSnapshot = await db.collection(COLLECTIONS.SYSTEM_USERS)
+        .doc(firebaseUser.uid)
+        .get();
+
+      if (byUidSnapshot.exists) {
+        userDoc = byUidSnapshot;
+        userData = byUidSnapshot.data();
+      } else {
+        // Fall back to email lookup (for migration period)
+        const byEmailSnapshot = await db.collection(COLLECTIONS.SYSTEM_USERS)
+          .where('email', '==', normalizedEmail)
+          .limit(1)
+          .get();
+
+        if (!byEmailSnapshot.empty) {
+          userDoc = byEmailSnapshot.docs[0];
+          userData = userDoc.data();
+          
+          // Migrate: link Firebase UID to existing profile
+          await userDoc.ref.update({ firebaseUid: firebaseUser.uid });
+        }
+      }
+
+      // If no Firestore profile exists, create one from Firebase Auth data
+      if (!userData) {
+        // Get custom claims for role
+        const firebaseUserRecord = await auth.getUser(firebaseUser.uid);
+        const claims = firebaseUserRecord.customClaims || {};
+        
+        userData = {
+          name: firebaseUserRecord.displayName || normalizedEmail.split('@')[0],
+          email: normalizedEmail,
+          role: claims.isAdmin ? 'Administrator' : (claims.role || 'Viewer'),
+          department: '',
+          status: 'Active',
+          firebaseUid: firebaseUser.uid,
+          createdAt: new Date(),
+        };
+
+        await db.collection(COLLECTIONS.SYSTEM_USERS).doc(firebaseUser.uid).set(userData);
+        userDoc = { id: firebaseUser.uid, ref: db.collection(COLLECTIONS.SYSTEM_USERS).doc(firebaseUser.uid) };
+      }
+    } else {
+      // Step 2: Firebase Auth failed - try legacy bcrypt verification
+      const usersSnapshot = await db.collection(COLLECTIONS.SYSTEM_USERS)
+        .where('email', '==', normalizedEmail)
+        .limit(1)
+        .get();
+
+      if (usersSnapshot.empty) {
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+
+      userDoc = usersSnapshot.docs[0];
+      userData = userDoc.data();
+
+      // Verify password using bcrypt (legacy)
+      const passwordHash = userData.passwordHash;
+      if (!passwordHash) {
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+
+      const isValidPassword = await bcrypt.compare(password, passwordHash);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
     }
 
-    const userDoc = usersSnapshot.docs[0];
-    const userData = userDoc.data();
-
     // Check if user is active
-    if (userData.status !== 'Active') {
+    if (userData.status && userData.status !== 'Active') {
       return res.status(401).json({ error: 'Account is not active' });
     }
 
-    // Verify password using bcrypt
-    const passwordHash = userData.passwordHash;
-    if (!passwordHash) {
-      return res.status(401).json({ error: 'Account not properly configured' });
-    }
-
-    const isValidPassword = await bcrypt.compare(password, passwordHash);
-    if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
     // Update last login timestamp
-    await userDoc.ref.update({
+    const docRef = userDoc.ref || db.collection(COLLECTIONS.SYSTEM_USERS).doc(userDoc.id);
+    await docRef.update({
       lastLogin: new Date(),
     });
 
-    // Return user data (without password hash)
+    // Return user data (without password hash or tokens)
     res.json({
       success: true,
       user: {
@@ -342,6 +450,7 @@ app.get('/users/:id', async (req, res) => {
 /**
  * POST /users
  * Create a new system user
+ * Creates user in both Firebase Auth and Firestore
  */
 app.post('/users', async (req, res) => {
   try {
@@ -351,34 +460,113 @@ app.post('/users', async (req, res) => {
       return res.status(400).json({ error: 'Name, email, and password are required' });
     }
 
-    // Check if email already exists
-    const existingUser = await db.collection(COLLECTIONS.SYSTEM_USERS)
-      .where('email', '==', email.toLowerCase().trim())
+    const normalizedEmail = email.toLowerCase().trim();
+    const userRole = role || 'Viewer';
+    let firebaseUid = null;
+
+    // Try to create user in Firebase Auth first
+    try {
+      const firebaseUser = await auth.createUser({
+        email: normalizedEmail,
+        password: password,
+        displayName: name,
+        emailVerified: true, // Admin-created users are pre-verified
+      });
+      firebaseUid = firebaseUser.uid;
+
+      // Set custom claims for role-based access
+      await auth.setCustomUserClaims(firebaseUid, {
+        role: userRole.toLowerCase(),
+        isAdmin: userRole.toLowerCase() === 'administrator',
+      });
+
+      console.log(`Created Firebase Auth user: ${normalizedEmail} (UID: ${firebaseUid})`);
+    } catch (authError) {
+      if (authError.code === 'auth/email-already-exists') {
+        // User exists in Firebase Auth - get their UID
+        try {
+          const existingUser = await auth.getUserByEmail(normalizedEmail);
+          firebaseUid = existingUser.uid;
+          
+          // Update their password and claims
+          await auth.updateUser(firebaseUid, {
+            password: password,
+            displayName: name,
+          });
+          await auth.setCustomUserClaims(firebaseUid, {
+            role: userRole.toLowerCase(),
+            isAdmin: userRole.toLowerCase() === 'administrator',
+          });
+          console.log(`Updated existing Firebase Auth user: ${normalizedEmail}`);
+        } catch (updateError) {
+          console.error('Failed to update existing Firebase user:', updateError);
+          return res.status(409).json({ error: 'Email already exists in authentication system' });
+        }
+      } else {
+        console.error('Firebase Auth error:', authError);
+        // Fall back to bcrypt-only mode if Firebase Auth fails
+        console.log('Falling back to Firestore-only user creation');
+      }
+    }
+
+    // Check if user already exists in Firestore
+    const existingQuery = await db.collection(COLLECTIONS.SYSTEM_USERS)
+      .where('email', '==', normalizedEmail)
       .limit(1)
       .get();
 
-    if (!existingUser.empty) {
-      return res.status(409).json({ error: 'Email already exists' });
+    if (!existingQuery.empty) {
+      // Update existing Firestore profile
+      const existingDoc = existingQuery.docs[0];
+      await existingDoc.ref.update({
+        name,
+        role: userRole,
+        department: department || '',
+        status: 'Active',
+        firebaseUid: firebaseUid || existingDoc.data().firebaseUid,
+        updatedAt: new Date(),
+      });
+      
+      return res.json({
+        success: true,
+        id: existingDoc.id,
+        user: { id: existingDoc.id, name, email: normalizedEmail, role: userRole, department },
+        message: 'User updated',
+      });
     }
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 12);
-
-    const docRef = await db.collection(COLLECTIONS.SYSTEM_USERS).add({
+    // Create new Firestore profile
+    const userData = {
       name,
-      email: email.toLowerCase().trim(),
-      passwordHash,
-      role: role || 'Viewer',
+      email: normalizedEmail,
+      role: userRole,
       department: department || '',
       status: 'Active',
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
+    };
+
+    // Add Firebase UID if available
+    if (firebaseUid) {
+      userData.firebaseUid = firebaseUid;
+    } else {
+      // Fall back to bcrypt password hash if Firebase Auth failed
+      userData.passwordHash = await bcrypt.hash(password, 12);
+    }
+
+    // Use Firebase UID as document ID if available, otherwise auto-generate
+    let docRef;
+    if (firebaseUid) {
+      docRef = db.collection(COLLECTIONS.SYSTEM_USERS).doc(firebaseUid);
+      await docRef.set(userData);
+    } else {
+      docRef = await db.collection(COLLECTIONS.SYSTEM_USERS).add(userData);
+    }
 
     res.status(201).json({
       success: true,
       id: docRef.id,
-      user: { id: docRef.id, name, email, role: role || 'Viewer', department },
+      user: { id: docRef.id, name, email: normalizedEmail, role: userRole, department },
     });
   } catch (err) {
     console.error('Create user error:', err);
@@ -389,6 +577,7 @@ app.post('/users', async (req, res) => {
 /**
  * PUT /users/:id
  * Update a system user
+ * Updates both Firebase Auth and Firestore
  */
 app.put('/users/:id', async (req, res) => {
   try {
@@ -402,6 +591,9 @@ app.put('/users/:id', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    const existingData = doc.data();
+    const firebaseUid = existingData.firebaseUid || id; // ID might be the Firebase UID
+
     const updateData = {
       updatedAt: new Date(),
     };
@@ -411,10 +603,38 @@ app.put('/users/:id', async (req, res) => {
     if (role) updateData.role = role;
     if (department !== undefined) updateData.department = department;
     if (status) updateData.status = status;
-    
-    // Hash new password if provided
-    if (password) {
-      updateData.passwordHash = await bcrypt.hash(password, 12);
+
+    // Update Firebase Auth user if they exist
+    try {
+      const firebaseUpdateData = {};
+      if (name) firebaseUpdateData.displayName = name;
+      if (email) firebaseUpdateData.email = email.toLowerCase().trim();
+      if (password) firebaseUpdateData.password = password;
+      if (status === 'Inactive') firebaseUpdateData.disabled = true;
+      if (status === 'Active') firebaseUpdateData.disabled = false;
+
+      if (Object.keys(firebaseUpdateData).length > 0) {
+        await auth.updateUser(firebaseUid, firebaseUpdateData);
+        console.log(`Updated Firebase Auth user: ${firebaseUid}`);
+      }
+
+      // Update custom claims if role changed
+      if (role) {
+        await auth.setCustomUserClaims(firebaseUid, {
+          role: role.toLowerCase(),
+          isAdmin: role.toLowerCase() === 'administrator',
+        });
+      }
+    } catch (authError) {
+      // Firebase Auth user might not exist (legacy user)
+      if (authError.code !== 'auth/user-not-found') {
+        console.error('Firebase Auth update error:', authError);
+      }
+      
+      // Fall back to bcrypt password hash for legacy users
+      if (password) {
+        updateData.passwordHash = await bcrypt.hash(password, 12);
+      }
     }
 
     await docRef.update(updateData);
@@ -429,6 +649,7 @@ app.put('/users/:id', async (req, res) => {
 /**
  * DELETE /users/:id
  * Delete a system user (or set status to Inactive)
+ * Also handles Firebase Auth user deletion/disabling
  */
 app.delete('/users/:id', async (req, res) => {
   try {
@@ -442,6 +663,25 @@ app.delete('/users/:id', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    const userData = doc.data();
+    const firebaseUid = userData.firebaseUid || id;
+
+    // Handle Firebase Auth user
+    try {
+      if (hardDelete === 'true') {
+        await auth.deleteUser(firebaseUid);
+        console.log(`Deleted Firebase Auth user: ${firebaseUid}`);
+      } else {
+        await auth.updateUser(firebaseUid, { disabled: true });
+        console.log(`Disabled Firebase Auth user: ${firebaseUid}`);
+      }
+    } catch (authError) {
+      if (authError.code !== 'auth/user-not-found') {
+        console.error('Firebase Auth delete/disable error:', authError);
+      }
+    }
+
+    // Handle Firestore document
     if (hardDelete === 'true') {
       await docRef.delete();
     } else {

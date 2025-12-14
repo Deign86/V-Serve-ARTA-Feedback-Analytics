@@ -5,6 +5,13 @@ allprojects {
     }
 }
 
+// Suppress Java 8 obsolete warnings from plugin dependencies
+subprojects {
+    tasks.withType<JavaCompile>().configureEach {
+        options.compilerArgs.addAll(listOf("-Xlint:-options"))
+    }
+}
+
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
         .dir("../../build")

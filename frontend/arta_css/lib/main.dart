@@ -42,6 +42,11 @@ import 'platform/window_helper_stub.dart'
 import 'platform/url_strategy_stub.dart'
     if (dart.library.js_interop) 'platform/url_strategy_web.dart' as url_strategy;
 
+/// User-only mode flag - when true, admin panel and login are completely disabled
+/// Set via --dart-define=USER_ONLY_MODE=true during build
+/// Used for public-facing builds (e.g., Android APK for survey respondents)
+const bool kUserOnlyMode = bool.fromEnvironment('USER_ONLY_MODE', defaultValue: false);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -385,16 +390,32 @@ class _MyAppState extends State<MyApp> {
           settings: settings,
         );
         
-      // Admin routes
+      // Admin routes - blocked in user-only mode
       case '/admin':
       case '/admin/login':
       case '/login':
+        // In user-only mode, redirect to landing page instead of login
+        if (kUserOnlyMode) {
+          if (kDebugMode) debugPrint('Security: Admin access disabled in user-only mode');
+          return MaterialPageRoute(
+            builder: (context) => const LandingScreen(),
+            settings: const RouteSettings(name: '/'),
+          );
+        }
         return MaterialPageRoute(
           builder: (context) => const RoleBasedLoginScreen(),
           settings: settings,
         );
       case '/admin/dashboard':
       case '/dashboard':
+        // In user-only mode, redirect to landing page
+        if (kUserOnlyMode) {
+          if (kDebugMode) debugPrint('Security: Dashboard access disabled in user-only mode');
+          return MaterialPageRoute(
+            builder: (context) => const LandingScreen(),
+            settings: const RouteSettings(name: '/'),
+          );
+        }
         // Protected route check already handled above, just render dashboard
         return MaterialPageRoute(
           builder: (context) => const AuthGuard(child: DashboardScreen()),

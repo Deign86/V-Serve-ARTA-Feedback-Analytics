@@ -1,88 +1,136 @@
-# Backend (Firestore) integration
+# Backend (Firebase/Firestore) Integration
 
-This folder contains a minimal Node/Express backend scaffold that connects to Firestore using the Firebase Admin SDK.
+This folder contains the Node/Express backend that connects to Firebase using the Admin SDK.
 
-What I added
-- `package.json` - scripts: `npm run start`, `npm run dev` (nodemon)
-- `.gitignore` - ignores `node_modules/` and `serviceAccountKey.json`
-- `src/firestore.js` - initializes Firebase Admin; prefers `backend/serviceAccountKey.json` but falls back to Application Default Credentials (ADC)
-- `src/index.js` - minimal Express API with endpoints:
-  - `GET /ping` - health check
-  - `POST /feedback` - create feedback document
-  - `GET /feedback/:id` - fetch a feedback
-  - `GET /feedback?limit=20` - list recent feedbacks
+## Architecture
 
-Quick start (Windows PowerShell)
+The backend provides HTTP endpoints for the Flutter app (Windows, Web, Mobile). All platforms use HTTP for cross-compatibility.
 
-1. Install dependencies
+### Authentication Flow
+
+1. **Flutter app** sends email/password to backend via HTTP (`POST /auth/login`)
+2. **Backend** verifies credentials via Firebase Auth REST API
+3. **Backend** returns user profile data from Firestore
+4. **Flutter app** stores session locally
+
+This keeps the Flutter app Firebase-free while using Firebase Auth for secure password management.
+
+## Endpoints
+
+- `GET /ping` - Health check
+- `POST /auth/login` - Authenticate user (Firebase Auth + legacy bcrypt fallback)
+- `GET /auth/user` - Get user by email
+- `POST /users` - Create user (creates in Firebase Auth + Firestore)
+- `GET /users` - List all users
+- `PUT /users/:id` - Update user
+- `DELETE /users/:id` - Delete/disable user
+- `POST /feedback` - Submit survey feedback
+- `GET /feedback` - List feedbacks
+- `GET /audit-logs` - List audit logs
+- `GET /survey-config` - Get survey configuration
+- `PUT /survey-config` - Update survey configuration
+
+## Quick Start (Windows PowerShell)
+
+### 1. Install dependencies
 
 ```powershell
 cd backend
 npm install
 ```
 
-2. Connect the backend to your Firebase project
+### 2. Configure Firebase
 
-Recommended (service account):
+**Option A: Service Account (Recommended)**
 
-- Go to Firebase Console → Project Settings → Service accounts → Generate new private key
-- Save the downloaded JSON file as `backend/serviceAccountKey.json` (this file is ignored by git via `.gitignore`).
+1. Go to Firebase Console → Project Settings → Service accounts
+2. Click "Generate new private key"
+3. Save as `backend/serviceAccountKey.json`
 
-Alternative (Application Default Credentials):
+**Option B: Environment Variables**
 
-- Install Google Cloud SDK and run:
-
-```powershell
-gcloud auth application-default login
+Set these in `.env` or system environment:
+```
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_CLIENT_EMAIL=your-client-email
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
 
-Environment (.env)
+### 3. Set up the Firebase API Key
 
-You can also store configuration in a `.env` file in `backend/`. A `.env.example` is provided. Example keys:
-
-- `SERVICE_ACCOUNT_PATH` — path to the service account JSON (relative or absolute). If not set, the server looks for `backend/serviceAccountKey.json`.
-- `PORT` — port the server listens on (default 5000).
-
-Copy `.env.example` to `.env` and update values before running in development.
-
-3. (Optional) Use Firebase CLI to set the active project
-
-```powershell
-npx firebase login
-npx firebase projects:list
-npx firebase use --add v-serve-arta-feedback-survey
+Add to `.env`:
+```
+FIREBASE_API_KEY=your-web-api-key
 ```
 
-Note: the Firebase CLI helps manage active project context and deploy functions/hosting if you later initialize `firebase init`.
+Get this from Firebase Console → Project Settings → General → Web API Key
 
-4. Run the server
+### 4. Create admin users
 
 ```powershell
-# dev (auto restart)
+# Edit .env with your admin credentials (see .env.example)
+# Then run:
+node scripts/create_firebase_auth_admins.js
+```
+
+This creates users in **Firebase Authentication** (persistent across deployments).
+
+### 5. Run the server
+
+```powershell
+# Development (auto-restart)
 npm run dev
 
-# production
+# Production
 npm start
 ```
 
-Try the API (examples):
+## Admin User Management
+
+### Creating Initial Admin Users
 
 ```powershell
-# health
-curl http://localhost:5000/ping
+# 1. Copy and edit .env
+cp .env.example .env
+# Edit ADMIN_EMAIL, ADMIN_PASSWORD, etc.
 
-# create feedback
-curl -X POST http://localhost:5000/feedback -H "Content-Type: application/json" -d '{"name":"John","rating":5,"comment":"Great service"}'
+# 2. Run the setup script
+node scripts/create_firebase_auth_admins.js
 
-# list
-curl http://localhost:5000/feedback
+# 3. Delete .env for security (optional)
 ```
 
-Security notes
-- Do NOT commit `serviceAccountKey.json` to version control. Keep it secret.
-- In production, prefer environment-based secrets (e.g., set `GOOGLE_APPLICATION_CREDENTIALS` to a secure path or use a secrets manager).
+### Why Firebase Auth?
 
-Next steps (suggested)
-- Add input validation and better error handling for the API.
-- Add CORS if frontend will call the backend directly from a browser.
-- Optionally scaffold Cloud Functions (`firebase init functions`) if you want serverless deployment with tight Firebase integration.
+| Old Approach (bcrypt in Firestore) | New Approach (Firebase Auth) |
+|-----------------------------------|------------------------------|
+| Need to seed users each deployment | Users persist automatically |
+| Manual password hashing | Firebase handles security |
+| Passwords stored in Firestore | Passwords stored securely by Firebase |
+
+### Legacy Support
+
+The backend supports both:
+- **Firebase Auth users** (new) - verified via Firebase Auth REST API
+- **Bcrypt users** (legacy) - verified via bcrypt hash comparison
+
+Existing bcrypt users will continue to work until migrated.
+
+## Security Notes
+
+- **Never commit** `serviceAccountKey.json` or `.env` to version control
+- Delete `.env` after creating admin users
+- In production, use environment-based secrets (Vercel, etc.)
+
+## Deployment (Vercel)
+
+The backend is configured for Vercel serverless deployment:
+
+```powershell
+# Deploy
+vercel --prod
+
+# Set secrets
+vercel secrets add firebase-service-account-json "$(cat serviceAccountKey.json)"
+vercel env add FIREBASE_API_KEY
+```

@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.arta_css"
+    namespace = "com.vserve.arta"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -20,14 +20,17 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.arta_css"
+        // V-Serve ARTA Feedback Analytics Application ID
+        applicationId = "com.vserve.arta"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // Set the APK output filename
+        setProperty("archivesBaseName", "V-Serve")
     }
 
     buildTypes {
@@ -35,6 +38,15 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+    
+    // Rename APK output to V-Serve
+    applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "V-Serve-${variant.buildType.name}.apk"
         }
     }
 }

@@ -99,7 +99,7 @@ From repo root, prefer the bundled SDK:
 | Package | Purpose |
 |---------|---------|
 | `provider` | State management |
-| `firebase_core`, `cloud_firestore` | Backend data persistence |
+| `http` | HTTP client for backend API calls |
 | `fl_chart` | Analytics charts (radar, bar, pie) |
 | `google_fonts` | Typography |
 | `shared_preferences` | Local persistence (settings) |
@@ -109,18 +109,36 @@ From repo root, prefer the bundled SDK:
 
 ## Integration points
 
+### Authentication (Firebase Auth via HTTP)
+- Flutter app sends credentials to backend via HTTP (`POST /auth/login`)
+- Backend verifies via Firebase Auth REST API
+- User profiles stored in Firestore `system_users` collection
+- No Firebase SDK in Flutter app — cross-platform compatible
+
+### Admin User Setup
+```powershell
+cd backend
+# Edit .env with ADMIN_EMAIL, ADMIN_PASSWORD, etc.
+node scripts/create_firebase_auth_admins.js
+```
+Users persist in Firebase Auth — no re-seeding needed between deployments.
+
 ### Firebase/Firestore
 - Collection: `feedbacks` for survey submissions
-- `FeedbackService` handles CRUD with real-time listeners
+- Collection: `system_users` for admin profiles
+- `FeedbackService` handles CRUD via HTTP backend
 - `OfflineQueue` buffers submissions when offline
 
-### Backend API (optional)
+### Backend API
 - Express server at `backend/src/index.js`
-- Endpoints: `/ping`, `POST /feedback`, `GET /feedback`, `GET /feedback/:id`
-- Frontend can integrate via `http` package (already in pubspec)
+- Auth: `POST /auth/login`, `GET /auth/user`
+- Users: `GET/POST/PUT/DELETE /users`
+- Feedback: `GET/POST/DELETE /feedback`
+- Config: `GET/PUT /survey-config`
 
 ### Security notes
 - `backend/serviceAccountKey.json` is sensitive — never commit to public repos
+- `FIREBASE_API_KEY` needed in backend `.env` for auth
 - Use `.gitignore` and CI secrets for deployments
 - Scripts in `backend/scripts/` perform admin operations — review before running
 
