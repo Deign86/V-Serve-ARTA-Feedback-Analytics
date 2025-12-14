@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../services/survey_config_service.dart';
 import '../../services/survey_questions_service.dart';
-import '../../services/offline_queue.dart';
+import '../../services/offline_queue_stub.dart';
 import '../../widgets/offline_queue_widget.dart';
 import '../../widgets/survey_progress_bar.dart';
 import 'sqd.dart';

@@ -3,7 +3,8 @@
 // lib/widgets/role_based_widget.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/auth_services.dart';
+// HTTP services for cross-platform compatibility (no Firebase dependency)
+import '../services/auth_services_http.dart';
 import '../models/user_model.dart';
 
 class RoleBasedWidget extends StatelessWidget {
@@ -20,7 +21,7 @@ class RoleBasedWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
+    final authService = Provider.of<AuthServiceHttp>(context);
     final userRole = authService.userRole;
 
     if (userRole != null && allowedRoles.contains(userRole)) {
@@ -45,7 +46,7 @@ class PermissionBasedWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
+    final authService = Provider.of<AuthServiceHttp>(context);
 
     if (authService.hasPermission(permission)) {
       return child;

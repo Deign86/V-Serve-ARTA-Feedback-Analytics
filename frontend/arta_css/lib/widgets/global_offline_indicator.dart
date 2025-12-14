@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/offline_queue.dart';
+// HTTP services for cross-platform compatibility (no Firebase dependency)
+import '../services/offline_queue_http.dart';
 
 /// A global offline indicator that displays a persistent banner at the top
 /// of the screen when the user is offline. This prepares users for offline

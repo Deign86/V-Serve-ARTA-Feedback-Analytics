@@ -3,10 +3,10 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../services/survey_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../../services/offline_queue.dart';
+import '../../services/offline_queue_stub.dart';
 import '../../services/survey_config_service.dart';
 import '../../services/survey_questions_service.dart';
-import '../../services/audit_log_service.dart';
+import '../../services/audit_log_service_http.dart';
 import '../../services/recaptcha_service.dart';
 import '../../widgets/offline_queue_widget.dart';
 import '../../widgets/survey_progress_bar.dart';
@@ -397,7 +397,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                 // Log the survey submission to audit log (silent fail)
                 if (!mounted) return;
                 try {
-                  final auditService = Provider.of<AuditLogService>(context, listen: false);
+                  final auditService = Provider.of<AuditLogServiceHttp>(context, listen: false);
                   await auditService.logSurveySubmitted(
                     clientType: surveyData.clientType,
                     serviceAvailed: surveyData.serviceAvailed,

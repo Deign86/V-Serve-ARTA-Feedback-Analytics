@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+// Audit log model - no Firebase dependencies for cross-platform support
 
 /// Types of auditable actions in the system
 enum AuditActionType {
@@ -82,15 +82,13 @@ class AuditLogEntry {
     this.additionalInfo,
   });
 
-  /// Create from Firestore document
+  /// Create from Firestore document or API response
   factory AuditLogEntry.fromJson(Map<String, dynamic> json) {
     return AuditLogEntry(
       id: json['id'] ?? '',
       actionType: _parseActionType(json['actionType'] ?? ''),
       actionDescription: json['actionDescription'] ?? '',
-      timestamp: json['timestamp'] is Timestamp
-          ? (json['timestamp'] as Timestamp).toDate()
-          : DateTime.tryParse(json['timestamp']?.toString() ?? '') ?? DateTime.now(),
+      timestamp: _parseTimestamp(json['timestamp']),
       actorId: json['actorId'] ?? '',
       actorName: json['actorName'] ?? 'Unknown',
       actorEmail: json['actorEmail'] ?? '',
@@ -111,14 +109,31 @@ class AuditLogEntry {
           : null,
     );
   }
+  
+  /// Parse timestamp from various formats (ISO string, Firestore Timestamp map, DateTime)
+  static DateTime _parseTimestamp(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
+    // Handle Firestore Timestamp as Map (from JSON serialization)
+    if (value is Map) {
+      if (value['_seconds'] != null) {
+        return DateTime.fromMillisecondsSinceEpoch((value['_seconds'] as int) * 1000);
+      }
+      if (value['seconds'] != null) {
+        return DateTime.fromMillisecondsSinceEpoch((value['seconds'] as int) * 1000);
+      }
+    }
+    return DateTime.now();
+  }
 
-  /// Convert to JSON for Firestore
+  /// Convert to JSON for API/storage
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'actionType': actionType.name,
       'actionDescription': actionDescription,
-      'timestamp': Timestamp.fromDate(timestamp),
+      'timestamp': timestamp.toIso8601String(),
       'actorId': actorId,
       'actorName': actorName,
       'actorEmail': actorEmail,

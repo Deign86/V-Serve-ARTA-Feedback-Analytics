@@ -5,7 +5,8 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/auth_services.dart';
+// HTTP services for cross-platform compatibility (no Firebase dependency)
+import '../services/auth_services_http.dart';
 import '../services/recaptcha_service.dart';
 
 class RoleBasedLoginScreen extends StatefulWidget {
@@ -47,7 +48,7 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
     
-    final authService = Provider.of<AuthService>(context, listen: false);
+    final authService = Provider.of<AuthServiceHttp>(context, listen: false);
     
     // Check if locked out
     if (authService.isLockedOut) {

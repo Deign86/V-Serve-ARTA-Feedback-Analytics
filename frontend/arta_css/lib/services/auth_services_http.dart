@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 import 'api_config.dart';
-import 'auth_services.dart';
+import 'auth_services_stub.dart';
 
 /// HTTP-based implementation of AuthService
 /// Uses the backend API for authentication instead of direct Firebase access

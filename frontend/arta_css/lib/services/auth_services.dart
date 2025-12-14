@@ -8,7 +8,7 @@ import 'package:bcrypt/bcrypt.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 import 'cache_service.dart';
-import 'audit_log_service.dart';
+import 'audit_log_service_stub.dart';
 
 class AuthService extends ChangeNotifier with CachingMixin {
   // Lazy initialization of Firestore to avoid accessing before Firebase is ready

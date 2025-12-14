@@ -3,13 +3,14 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../services/export_service.dart';
-import '../../services/feedback_service.dart';
+// HTTP services for cross-platform compatibility (no Firebase dependency)
+import '../../services/feedback_service_http.dart';
 import '../../services/survey_config_service.dart';
 import '../../services/survey_questions_service.dart';
 import '../../services/qr_code_service.dart';
-import '../../services/audit_log_service.dart';
-import '../../services/auth_services.dart';
-import '../../services/push_notification_service.dart';
+import '../../services/audit_log_service_http.dart';
+import '../../services/auth_services_http.dart';
+import '../../services/push_notification_service_stub.dart';
 import '../../utils/admin_theme.dart';
 import '../../widgets/audit_log_viewer.dart';
 import '../../widgets/survey_question_editor.dart';
@@ -809,7 +810,7 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
     super.initState();
     // Start real-time listener if not already listening
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final feedbackService = context.read<FeedbackService>();
+      final feedbackService = context.read<FeedbackServiceHttp>();
       if (!feedbackService.isListening) {
         feedbackService.startRealtimeUpdates();
       }
@@ -924,7 +925,7 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<FeedbackService>(
+    return Consumer<FeedbackServiceHttp>(
       builder: (context, feedbackService, child) {
         final stats = feedbackService.dashboardStats;
         final isLoading = feedbackService.isLoading;
@@ -2013,7 +2014,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
     super.initState();
     // Start real-time updates when screen is loaded
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auditService = context.read<AuditLogService>();
+      final auditService = context.read<AuditLogServiceHttp>();
       auditService.startRealtimeUpdates();
     });
   }
@@ -2091,7 +2092,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     
     try {
       final pushService = PushNotificationService.instance;
-      final authService = Provider.of<AuthService>(context, listen: false);
+      final authService = Provider.of<AuthServiceHttp>(context, listen: false);
       final currentUser = authService.currentUser;
       
       if (enabled) {

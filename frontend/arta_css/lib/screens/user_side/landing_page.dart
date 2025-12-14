@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../services/survey_config_service.dart';
-import '../../services/audit_log_service.dart';
+import '../../services/audit_log_service_http.dart';
 import '../../widgets/offline_queue_widget.dart';
 import 'user_profile.dart';
 import 'citizen_charter.dart';
@@ -289,7 +289,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                                 
                                 // Log survey started (non-blocking, silent fail)
                                 try {
-                                  final auditService = Provider.of<AuditLogService>(context, listen: false);
+                                  final auditService = Provider.of<AuditLogServiceHttp>(context, listen: false);
                                   auditService.logSurveyStarted();
                                 } catch (_) {
                                   // Silent fail - audit logging is non-critical

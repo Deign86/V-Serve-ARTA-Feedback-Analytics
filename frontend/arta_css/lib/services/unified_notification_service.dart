@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'push_notification_service.dart';
-import 'native_notification_service.dart';
+import 'push_notification_service_stub.dart';
+import 'native_notification_service_stub.dart';
 
 /// Unified notification service that automatically uses the right implementation
 /// 

@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:bcrypt/bcrypt.dart';
 import 'cache_service.dart';
-import 'audit_log_service.dart';
+import 'audit_log_service_stub.dart';
 import '../models/user_model.dart';
 
 /// Model representing an admin/system user

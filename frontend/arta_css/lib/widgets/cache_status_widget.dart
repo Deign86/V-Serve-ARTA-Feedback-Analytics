@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/cache_service.dart';
-import '../services/feedback_service.dart';
-import '../services/user_management_service.dart';
+// HTTP services for cross-platform compatibility (no Firebase dependency)
+import '../services/feedback_service_http.dart';
+import '../services/user_management_service_http.dart';
 
 /// Widget to display and manage cache status
 /// Can be added to admin settings or debug screens

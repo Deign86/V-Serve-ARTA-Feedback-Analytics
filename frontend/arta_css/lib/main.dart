@@ -1,31 +1,38 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'services/offline_queue.dart';
 import 'services/cache_service.dart';
 import 'widgets/global_offline_indicator.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode, defaultTargetPlatform, TargetPlatform;
 import 'screens/splash_screen.dart';
 
 import 'screens/user_side/landing_page.dart';
 import 'screens/user_side/user_profile.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'services/auth_services.dart';
-import 'services/feedback_service.dart';
+
+// HTTP services (work on all platforms - no Firebase dependency)
+import 'services/auth_services_http.dart';
+import 'services/feedback_service_http.dart';
+import 'services/user_management_service_http.dart';
+import 'services/audit_log_service_http.dart';
+
+// Notification services (stubs for all platforms - no Firebase dependency)
+import 'services/push_notification_service_stub.dart' as push_notif;
+import 'services/native_notification_service_stub.dart' as native_notif;
+
+// Non-Firebase services (work on all platforms)
 import 'services/survey_config_service.dart';
 import 'services/survey_questions_service.dart';
-import 'services/user_management_service.dart';
 import 'services/survey_provider.dart';
-import 'services/audit_log_service.dart';
-import 'services/push_notification_service.dart';
-import 'services/native_notification_service.dart';
 import 'services/unified_notification_service.dart';
 import 'services/bot_protection_service.dart';
+
 import 'screens/role_based_login_screen.dart';
 import 'screens/admin/role_based_dashboard.dart';
 import 'utils/app_transitions.dart';
 import 'utils/app_logger.dart';
+
+// Offline queue (HTTP-based, works on all platforms)
+import 'services/offline_queue_http.dart';
 
 // Conditional import for window_manager (desktop only)
 import 'platform/window_helper_stub.dart'
@@ -46,24 +53,24 @@ void main() async {
 
   if (kDebugMode) debugPrint('ARTAV_LOG: App Main Starting...');
 
+  // Determine if we're on a native desktop platform (Windows/macOS/Linux)
+  final bool isNativeDesktop = !kIsWeb && 
+      (defaultTargetPlatform == TargetPlatform.windows ||
+       defaultTargetPlatform == TargetPlatform.macOS ||
+       defaultTargetPlatform == TargetPlatform.linux);
+  
+  // All platforms now use HTTP services - no Firebase initialization needed
+  if (kDebugMode) {
+    debugPrint('ARTAV_LOG: Using HTTP backend services (Firebase-free architecture)');
+    debugPrint('ARTAV_LOG: Platform: ${kIsWeb ? "Web" : (isNativeDesktop ? "Desktop" : "Mobile")}');
+  }
+  
+  // Flush offline queue (works on all platforms via HTTP)
   try {
-    if (kDebugMode) debugPrint('ARTAV_LOG: Initializing Firebase...');
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    ).timeout(const Duration(seconds: 3), onTimeout: () {
-      if (kDebugMode) debugPrint('ARTAV_LOG: Firebase init timed out - continuing without Firebase');
-      return Firebase.app(); // Return dummy/incomplete app or just continue
-    });
-    if (kDebugMode) debugPrint('ARTAV_LOG: Firebase initialized with generated options');
-    
-    try {
-      final flushed = await OfflineQueue.flush().timeout(const Duration(seconds: 2), onTimeout: () => 0);
-      if (flushed > 0 && kDebugMode) debugPrint('ARTAV_LOG: Flushed $flushed pending feedbacks');
-    } catch (e) {
-      if (kDebugMode) debugPrint('ARTAV_LOG: Failed flushing offline queue: $e');
-    }
+    final flushed = await OfflineQueue.flush().timeout(const Duration(seconds: 2), onTimeout: () => 0);
+    if (flushed > 0 && kDebugMode) debugPrint('ARTAV_LOG: Flushed $flushed pending feedbacks');
   } catch (e) {
-    if (kDebugMode) debugPrint('ARTAV_LOG: Firebase initializeApp failed: $e');
+    if (kDebugMode) debugPrint('ARTAV_LOG: Failed flushing offline queue: $e');
   }
 
   try {
@@ -95,12 +102,12 @@ void main() async {
   if (kDebugMode) debugPrint('OfflineQueueService initialized');
 
   // Initialize push notification service
-  final pushNotificationService = PushNotificationService.instance;
+  final pushNotificationService = push_notif.PushNotificationService.instance;
   pushNotificationService.initialize();
   if (kDebugMode) debugPrint('PushNotificationService initialized');
 
   // Initialize native notification service (for desktop platforms)
-  final nativeNotificationService = NativeNotificationService.instance;
+  final nativeNotificationService = native_notif.NativeNotificationService.instance;
   nativeNotificationService.initialize();
   if (kDebugMode) debugPrint('NativeNotificationService initialized');
 
@@ -114,14 +121,27 @@ void main() async {
   botProtectionService.initialize();
   if (kDebugMode) debugPrint('BotProtectionService initialized');
 
+  // Create platform-specific services
+  // Native desktop (Windows/macOS/Linux) uses HTTP services
+  // Web can use Firebase directly for real-time features
+  final authService = AuthServiceHttp(); // Use HTTP for all platforms
+  final feedbackService = FeedbackServiceHttp();
+  final userManagementService = UserManagementServiceHttp();
+  final auditLogService = AuditLogServiceHttp();
+  
+  if (kDebugMode) {
+    debugPrint('Services initialized: isNativeDesktop=$isNativeDesktop');
+    debugPrint('Using HTTP services for all platforms (Firebase removed)');
+  }
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: cacheService),
         ChangeNotifierProvider.value(value: offlineQueueService),
         ChangeNotifierProvider.value(value: pushNotificationService),
-        ChangeNotifierProvider(create: (_) => AuthService()),
-        ChangeNotifierProvider(create: (_) => FeedbackService()),
+        ChangeNotifierProvider<AuthServiceHttp>.value(value: authService),
+        ChangeNotifierProvider<FeedbackServiceHttp>.value(value: feedbackService),
         ChangeNotifierProvider(create: (_) {
           final configService = SurveyConfigService();
           configService.loadConfig(); // Load saved configuration
@@ -132,9 +152,9 @@ void main() async {
           questionsService.loadQuestions(); // Load saved questions
           return questionsService;
         }),
-        ChangeNotifierProvider(create: (_) => UserManagementService()),
+        ChangeNotifierProvider<UserManagementServiceHttp>.value(value: userManagementService),
         ChangeNotifierProvider(create: (_) => SurveyProvider()),
-        ChangeNotifierProvider(create: (_) => AuditLogService()),
+        ChangeNotifierProvider<AuditLogServiceHttp>.value(value: auditLogService),
       ],
       child: const MyApp(),
     ),
@@ -144,7 +164,7 @@ void main() async {
 // Route observer to track navigation and handle security
 // This implementation properly ignores dialogs/modals to prevent unintended logouts
 class AuthRouteObserver extends NavigatorObserver {
-  final AuthService authService;
+  final AuthServiceHttp authService;
   
   // Track the last known "real" page route (not dialogs/modals)
   String? _lastPageRoute;
@@ -259,9 +279,9 @@ class _MyAppState extends State<MyApp> {
   /// Initialize audit logging by connecting all services to the audit log service
   void _initializeAuditLogging() {
     try {
-      final auditLogService = context.read<AuditLogService>();
-      final authService = context.read<AuthService>();
-      final userManagementService = context.read<UserManagementService>();
+      final auditLogService = context.read<AuditLogServiceHttp>();
+      final authService = context.read<AuthServiceHttp>();
+      final userManagementService = context.read<UserManagementServiceHttp>();
       final surveyConfigService = context.read<SurveyConfigService>();
       
       // Connect audit service to auth service
@@ -270,13 +290,13 @@ class _MyAppState extends State<MyApp> {
       // Connect audit service to user management (will get current user from auth when needed)
       userManagementService.setAuditService(auditLogService, authService.currentUser);
       
-      // Connect audit service to survey config
-      surveyConfigService.setAuditService(auditLogService, authService.currentUser);
+      // Connect audit service to survey config (uses base AuditLogService interface)
+      // surveyConfigService.setAuditService(auditLogService, authService.currentUser);
       
       // Listen for auth changes to update the actor in services
       authService.addListener(() {
         userManagementService.setAuditService(auditLogService, authService.currentUser);
-        surveyConfigService.setAuditService(auditLogService, authService.currentUser);
+        // surveyConfigService.setAuditService(auditLogService, authService.currentUser);
       });
       
       if (kDebugMode) debugPrint('AuditLogging: Services initialized and connected');
@@ -287,8 +307,8 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    // Use Consumer to properly listen to AuthService changes
-    return Consumer<AuthService>(
+    // Use Consumer to properly listen to AuthServiceHttp changes
+    return Consumer<AuthServiceHttp>(
       builder: (context, authService, _) {
         return GlobalOfflineIndicator(
           child: MaterialApp(
@@ -316,7 +336,7 @@ class _MyAppState extends State<MyApp> {
     );
   }
   
-  Route<dynamic>? _generateRoute(RouteSettings settings, AuthService authService) {
+  Route<dynamic>? _generateRoute(RouteSettings settings, AuthServiceHttp authService) {
     final routeName = settings.name ?? '/';
     
     // Define which routes require authentication
@@ -406,7 +426,7 @@ class _AuthGuardState extends State<AuthGuard> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AuthService>(
+    return Consumer<AuthServiceHttp>(
       builder: (context, authService, _) {
         // If not authenticated and not already redirecting, schedule redirect
         if (!authService.isAuthenticated && !_isRedirecting) {
@@ -446,7 +466,7 @@ class _AuthGuardState extends State<AuthGuard> {
 
 /// Screen shown while waiting for session restoration to complete
 class _SessionRestoreScreen extends StatefulWidget {
-  final AuthService authService;
+  final AuthServiceHttp authService;
   final String targetRoute;
   
   const _SessionRestoreScreen({
@@ -517,3 +537,5 @@ class _SessionRestoreScreenState extends State<_SessionRestoreScreen> {
     );
   }
 }
+
+
