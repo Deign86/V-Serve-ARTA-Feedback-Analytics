@@ -10,9 +10,15 @@ flutter/
 **/.packages
 pubspec.lock
 
-# End of .gitignore
+# Build output directory (artifacts, not source)
+builds/
 
-# Sensitive local service files (do not commit)
+# Sensitive files - NEVER commit these
+**/.env
+**/.env.*
+!**/.env.example
 **/google-services.json
 **/serviceAccountKey.json
+**/*secret*.json
+**/*credentials*.json
 .vercel

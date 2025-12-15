@@ -498,6 +498,13 @@ function Build-WindowsApp {
             Write-Log "Windows build may fail if Firebase packages are present" -Level WARN
         }
         
+        # Add bundled NuGet to PATH to suppress "Nuget.exe not found" warning
+        $nugetDir = Join-Path $script:RepoRoot "tools\nuget"
+        if (Test-Path (Join-Path $nugetDir "nuget.exe")) {
+            $env:PATH = "$nugetDir;$env:PATH"
+            Write-Log "Using bundled NuGet from: $nugetDir" -Level INFO
+        }
+        
         # Windows always builds with admin enabled (no USER_ONLY_MODE)
         Write-Log "Running: flutter build windows --release" -Level INFO
         
