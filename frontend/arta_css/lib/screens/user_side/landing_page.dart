@@ -114,18 +114,9 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                     child: _buildMobileLayout(context),
                   )
                 : Center(
-                    // === DESKTOP RESPONSIVE FIX ===
-                    // This ensures that if the screen is zoomed (125%), 
-                    // the content scales down to fit instead of scrolling.
-                    child: Container(
+                    child: SingleChildScrollView(
                       padding: const EdgeInsets.all(40),
-                      width: double.infinity,
-                      height: double.infinity,
-                      alignment: Alignment.center,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: _buildDesktopLayout(context),
-                      ),
+                      child: _buildDesktopLayout(context),
                     ),
                   ),
             ),
@@ -382,7 +373,8 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
   // ------------------ MOBILE LAYOUT ------------------
   Widget _buildMobileLayout(BuildContext context) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         _buildImageCarousel(true),
         const SizedBox(height: 20),
@@ -393,36 +385,39 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
 
   // ------------------ DESKTOP LAYOUT ------------------
   Widget _buildDesktopLayout(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Use available width minus padding (80px = 40px on each side)
+    final cardWidth = (screenWidth - 80).clamp(900.0, 1200.0);
+    
     // New Split-Card Layout
     return Container(
-      width: 1200,
-      constraints: const BoxConstraints(minHeight: 600),
+      width: cardWidth,
+      // Fixed height to prevent infinite height issues when inside ScrollView
+      height: 600,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(32),
         boxShadow: const [BoxShadow(blurRadius: 20, color: Colors.black26)],
       ),
       clipBehavior: Clip.antiAlias, // Clips content to rounded corners
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Left side (Text + Button)
-            Expanded(
-              flex: 5,
-              child: _buildTextCard(context, false, withCardDecoration: false),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Left side (Text + Button)
+          Expanded(
+            flex: 5,
+            child: _buildTextCard(context, false, withCardDecoration: false),
+          ),
+          
+          // Right side (Carousel)
+          Expanded(
+            flex: 4,
+            child: Container(
+               color: const Color(0xFF003366), // Fallback/Basic background
+               child: _buildImageCarousel(false, withCardDecoration: false),
             ),
-            
-            // Right side (Carousel)
-            Expanded(
-              flex: 4,
-              child: Container(
-                 color: const Color(0xFF003366), // Fallback/Basic background
-                 child: _buildImageCarousel(false, withCardDecoration: false),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -503,43 +498,59 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
           
           SizedBox(height: isMobile ? 30 : 60),
 
-          // --- HOVER ANIMATION FOR ARTA (with tap support for mobile) ---
-          GestureDetector(
-            onTap: () {
-              // Toggle animation on tap for mobile users
-              _hoverTimer?.cancel();
-              if (_expandController.isCompleted || _expandController.isAnimating && _expandController.velocity > 0) {
-                // If expanded or expanding, collapse after delay
-                _hoverTimer = Timer(const Duration(milliseconds: 1500), () {
-                  if (mounted) {
-                    _expandController.reverse();
-                  }
-                });
-              } else {
-                // If collapsed or collapsing, expand and auto-collapse after delay
-                _expandController.forward();
-                _hoverTimer = Timer(const Duration(milliseconds: 2500), () {
-                  if (mounted) {
-                    _expandController.reverse();
-                  }
-                });
-              }
-            },
-            child: MouseRegion(
-              onEnter: (_) {
+          // --- ARTA TITLE ---
+          if (isMobile) ...[
+            // Mobile: Static vertical layout (no animation to prevent overflow)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "ARTA",
+                  style: GoogleFonts.montserrat(
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF003366),
+                    height: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Anti-Red Tape Authority",
+                  style: GoogleFonts.montserrat(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF003366).withValues(alpha: 0.8),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            // Desktop: Hover/tap animation that expands horizontally
+            GestureDetector(
+              onTap: () {
                 _hoverTimer?.cancel();
-                _expandController.forward();
+                if (_expandController.isCompleted || _expandController.isAnimating && _expandController.velocity > 0) {
+                  _hoverTimer = Timer(const Duration(milliseconds: 1500), () {
+                    if (mounted) _expandController.reverse();
+                  });
+                } else {
+                  _expandController.forward();
+                  _hoverTimer = Timer(const Duration(milliseconds: 2500), () {
+                    if (mounted) _expandController.reverse();
+                  });
+                }
               },
-              onExit: (_) {
-                _hoverTimer = Timer(const Duration(milliseconds: 600), () {
-                   if (mounted) {
-                     _expandController.reverse();
-                   }
-                });
-              },
-              cursor: SystemMouseCursors.click,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
+              child: MouseRegion(
+                onEnter: (_) {
+                  _hoverTimer?.cancel();
+                  _expandController.forward();
+                },
+                onExit: (_) {
+                  _hoverTimer = Timer(const Duration(milliseconds: 600), () {
+                    if (mounted) _expandController.reverse();
+                  });
+                },
+                cursor: SystemMouseCursors.click,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -547,7 +558,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                     Text(
                       "ARTA",
                       style: GoogleFonts.montserrat(
-                        fontSize: isMobile ? 48 : 80,
+                        fontSize: 72,
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF003366),
                         height: 1.0,
@@ -556,13 +567,13 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                     SizeTransition(
                       sizeFactor: _expandAnimation,
                       axis: Axis.horizontal,
-                      axisAlignment: -1.0, 
+                      axisAlignment: -1.0,
                       child: Padding(
-                        padding: const EdgeInsets.only(left: 10),
+                        padding: const EdgeInsets.only(left: 12),
                         child: Text(
                           "| Anti-Red Tape Authority",
                           style: GoogleFonts.montserrat(
-                            fontSize: isMobile ? 16 : 24,
+                            fontSize: 22,
                             fontWeight: FontWeight.w600,
                             color: const Color(0xFF003366),
                           ),
@@ -575,7 +586,7 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                 ),
               ),
             ),
-          ),
+          ],
           
           Text(
             "CLIENT SATISFACTION FORM",

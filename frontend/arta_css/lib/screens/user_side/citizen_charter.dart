@@ -513,74 +513,80 @@ class _CitizenCharterScreenState extends State<CitizenCharterScreen> {
             decoration: BoxDecoration(
               border: Border(top: BorderSide(color: Colors.grey.shade200)),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                SizedBox(
-                  width: isMobile ? 140 : 180,
-                  height: isMobile ? 48 : 55,
-                  child: OutlinedButton(
-                    onPressed: () {
-                      // Save current state before going back
-                      final cc0Rating = cc1Answer != null ? int.tryParse(cc1Answer!.substring(0, 1)) : null;
-                      final cc1Rating = cc2Answer != null ? int.tryParse(cc2Answer!.substring(0, 1)) : null;
-                      final cc2Rating = cc3Answer != null ? int.tryParse(cc3Answer!.substring(0, 1)) : null;
-                      
-                      context.read<SurveyProvider>().updateCC(
-                        cc0: cc0Rating,
-                        cc1: cc1Rating,
-                        cc2: cc2Rating,
-                      );
-                      Navigator.of(context).maybePop();
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF003366), width: 2),
-                      backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.arrow_back,
-                          size: isMobile ? 16 : 18,
-                          color: const Color(0xFF003366),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isVeryNarrow = constraints.maxWidth < 340;
+                final buttonWidth = isVeryNarrow ? 100.0 : (isMobile ? 140.0 : 180.0);
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    SizedBox(
+                      width: buttonWidth,
+                      height: isMobile ? 48 : 55,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          // Save current state before going back
+                          final cc0Rating = cc1Answer != null ? int.tryParse(cc1Answer!.substring(0, 1)) : null;
+                          final cc1Rating = cc2Answer != null ? int.tryParse(cc2Answer!.substring(0, 1)) : null;
+                          final cc2Rating = cc3Answer != null ? int.tryParse(cc3Answer!.substring(0, 1)) : null;
+                          
+                          context.read<SurveyProvider>().updateCC(
+                            cc0: cc0Rating,
+                            cc1: cc1Rating,
+                            cc2: cc2Rating,
+                          );
+                          Navigator.of(context).maybePop();
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFF003366), width: 2),
+                          backgroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                         ),
-                        SizedBox(width: isMobile ? 4 : 8),
-                        Text(
-                          'PREVIOUS',
-                          style: GoogleFonts.montserrat(
-                            fontSize: isMobile ? 12 : 14,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF003366),
-                          ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.arrow_back,
+                              size: isMobile ? 16 : 18,
+                              color: const Color(0xFF003366),
+                            ),
+                            SizedBox(width: isVeryNarrow ? 2 : (isMobile ? 4 : 8)),
+                            Text(
+                              isVeryNarrow ? 'BACK' : 'PREVIOUS',
+                              style: GoogleFonts.montserrat(
+                                fontSize: isVeryNarrow ? 10 : (isMobile ? 12 : 14),
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF003366),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: isMobile ? 140 : 180,
-                  height: isMobile ? 48 : 55,
-                  child: ElevatedButton(
-                    onPressed: _isFormComplete ? _onNextPressed : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF003366),
-                      disabledBackgroundColor: Colors.grey.shade400,
-                      elevation: 5,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                    ),
-                    child: Text(
-                      'NEXT PAGE',
-                      style: GoogleFonts.montserrat(
-                        fontSize: isMobile ? 12 : 14,
-                        fontWeight: FontWeight.bold,
-                        color: _isFormComplete ? Colors.white : Colors.grey.shade600,
                       ),
                     ),
-                  ),
-                ),
-              ],
+                    SizedBox(
+                      width: buttonWidth,
+                      height: isMobile ? 48 : 55,
+                      child: ElevatedButton(
+                        onPressed: _isFormComplete ? _onNextPressed : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF003366),
+                          disabledBackgroundColor: Colors.grey.shade400,
+                          elevation: 5,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        ),
+                        child: Text(
+                          isVeryNarrow ? 'NEXT' : 'NEXT PAGE',
+                          style: GoogleFonts.montserrat(
+                            fontSize: isVeryNarrow ? 10 : (isMobile ? 12 : 14),
+                            fontWeight: FontWeight.bold,
+                            color: _isFormComplete ? Colors.white : Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],

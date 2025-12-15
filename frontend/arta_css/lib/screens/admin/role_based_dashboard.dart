@@ -1168,10 +1168,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   LayoutBuilder(
                     builder: (context, roleConstraints) {
                       final crossAxisCount = roleConstraints.maxWidth > 600 ? 2 : 1;
-                      // Calculate aspect ratio dynamically
+                      // Calculate aspect ratio dynamically - use larger height to prevent overflow
                       final cardWidth = (roleConstraints.maxWidth - (crossAxisCount - 1) * 16) / crossAxisCount;
-                      final targetHeight = 100.0;
-                      final aspectRatio = (cardWidth / targetHeight).clamp(2.0, 4.0);
+                      final targetHeight = 120.0; // Increased from 100 to prevent bottom overflow
+                      final aspectRatio = (cardWidth / targetHeight).clamp(1.5, 4.0);
                       
                       return GridView.count(
                         shrinkWrap: true,
@@ -1199,32 +1199,46 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 
   Widget _buildRoleCard(String title, String value, String sub, IconData icon, Color color) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 200;
+        final iconSize = isCompact ? 20.0 : 24.0;
+        final iconPadding = isCompact ? 8.0 : 12.0;
+        final titleSize = isCompact ? 10.0 : 12.0;
+        final valueSize = isCompact ? 14.0 : 18.0;
+        final subSize = isCompact ? 9.0 : 11.0;
+        
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+          color: Colors.white,
+          child: Padding(
+            padding: EdgeInsets.all(isCompact ? 12 : 20),
+            child: Row(
               children: [
-                Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
-                Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: brandBlue)),
-                Text(sub, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                Container(
+                  padding: EdgeInsets.all(iconPadding),
+                  decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+                  child: Icon(icon, color: color, size: iconSize),
+                ),
+                SizedBox(width: isCompact ? 8 : 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(title, style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.w600, color: Colors.grey.shade700), overflow: TextOverflow.ellipsis),
+                      Text(value, style: TextStyle(fontSize: valueSize, fontWeight: FontWeight.bold, color: brandBlue), overflow: TextOverflow.ellipsis),
+                      Text(sub, style: TextStyle(fontSize: subSize, color: Colors.grey.shade500), overflow: TextOverflow.ellipsis, maxLines: 1),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -1789,10 +1803,10 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
               LayoutBuilder(
                 builder: (context, cardConstraints) {
                    final crossAxisCount = cardConstraints.maxWidth > 900 ? 3 : cardConstraints.maxWidth > 500 ? 2 : 1;
-                   // Calculate dynamic aspect ratio
+                   // Calculate dynamic aspect ratio - use larger height to prevent bottom overflow
                    final cardWidth = (cardConstraints.maxWidth - (crossAxisCount - 1) * 16) / crossAxisCount;
-                   final targetHeight = 180.0;
-                   final aspectRatio = (cardWidth / targetHeight).clamp(1.2, 2.5);
+                   final targetHeight = 220.0; // Increased from 180 to prevent bottom overflow
+                   final aspectRatio = (cardWidth / targetHeight).clamp(0.9, 2.0);
                    
                    return GridView.count(
                      shrinkWrap: true,
@@ -2012,58 +2026,75 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
   }
 
   Widget _buildExportCard(BuildContext context, FeedbackServiceHttp feedbackService, String title, String sub, IconData icon, Color color, {bool isPdf = false, bool isCsv = false, bool isJson = false}) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            Column(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 180;
+        final iconSize = isCompact ? 22.0 : 28.0;
+        final iconPadding = isCompact ? 8.0 : 12.0;
+        final titleSize = isCompact ? 13.0 : 16.0;
+        final subSize = isCompact ? 10.0 : 12.0;
+        final cardPadding = isCompact ? 16.0 : 24.0;
+        
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+          color: Colors.white,
+          child: Padding(
+            padding: EdgeInsets.all(cardPadding),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
-                const SizedBox(height: 4),
-                Text(sub, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                Container(
+                  padding: EdgeInsets.all(iconPadding),
+                  decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+                  child: Icon(icon, color: color, size: iconSize),
+                ),
+                const Spacer(),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(title, style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.bold, color: Colors.black87), overflow: TextOverflow.ellipsis, maxLines: 2),
+                      const SizedBox(height: 4),
+                      Text(sub, style: TextStyle(fontSize: subSize, color: Colors.grey.shade600), overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      ExportType? preselectedType;
+                      if (isPdf) {
+                        preselectedType = ExportType.pdfCompliance;
+                      } else if (isCsv) {
+                        preselectedType = ExportType.csv;
+                      } else if (isJson) {
+                        preselectedType = ExportType.json;
+                      }
+                      showExportFilterDialog(
+                        context,
+                        feedbackService,
+                        preselectedType: preselectedType,
+                      );
+                    },
+                    icon: Icon(Icons.download, size: isCompact ? 14 : 16),
+                    label: Text(isCompact ? 'Export' : 'Generate', style: TextStyle(fontSize: isCompact ? 12 : 14)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: color,
+                      side: BorderSide(color: color.withValues(alpha: 0.5)),
+                      padding: EdgeInsets.symmetric(vertical: isCompact ? 8 : 12),
+                    ),
+                  ),
+                ),
               ],
             ),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  ExportType? preselectedType;
-                  if (isPdf) {
-                    preselectedType = ExportType.pdfCompliance;
-                  } else if (isCsv) {
-                    preselectedType = ExportType.csv;
-                  } else if (isJson) {
-                    preselectedType = ExportType.json;
-                  }
-                  showExportFilterDialog(
-                    context,
-                    feedbackService,
-                    preselectedType: preselectedType,
-                  );
-                },
-                icon: const Icon(Icons.download, size: 16),
-                label: const Text('Generate'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: color,
-                  side: BorderSide(color: color.withValues(alpha: 0.5)),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

@@ -261,12 +261,14 @@ class FeedbackService extends ChangeNotifier with CachingMixin {
     final total = distribution.values.fold(0, (a, b) => a + b);
     if (total == 0) return {};
 
+    // Map numeric ratings to satisfaction labels:
+    // 5 = Very Satisfied, 4 = Satisfied, 3 = Neutral, 2 = Dissatisfied, 1 = Very Dissatisfied
     return {
-      '1': (distribution[1]! / total) * 100,
-      '2': (distribution[2]! / total) * 100,
-      '3': (distribution[3]! / total) * 100,
-      '4': (distribution[4]! / total) * 100,
-      '5': (distribution[5]! / total) * 100,
+      'Very Satisfied': (distribution[5]! / total) * 100,
+      'Satisfied': (distribution[4]! / total) * 100,
+      'Neutral': (distribution[3]! / total) * 100,
+      'Dissatisfied': (distribution[2]! / total) * 100,
+      'Very Dissatisfied': (distribution[1]! / total) * 100,
     };
   }
 

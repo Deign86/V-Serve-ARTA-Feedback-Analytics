@@ -97,140 +97,250 @@ class _AuditLogViewerState extends State<AuditLogViewer> {
   }
 
   Widget _buildHeader(AuditLogServiceHttp auditService) {
-    return Row(
-      children: [
-        Icon(
-          Icons.history,
-          color: const Color(0xFF003366),
-          size: 28,
-        ),
-        const SizedBox(width: 12),
-        Text(
-          'Audit Log',
-          style: GoogleFonts.montserrat(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF003366),
-          ),
-        ),
-        const Spacer(),
-        // Filter dropdown
-        PopupMenuButton<AuditActionType?>(
-          tooltip: 'Filter by action type',
-          icon: Badge(
-            isLabelVisible: auditService.filterActionType != null,
-            child: const Icon(Icons.filter_list),
-          ),
-          onSelected: (value) {
-            auditService.setFilters(actionType: value);
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem<AuditActionType?>(
-              value: null,
-              child: Text('All Actions'),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 400;
+        final titleFontSize = isNarrow ? 18.0 : 24.0;
+        final iconSize = isNarrow ? 22.0 : 28.0;
+        
+        return Row(
+          children: [
+            Icon(
+              Icons.history,
+              color: const Color(0xFF003366),
+              size: iconSize,
             ),
-            const PopupMenuDivider(),
-            ...AuditActionType.values.map((type) => PopupMenuItem(
-              value: type,
-              child: Row(
-                children: [
-                  Icon(_getIconForActionType(type), size: 20),
-                  const SizedBox(width: 8),
-                  Text(_getDisplayName(type)),
-                ],
+            SizedBox(width: isNarrow ? 8 : 12),
+            Expanded(
+              child: Text(
+                'Audit Log',
+                style: GoogleFonts.montserrat(
+                  fontSize: titleFontSize,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF003366),
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
-            )),
+            ),
+            // Filter dropdown
+            PopupMenuButton<AuditActionType?>(
+              tooltip: 'Filter by action type',
+              icon: Badge(
+                isLabelVisible: auditService.filterActionType != null,
+                child: Icon(Icons.filter_list, size: isNarrow ? 20 : 24),
+              ),
+              onSelected: (value) {
+                auditService.setFilters(actionType: value);
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem<AuditActionType?>(
+                  value: null,
+                  child: Text('All Actions'),
+                ),
+                const PopupMenuDivider(),
+                ...AuditActionType.values.map((type) => PopupMenuItem(
+                  value: type,
+                  child: Row(
+                    children: [
+                      Icon(_getIconForActionType(type), size: 20),
+                      const SizedBox(width: 8),
+                      Text(_getDisplayName(type)),
+                    ],
+                  ),
+                )),
+              ],
+            ),
+            SizedBox(width: isNarrow ? 4 : 8),
+            // Refresh button
+            IconButton(
+              onPressed: () => auditService.fetchLogs(forceRefresh: true),
+              icon: auditService.isLoading
+                  ? SizedBox(
+                      width: isNarrow ? 20 : 24,
+                      height: isNarrow ? 20 : 24,
+                      child: const CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(Icons.refresh, size: isNarrow ? 20 : 24),
+              tooltip: 'Refresh logs',
+            ),
           ],
-        ),
-        const SizedBox(width: 8),
-        // Refresh button
-        IconButton(
-          onPressed: () => auditService.fetchLogs(forceRefresh: true),
-          icon: auditService.isLoading
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.refresh),
-          tooltip: 'Refresh logs',
-        ),
-      ],
+        );
+      },
     );
   }
 
   Widget _buildStatsRow(AuditLogServiceHttp auditService) {
     final stats = auditService.getAuditStats();
     
-    return Row(
-      children: [
-        _buildStatCard(
-          'Total Logs',
-          stats['totalLogs'].toString(),
-          Icons.list_alt,
-          Colors.blue,
-        ),
-        const SizedBox(width: 12),
-        _buildStatCard(
-          'Today',
-          stats['logsToday'].toString(),
-          Icons.today,
-          Colors.green,
-        ),
-        const SizedBox(width: 12),
-        _buildStatCard(
-          'This Week',
-          stats['logsThisWeek'].toString(),
-          Icons.date_range,
-          Colors.orange,
-        ),
-        const SizedBox(width: 12),
-        _buildStatCard(
-          'Failed Logins',
-          stats['failedLogins'].toString(),
-          Icons.warning,
-          Colors.red,
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 600;
+        final isVeryNarrow = constraints.maxWidth < 400;
+        
+        final statCards = [
+          _buildStatCard(
+            'Total Logs',
+            stats['totalLogs'].toString(),
+            Icons.list_alt,
+            Colors.blue,
+            isCompact: isNarrow,
+          ),
+          _buildStatCard(
+            'Today',
+            stats['logsToday'].toString(),
+            Icons.today,
+            Colors.green,
+            isCompact: isNarrow,
+          ),
+          _buildStatCard(
+            'This Week',
+            stats['logsThisWeek'].toString(),
+            Icons.date_range,
+            Colors.orange,
+            isCompact: isNarrow,
+          ),
+          _buildStatCard(
+            'Failed Logins',
+            stats['failedLogins'].toString(),
+            Icons.warning,
+            Colors.red,
+            isCompact: isNarrow,
+          ),
+        ];
+        
+        if (isVeryNarrow) {
+          // 2x2 grid for very small screens
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(child: statCards[0]),
+                  const SizedBox(width: 8),
+                  Expanded(child: statCards[1]),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(child: statCards[2]),
+                  const SizedBox(width: 8),
+                  Expanded(child: statCards[3]),
+                ],
+              ),
+            ],
+          );
+        } else if (isNarrow) {
+          // 2x2 grid for narrow screens
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(child: statCards[0]),
+                  const SizedBox(width: 12),
+                  Expanded(child: statCards[1]),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(child: statCards[2]),
+                  const SizedBox(width: 12),
+                  Expanded(child: statCards[3]),
+                ],
+              ),
+            ],
+          );
+        }
+        
+        // Full row for wider screens
+        return Row(
+          children: [
+            Expanded(child: statCards[0]),
+            const SizedBox(width: 12),
+            Expanded(child: statCards[1]),
+            const SizedBox(width: 12),
+            Expanded(child: statCards[2]),
+            const SizedBox(width: 12),
+            Expanded(child: statCards[3]),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(width: 12),
-            Column(
+  Widget _buildStatCard(String label, String value, IconData icon, Color color, {bool isCompact = false}) {
+    return Container(
+      padding: EdgeInsets.all(isCompact ? 12 : 16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: isCompact
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  value,
-                  style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, color: color, size: 18),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        value,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 4),
                 Text(
                   label,
                   style: GoogleFonts.poppins(
-                    fontSize: 12,
+                    fontSize: 10,
                     color: Colors.grey[600],
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                Icon(icon, color: color, size: 24),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        value,
+                        style: GoogleFonts.poppins(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        label,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -281,121 +391,180 @@ class _AuditLogViewerState extends State<AuditLogViewer> {
     final dateFormat = DateFormat('MMM dd, yyyy');
     final timeFormat = DateFormat('HH:mm:ss');
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: severityColor.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: InkWell(
-        onTap: () => _showLogDetails(log),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Icon with severity indicator
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: severityColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  _getIconForActionType(log.actionType),
-                  color: severityColor,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              
-              // Log details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          log.actionTypeDisplayName,
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF003366),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: severityColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            log.severity.name.toUpperCase(),
-                            style: GoogleFonts.poppins(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: severityColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      log.actionDescription,
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.person, size: 14, color: Colors.grey[500]),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${log.actorName} (${log.actorRole})',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${dateFormat.format(log.timestamp)} at ${timeFormat.format(log.timestamp)}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              
-              // View details button
-              IconButton(
-                onPressed: () => _showLogDetails(log),
-                icon: const Icon(Icons.chevron_right),
-                color: Colors.grey[400],
-              ),
-            ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 450;
+        final iconPadding = isNarrow ? 8.0 : 10.0;
+        final iconSize = isNarrow ? 20.0 : 24.0;
+        final cardPadding = isNarrow ? 12.0 : 16.0;
+        
+        return Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          elevation: 1,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: severityColor.withValues(alpha: 0.3),
+              width: 1,
+            ),
           ),
-        ),
-      ),
+          child: InkWell(
+            onTap: () => _showLogDetails(log),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: EdgeInsets.all(cardPadding),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Icon with severity indicator
+                  Container(
+                    padding: EdgeInsets.all(iconPadding),
+                    decoration: BoxDecoration(
+                      color: severityColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      _getIconForActionType(log.actionType),
+                      color: severityColor,
+                      size: iconSize,
+                    ),
+                  ),
+                  SizedBox(width: isNarrow ? 10 : 16),
+                  
+                  // Log details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title row - wrap on narrow screens
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              log.actionTypeDisplayName,
+                              style: GoogleFonts.poppins(
+                                fontSize: isNarrow ? 12 : 14,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF003366),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: severityColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                log.severity.name.toUpperCase(),
+                                style: GoogleFonts.poppins(
+                                  fontSize: isNarrow ? 9 : 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: severityColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          log.actionDescription,
+                          style: GoogleFonts.poppins(
+                            fontSize: isNarrow ? 11 : 13,
+                            color: Colors.grey[700],
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 8),
+                        // Actor and time info - wrap on narrow screens
+                        isNarrow
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.person, size: 12, color: Colors.grey[500]),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          '${log.actorName} (${log.actorRole})',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 11,
+                                            color: Colors.grey[600],
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.access_time, size: 12, color: Colors.grey[500]),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${dateFormat.format(log.timestamp)} at ${timeFormat.format(log.timestamp)}',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 11,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              )
+                            : Row(
+                                children: [
+                                  Icon(Icons.person, size: 14, color: Colors.grey[500]),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      '${log.actorName} (${log.actorRole})',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${dateFormat.format(log.timestamp)} at ${timeFormat.format(log.timestamp)}',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ],
+                    ),
+                  ),
+                  
+                  // View details button
+                  IconButton(
+                    onPressed: () => _showLogDetails(log),
+                    icon: Icon(Icons.chevron_right, size: isNarrow ? 20 : 24),
+                    color: Colors.grey[400],
+                    padding: EdgeInsets.zero,
+                    constraints: BoxConstraints(
+                      minWidth: isNarrow ? 32 : 48,
+                      minHeight: isNarrow ? 32 : 48,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
