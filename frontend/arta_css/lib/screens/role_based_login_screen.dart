@@ -2,6 +2,7 @@
 
 // lib/screens/role_based_login_screen.dart
 import 'dart:ui';
+import '../config.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -50,6 +51,13 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
   }
 
   Future<void> _login() async {
+    // Prevent login in user-only builds
+    if (kUserOnlyMode) {
+      setState(() {
+        _errorMessage = 'Admin login is disabled in this build.';
+      });
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     
     final authService = Provider.of<AuthServiceHttp>(context, listen: false);
@@ -126,6 +134,37 @@ class _RoleBasedLoginScreenState extends State<RoleBasedLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // If admin features are disabled, show a simple message instead of the login form
+    if (kUserOnlyMode) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Admin Disabled'),
+          backgroundColor: const Color(0xFF003366),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'The admin login and dashboard are disabled in this build.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+                  },
+                  child: const Text('Back to Survey'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return Scaffold(
       body: Stack(
         children: [

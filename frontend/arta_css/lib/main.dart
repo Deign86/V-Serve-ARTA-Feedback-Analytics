@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'services/cache_service.dart';
 import 'widgets/global_offline_indicator.dart';
@@ -42,12 +44,9 @@ import 'platform/window_helper_stub.dart'
 
 // Conditional import for web URL strategy
 import 'platform/url_strategy_stub.dart'
-    if (dart.library.js_interop) 'platform/url_strategy_web.dart' as url_strategy;
+  if (dart.library.js_interop) 'platform/url_strategy_web.dart' as url_strategy;
 
-/// User-only mode flag - when true, admin panel and login are completely disabled
-/// Set via --dart-define=USER_ONLY_MODE=true during build
-/// Used for public-facing builds (e.g., Android APK for survey respondents)
-const bool kUserOnlyMode = bool.fromEnvironment('USER_ONLY_MODE', defaultValue: false);
+import 'config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -141,31 +140,46 @@ void main() async {
     debugPrint('Using HTTP services for all platforms (Firebase removed)');
   }
 
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: cacheService),
-        ChangeNotifierProvider.value(value: offlineQueueService),
-        ChangeNotifierProvider.value(value: pushNotificationService),
-        ChangeNotifierProvider<AuthServiceHttp>.value(value: authService),
-        ChangeNotifierProvider<FeedbackServiceHttp>.value(value: feedbackService),
-        ChangeNotifierProvider(create: (_) {
-          final configService = SurveyConfigService();
-          configService.loadConfig(); // Load saved configuration
-          return configService;
-        }),
-        ChangeNotifierProvider(create: (_) {
-          final questionsService = SurveyQuestionsService();
-          questionsService.loadQuestions(); // Load saved questions
-          return questionsService;
-        }),
-        ChangeNotifierProvider<UserManagementServiceHttp>.value(value: userManagementService),
-        ChangeNotifierProvider(create: (_) => SurveyProvider()),
-        ChangeNotifierProvider<AuditLogServiceHttp>.value(value: auditLogService),
-      ],
-      child: const MyApp(),
-    ),
-  );
+  // Global error handlers to capture uncaught exceptions on all platforms
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    if (kDebugMode) debugPrint('Uncaught Flutter error: ${details.exceptionAsString()}');
+  };
+
+  ui.PlatformDispatcher.instance.onError = (error, stack) {
+    if (kDebugMode) debugPrint('PlatformDispatcher uncaught error: $error\n$stack');
+    return true; // handled
+  };
+
+  runZonedGuarded(() {
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: cacheService),
+          ChangeNotifierProvider.value(value: offlineQueueService),
+          ChangeNotifierProvider.value(value: pushNotificationService),
+          ChangeNotifierProvider<AuthServiceHttp>.value(value: authService),
+          ChangeNotifierProvider<FeedbackServiceHttp>.value(value: feedbackService),
+          ChangeNotifierProvider(create: (_) {
+            final configService = SurveyConfigService();
+            configService.loadConfig(); // Load saved configuration
+            return configService;
+          }),
+          ChangeNotifierProvider(create: (_) {
+            final questionsService = SurveyQuestionsService();
+            questionsService.loadQuestions(); // Load saved questions
+            return questionsService;
+          }),
+          ChangeNotifierProvider<UserManagementServiceHttp>.value(value: userManagementService),
+          ChangeNotifierProvider(create: (_) => SurveyProvider()),
+          ChangeNotifierProvider<AuditLogServiceHttp>.value(value: auditLogService),
+        ],
+        child: const MyApp(),
+      ),
+    );
+  }, (error, stack) {
+    if (kDebugMode) debugPrint('Uncaught zone error: $error\n$stack');
+  });
 }
 
 // Route observer to track navigation and handle security

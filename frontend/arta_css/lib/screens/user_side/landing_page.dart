@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../config.dart';
 import 'package:provider/provider.dart';
 import '../../services/survey_config_service.dart';
 import '../../services/audit_log_service_http.dart';
@@ -455,10 +456,17 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Long-press on logo to access admin login
+              // Long-press on logo to access admin login (disabled in user-only builds)
               GestureDetector(
                 onLongPress: () {
-                  Navigator.pushNamed(context, '/admin/login');
+                  if (!kUserOnlyMode) {
+                    Navigator.pushNamed(context, '/admin/login');
+                  } else {
+                    // Optionally provide subtle feedback when admin is disabled
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Admin access is disabled in this build')),
+                    );
+                  }
                 },
                 child: CircleAvatar(
                   radius: isMobile ? 24 : 32,

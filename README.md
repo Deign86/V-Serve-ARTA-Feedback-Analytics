@@ -260,6 +260,36 @@ flutter analyze
 # Format code
 dart format lib/
 ```
+---
+
+## 🔧 Recent Local Changes (summary)
+
+These changes were made during recent debugging and build work in this repository:
+
+- Added `lib/config.dart` — centralizes the compile-time `USER_ONLY_MODE` flag.
+- Refactored `lib/main.dart`, `lib/screens/user_side/landing_page.dart`, and `lib/screens/role_based_login_screen.dart` to import `lib/config.dart` and use `kUserOnlyMode`.
+- Fixed a Dart syntax error in `lib/main.dart` (malformed `MultiProvider`) that caused release builds to fail.
+- Android: added `android/app/src/main/kotlin/com/vserve/arta/MainActivity.kt` and removed the old `com.example.arta_css` activity to fix ClassNotFound startup crashes; ensured `AndroidManifest.xml` references the correct activity.
+- Added UI guards to disable admin routes when building with `--dart-define=USER_ONLY_MODE=true` (landing long-press and login page now respect the flag).
+- Built artifacts (created locally): Android APK (`frontend/arta_css/build/app/outputs/flutter-apk/app-release.apk`) and Windows release exe (`frontend/arta_css/build/windows/x64/runner/Release/V-Serve.exe`). These generated build outputs were removed from the repo before committing to keep the repo clean.
+
+Build commands used:
+
+```powershell
+# User-only Android APK
+..\..\flutter\bin\flutter.bat build apk --release --dart-define=USER_ONLY_MODE=true
+
+# Windows release (admin enabled)
+..\..\flutter\bin\flutter.bat build windows --release
+```
+
+If you want the admin-disabled (user-only) Windows build, run:
+
+```powershell
+..\..\flutter\bin\flutter.bat build windows --release --dart-define=USER_ONLY_MODE=true
+```
+
+If you'd like these changes pushed to a specific branch or remote, tell me which branch/remote to use.
 
 ### Environment Setup (Backend - Optional)
 

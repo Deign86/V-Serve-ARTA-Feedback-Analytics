@@ -164,6 +164,29 @@ Users persist in Firebase Auth — no re-seeding needed between deployments.
 4. Register route in `main.dart` if navigable
 5. Update this file if adding significant patterns
 
+## Recent Local Changes (agent-made)
+
+During recent debugging and builds the AI assistant made the following repository changes:
+
+- Added `lib/config.dart` to centralize the compile-time `USER_ONLY_MODE` flag.
+- Updated `lib/main.dart` to import `lib/config.dart` and use `kUserOnlyMode` for routing security checks.
+- Refactored `lib/screens/user_side/landing_page.dart` and `lib/screens/role_based_login_screen.dart` to import `lib/config.dart` and remove duplicate local flag definitions. The landing page long-press admin entry and the login screen now respect `kUserOnlyMode`.
+- Fixed a syntax bug in `lib/main.dart` (malformed `MultiProvider`) that prevented release builds.
+- Android: added `android/app/src/main/kotlin/com/vserve/arta/MainActivity.kt` and removed the stale `com.example.arta_css` activity to fix startup ClassNotFound crashes; manifest updated accordingly.
+- Built release artifacts locally (Android APK and Windows exe) and removed generated build outputs before committing to keep the repository clean.
+
+Build commands used during the work:
+
+```powershell
+# User-only Android APK
+..\..\flutter\bin\flutter.bat build apk --release --dart-define=USER_ONLY_MODE=true
+
+# Windows release (admin enabled)
+..\..\flutter\bin\flutter.bat build windows --release
+```
+
+Note: `USER_ONLY_MODE` is a compile-time flag. Rebuild each platform with `--dart-define=USER_ONLY_MODE=true` to produce admin-disabled builds.
+
 ## File reference quick links
 
 | What | Where |
