@@ -300,6 +300,65 @@ If you want the admin-disabled (user-only) Windows build, run:
 ..\..\flutter\bin\flutter.bat build windows --release --dart-define=USER_ONLY_MODE=true
 ```
 
+---
+
+## 🔨 Unified Build Script
+
+The repository includes a comprehensive build script that builds all deployment targets (Web, Windows, Android) in one command.
+
+### Usage
+
+```powershell
+# From repository root, build all targets (admin-enabled)
+.\scripts\build-all.ps1 -Mode Release
+
+# Build all targets in user-only mode (admin features disabled)
+.\scripts\build-all.ps1 -Mode Release -UserOnly
+
+# Build only specific targets
+.\scripts\build-all.ps1 -SkipAndroid               # Web + Windows only
+.\scripts\build-all.ps1 -SkipWindows -SkipWeb      # Android only
+.\scripts\build-all.ps1 -SkipAndroid -SkipWeb      # Windows only
+```
+
+### Build Output Structure
+
+After a successful build, artifacts are organized in the `builds/` directory:
+
+```
+builds/
+├── web/                        # Flutter web build (full directory)
+│   ├── index.html
+│   ├── main.dart.js
+│   ├── firebase-messaging-sw.js
+│   └── ...
+├── windows/
+│   ├── V-Serve.exe            # Windows executable + DLLs
+│   ├── V-Serve-Portable.exe   # Self-extracting single-file portable
+│   ├── V-Serve-windows.zip    # ZIP archive of full release
+│   └── data/                  # Flutter assets folder
+└── android/
+    ├── app-release.apk        # Release APK
+    └── V-Serve-release.apk    # Renamed copy
+```
+
+### Requirements
+
+| Target | Requirements |
+|--------|--------------|
+| **Web** | Flutter SDK (bundled or PATH) |
+| **Windows** | VS 2022 Build Tools (C++ workload), .NET 8.0+ SDK |
+| **Android** | Android SDK, Java JDK 11+ |
+
+### Script Features
+
+- **Auto-detects Flutter**: Uses bundled SDK (`./flutter/bin/flutter.bat`) or system PATH
+- **Validates environment**: Checks for VS Build Tools, Android SDK, etc.
+- **Colored logging**: Clear `[INFO]`, `[OK]`, `[WARN]`, `[ERROR]` messages
+- **Build summary**: Shows all artifacts with paths at completion
+- **Non-zero exit**: Returns error code if any enabled target fails
+- **Portable launcher**: Automatically builds the C# portable launcher from `tools/portable_launcher_cs`
+
 If you'd like these changes pushed to a specific branch or remote, tell me which branch/remote to use.
 
 ### Environment Setup (Backend - Optional)

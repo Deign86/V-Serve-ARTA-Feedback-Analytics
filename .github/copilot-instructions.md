@@ -64,6 +64,19 @@ From repo root, prefer the bundled SDK:
 
 # Static analysis (should pass with 0 issues)
 .\flutter\bin\flutter.bat analyze frontend\arta_css
+
+# ===== UNIFIED BUILD SCRIPT (builds all targets) =====
+# Build all targets (Web + Windows + Android) from repo root:
+.\scripts\build-all.ps1 -Mode Release
+
+# Build with user-only mode (admin disabled):
+.\scripts\build-all.ps1 -Mode Release -UserOnly
+
+# Build specific targets only:
+.\scripts\build-all.ps1 -SkipAndroid              # Web + Windows
+.\scripts\build-all.ps1 -SkipWindows -SkipWeb     # Android only
+
+# Output goes to: builds/web/, builds/windows/, builds/android/
 ```
 
 ## Key patterns & conventions
