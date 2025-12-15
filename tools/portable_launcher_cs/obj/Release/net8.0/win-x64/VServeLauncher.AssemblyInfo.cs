@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VServeLauncher")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0a18379b25678fdd3bd351fdd27f03a69b511657")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9d133487d2dde4cbe759aa652af6f769d9b35a3f")]
 [assembly: System.Reflection.AssemblyProductAttribute("VServeLauncher")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VServeLauncher")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

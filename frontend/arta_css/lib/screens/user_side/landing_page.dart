@@ -503,54 +503,76 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
           
           SizedBox(height: isMobile ? 30 : 60),
 
-          // --- HOVER ANIMATION FOR ARTA ---
-          MouseRegion(
-            onEnter: (_) {
+          // --- HOVER ANIMATION FOR ARTA (with tap support for mobile) ---
+          GestureDetector(
+            onTap: () {
+              // Toggle animation on tap for mobile users
               _hoverTimer?.cancel();
-              _expandController.forward();
+              if (_expandController.isCompleted || _expandController.isAnimating && _expandController.velocity > 0) {
+                // If expanded or expanding, collapse after delay
+                _hoverTimer = Timer(const Duration(milliseconds: 1500), () {
+                  if (mounted) {
+                    _expandController.reverse();
+                  }
+                });
+              } else {
+                // If collapsed or collapsing, expand and auto-collapse after delay
+                _expandController.forward();
+                _hoverTimer = Timer(const Duration(milliseconds: 2500), () {
+                  if (mounted) {
+                    _expandController.reverse();
+                  }
+                });
+              }
             },
-            onExit: (_) {
-              _hoverTimer = Timer(const Duration(milliseconds: 600), () {
-                 if (mounted) {
-                   _expandController.reverse();
-                 }
-              });
-            },
-            cursor: SystemMouseCursors.click,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    "ARTA",
-                    style: GoogleFonts.montserrat(
-                      fontSize: isMobile ? 48 : 80,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF003366),
-                      height: 1.0,
-                    ),
-                  ),
-                  SizeTransition(
-                    sizeFactor: _expandAnimation,
-                    axis: Axis.horizontal,
-                    axisAlignment: -1.0, 
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 10),
-                      child: Text(
-                        "| Anti-Red Tape Authority",
-                        style: GoogleFonts.montserrat(
-                          fontSize: isMobile ? 16 : 24,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF003366),
-                        ),
-                        softWrap: false,
-                        maxLines: 1,
+            child: MouseRegion(
+              onEnter: (_) {
+                _hoverTimer?.cancel();
+                _expandController.forward();
+              },
+              onExit: (_) {
+                _hoverTimer = Timer(const Duration(milliseconds: 600), () {
+                   if (mounted) {
+                     _expandController.reverse();
+                   }
+                });
+              },
+              cursor: SystemMouseCursors.click,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      "ARTA",
+                      style: GoogleFonts.montserrat(
+                        fontSize: isMobile ? 48 : 80,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF003366),
+                        height: 1.0,
                       ),
                     ),
-                  ),
-                ],
+                    SizeTransition(
+                      sizeFactor: _expandAnimation,
+                      axis: Axis.horizontal,
+                      axisAlignment: -1.0, 
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 10),
+                        child: Text(
+                          "| Anti-Red Tape Authority",
+                          style: GoogleFonts.montserrat(
+                            fontSize: isMobile ? 16 : 24,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF003366),
+                          ),
+                          softWrap: false,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

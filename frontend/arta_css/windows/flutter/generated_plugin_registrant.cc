@@ -10,6 +10,8 @@
 #include <local_notifier/local_notifier_plugin.h>
 #include <permission_handler_windows/permission_handler_windows_plugin.h>
 #include <printing/printing_plugin.h>
+#include <screen_retriever_windows/screen_retriever_windows_plugin_c_api.h>
+#include <window_manager/window_manager_plugin.h>
 #include <windows_notification/windows_notification_plugin_c_api.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
@@ -21,6 +23,10 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("PermissionHandlerWindowsPlugin"));
   PrintingPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("PrintingPlugin"));
+  ScreenRetrieverWindowsPluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("ScreenRetrieverWindowsPluginCApi"));
+  WindowManagerPluginRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("WindowManagerPlugin"));
   WindowsNotificationPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("WindowsNotificationPluginCApi"));
 }
