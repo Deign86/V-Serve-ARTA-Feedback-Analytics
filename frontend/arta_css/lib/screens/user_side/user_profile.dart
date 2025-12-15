@@ -347,80 +347,86 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
             Padding(
               padding: EdgeInsets.all(isMobile ? 20 : 40),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                    SizedBox(
-                    width: isMobile ? 150 : 180,
-                    height: isMobile ? 44 : 50,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        // Update Provider before going back
-                        final configService = context.read<SurveyConfigService>();
-                        final demographicsEnabled = configService.demographicsEnabled;
-                        context.read<SurveyProvider>().updateProfile(
-                          clientType: clientType,
-                          date: selectedDate,
-                          sex: demographicsEnabled ? sex : null,
-                          age: demographicsEnabled && age != null ? int.tryParse(age!) : null,
-                          region: demographicsEnabled ? region?.trim() : null,
-                          serviceAvailed: _isOtherService 
-                              ? _otherServiceController.text.trim() 
-                              : serviceAvailed?.trim(),
-                        );
-                        Navigator.of(context).maybePop();
-                      },
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF003366), width: 2),
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.arrow_back,
-                            size: isMobile ? 16 : 18,
-                            color: const Color(0xFF003366),
-                          ),
-                          SizedBox(width: isMobile ? 4 : 8),
-                          Text(
-                            'PREVIOUS',
-                            style: GoogleFonts.montserrat(
-                              fontSize: isMobile ? 11 : 14,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF003366),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isVeryNarrow = constraints.maxWidth < 340;
+                  final buttonWidth = isVeryNarrow ? 100.0 : (isMobile ? 140.0 : 160.0);
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      SizedBox(
+                        width: buttonWidth,
+                        height: isMobile ? 44 : 50,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            // Update Provider before going back
+                            final configService = context.read<SurveyConfigService>();
+                            final demographicsEnabled = configService.demographicsEnabled;
+                            context.read<SurveyProvider>().updateProfile(
+                              clientType: clientType,
+                              date: selectedDate,
+                              sex: demographicsEnabled ? sex : null,
+                              age: demographicsEnabled && age != null ? int.tryParse(age!) : null,
+                              region: demographicsEnabled ? region?.trim() : null,
+                              serviceAvailed: _isOtherService 
+                                  ? _otherServiceController.text.trim() 
+                                  : serviceAvailed?.trim(),
+                            );
+                            Navigator.of(context).maybePop();
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF003366), width: 2),
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: isMobile ? 140 : 160,
-                    height: isMobile ? 44 : 50,
-                    child: ElevatedButton(
-                      onPressed: _isFormComplete ? _validateAndSubmit : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF003366),
-                        disabledBackgroundColor: Colors.grey.shade400,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.arrow_back,
+                                size: isMobile ? 16 : 18,
+                                color: const Color(0xFF003366),
+                              ),
+                              SizedBox(width: isVeryNarrow ? 2 : (isMobile ? 4 : 8)),
+                              Text(
+                                isVeryNarrow ? 'BACK' : 'PREVIOUS',
+                                style: GoogleFonts.montserrat(
+                                  fontSize: isVeryNarrow ? 10 : (isMobile ? 11 : 14),
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF003366),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      child: Text(
-                        'NEXT PAGE',
-                        style: GoogleFonts.montserrat(
-                          fontSize: isMobile ? 12 : 14,
-                          fontWeight: FontWeight.bold,
-                          color: _isFormComplete ? Colors.white : Colors.grey.shade600,
+                      SizedBox(
+                        width: buttonWidth,
+                        height: isMobile ? 44 : 50,
+                        child: ElevatedButton(
+                          onPressed: _isFormComplete ? _validateAndSubmit : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF003366),
+                            disabledBackgroundColor: Colors.grey.shade400,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                          ),
+                          child: Text(
+                            isVeryNarrow ? 'NEXT' : 'NEXT PAGE',
+                            style: GoogleFonts.montserrat(
+                              fontSize: isVeryNarrow ? 10 : (isMobile ? 12 : 14),
+                              fontWeight: FontWeight.bold,
+                              color: _isFormComplete ? Colors.white : Colors.grey.shade600,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
             ),
           ],

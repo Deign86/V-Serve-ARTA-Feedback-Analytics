@@ -304,11 +304,15 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
   }
 
   Widget _buildNavigationButtons(bool isMobile) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isVeryNarrow = screenWidth < 380;
+    final buttonWidth = isMobile ? (isVeryNarrow ? 120.0 : 140.0) : 180.0;
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         SizedBox(
-          width: isMobile ? 140 : 180,
+          width: buttonWidth,
           height: isMobile ? 48 : 55,
           child: OutlinedButton(
             onPressed: () {
@@ -334,11 +338,11 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                   size: isMobile ? 16 : 18,
                   color: const Color(0xFF003366),
                 ),
-                SizedBox(width: isMobile ? 4 : 8),
+                SizedBox(width: isVeryNarrow ? 2 : (isMobile ? 4 : 8)),
                 Text(
-                  'PREVIOUS',
+                  isVeryNarrow ? 'BACK' : 'PREVIOUS',
                   style: GoogleFonts.montserrat(
-                    fontSize: isMobile ? 12 : 14,
+                    fontSize: isMobile ? (isVeryNarrow ? 11 : 12) : 14,
                     fontWeight: FontWeight.bold,
                     color: const Color(0xFF003366),
                   ),
@@ -348,7 +352,7 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
           ),
         ),
         SizedBox(
-          width: isMobile ? 140 : 180,
+          width: buttonWidth,
           height: isMobile ? 48 : 55,
           child: ElevatedButton(
             onPressed: _isSubmitting ? null : () async {
@@ -441,9 +445,9 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                     ),
                   )
                 : Text(
-                    'SUBMIT SURVEY',
+                    isVeryNarrow ? 'SUBMIT' : 'SUBMIT SURVEY',
                     style: GoogleFonts.montserrat(
-                      fontSize: isMobile ? 12 : 14,
+                      fontSize: isMobile ? (isVeryNarrow ? 11 : 12) : 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),

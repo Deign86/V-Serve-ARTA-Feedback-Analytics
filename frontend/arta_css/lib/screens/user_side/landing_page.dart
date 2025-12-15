@@ -504,77 +504,98 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
           SizedBox(height: isMobile ? 30 : 60),
 
           // --- HOVER ANIMATION FOR ARTA (with tap support for mobile) ---
-          GestureDetector(
-            onTap: () {
-              // Toggle animation on tap for mobile users
-              _hoverTimer?.cancel();
-              if (_expandController.isCompleted || _expandController.isAnimating && _expandController.velocity > 0) {
-                // If expanded or expanding, collapse after delay
-                _hoverTimer = Timer(const Duration(milliseconds: 1500), () {
-                  if (mounted) {
-                    _expandController.reverse();
+          LayoutBuilder(
+            builder: (context, constraints) {
+              // On very narrow screens (<350px), don't show expanded text animation
+              final isVeryNarrow = constraints.maxWidth < 350;
+              final artaFontSize = isMobile ? (isVeryNarrow ? 40.0 : 48.0) : 80.0;
+              final expandedFontSize = isMobile ? (isVeryNarrow ? 12.0 : 16.0) : 24.0;
+              
+              return GestureDetector(
+                onTap: () {
+                  // Toggle animation on tap for mobile users
+                  _hoverTimer?.cancel();
+                  if (_expandController.isCompleted || _expandController.isAnimating && _expandController.velocity > 0) {
+                    // If expanded or expanding, collapse after delay
+                    _hoverTimer = Timer(const Duration(milliseconds: 1500), () {
+                      if (mounted) {
+                        _expandController.reverse();
+                      }
+                    });
+                  } else {
+                    // If collapsed or collapsing, expand and auto-collapse after delay
+                    _expandController.forward();
+                    _hoverTimer = Timer(const Duration(milliseconds: 2500), () {
+                      if (mounted) {
+                        _expandController.reverse();
+                      }
+                    });
                   }
-                });
-              } else {
-                // If collapsed or collapsing, expand and auto-collapse after delay
-                _expandController.forward();
-                _hoverTimer = Timer(const Duration(milliseconds: 2500), () {
-                  if (mounted) {
-                    _expandController.reverse();
-                  }
-                });
-              }
-            },
-            child: MouseRegion(
-              onEnter: (_) {
-                _hoverTimer?.cancel();
-                _expandController.forward();
-              },
-              onExit: (_) {
-                _hoverTimer = Timer(const Duration(milliseconds: 600), () {
-                   if (mounted) {
-                     _expandController.reverse();
-                   }
-                });
-              },
-              cursor: SystemMouseCursors.click,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      "ARTA",
-                      style: GoogleFonts.montserrat(
-                        fontSize: isMobile ? 48 : 80,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF003366),
-                        height: 1.0,
-                      ),
-                    ),
-                    SizeTransition(
-                      sizeFactor: _expandAnimation,
-                      axis: Axis.horizontal,
-                      axisAlignment: -1.0, 
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 10),
-                        child: Text(
-                          "| Anti-Red Tape Authority",
-                          style: GoogleFonts.montserrat(
-                            fontSize: isMobile ? 16 : 24,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF003366),
-                          ),
-                          softWrap: false,
-                          maxLines: 1,
+                },
+                child: MouseRegion(
+                  onEnter: (_) {
+                    _hoverTimer?.cancel();
+                    _expandController.forward();
+                  },
+                  onExit: (_) {
+                    _hoverTimer = Timer(const Duration(milliseconds: 600), () {
+                       if (mounted) {
+                         _expandController.reverse();
+                       }
+                    });
+                  },
+                  cursor: SystemMouseCursors.click,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        "ARTA",
+                        style: GoogleFonts.montserrat(
+                          fontSize: artaFontSize,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF003366),
+                          height: 1.0,
                         ),
                       ),
-                    ),
-                  ],
+                      // Only show expandable text if not very narrow
+                      if (!isVeryNarrow)
+                        SizeTransition(
+                          sizeFactor: _expandAnimation,
+                          axis: Axis.horizontal,
+                          axisAlignment: -1.0, 
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 10),
+                            child: Text(
+                              "| Anti-Red Tape Authority",
+                              style: GoogleFonts.montserrat(
+                                fontSize: expandedFontSize,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF003366),
+                              ),
+                              softWrap: false,
+                              maxLines: 1,
+                            ),
+                          ),
+                        )
+                      else
+                        // Show static abbreviated text on very narrow screens
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6),
+                          child: Text(
+                            "| Anti-",
+                            style: GoogleFonts.montserrat(
+                              fontSize: expandedFontSize,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF003366).withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
           
           Text(
