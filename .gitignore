@@ -13,6 +13,11 @@ pubspec.lock
 # Build output directory (artifacts, not source)
 builds/
 
+# .NET build artifacts
+**/bin/
+**/obj/
+**/publish/
+
 # Sensitive files - NEVER commit these
 **/.env
 **/.env.*
@@ -22,3 +27,7 @@ builds/
 **/*secret*.json
 **/*credentials*.json
 .vercel
+
+# Temporary files
+temp_*.txt
+*.tmp

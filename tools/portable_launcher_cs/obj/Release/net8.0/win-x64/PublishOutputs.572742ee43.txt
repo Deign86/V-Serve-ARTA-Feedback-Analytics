@@ -1,2 +1,0 @@
-c:\Users\Deign\Downloads\V-Serve-ARTA-Feedback-Analytics\tools\portable_launcher_cs\publish\VServeLauncher.pdb
-c:\Users\Deign\Downloads\V-Serve-ARTA-Feedback-Analytics\tools\portable_launcher_cs\publish\VServeLauncher.exe
