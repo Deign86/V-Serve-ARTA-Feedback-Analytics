@@ -7,8 +7,8 @@ import 'api_config.dart';
 import 'api_service.dart';
 import 'native_notification_service_native.dart';
 
-// Firebase messaging import for Android
-import 'package:firebase_messaging/firebase_messaging.dart' as fbm;
+// Firebase messaging functions - uses stub on desktop, real impl on Android/iOS
+import 'firebase_messaging_desktop.dart' as fbm_service;
 
 // (desktop notifications use LocalNotifier via native wrapper)
 
@@ -22,7 +22,7 @@ class NotificationService {
 
     if (Platform.isAndroid) {
       try {
-        await fbm.FirebaseMessaging.instance.requestPermission();
+        await fbm_service.requestFirebaseMessagingPermission();
         if (kDebugMode) debugPrint('Android messaging permission requested');
       } catch (e) {
         if (kDebugMode) debugPrint('NotificationService(io) android init error: $e');
@@ -60,9 +60,7 @@ class NotificationService {
   static Future<bool> requestPermission() async {
     if (Platform.isAndroid) {
       try {
-        final status = await fbm.FirebaseMessaging.instance.requestPermission();
-        return status.authorizationStatus == fbm.AuthorizationStatus.authorized ||
-            status.authorizationStatus == fbm.AuthorizationStatus.provisional;
+        return await fbm_service.requestFirebaseMessagingPermission();
       } catch (e) {
         if (kDebugMode) debugPrint('requestPermission android error: $e');
         return false;
@@ -76,7 +74,7 @@ class NotificationService {
   static Future<String?> getToken() async {
     if (Platform.isAndroid) {
       try {
-        final token = await fbm.FirebaseMessaging.instance.getToken();
+        final token = await fbm_service.getFirebaseMessagingToken();
         return token;
       } catch (e) {
         if (kDebugMode) debugPrint('NotificationService(io) android getToken error: $e');
@@ -140,7 +138,5 @@ class NotificationService {
   }
 }
 
-/// Background handler for Android messages
-Future<void> firebaseMessagingBackgroundHandler(fbm.RemoteMessage message) async {
-  if (kDebugMode) debugPrint('Background message received: ${message.messageId}');
-}
+/// Background handler for Android messages - re-export from conditional import
+final firebaseMessagingBackgroundHandler = fbm_service.firebaseMessagingBackgroundHandler;

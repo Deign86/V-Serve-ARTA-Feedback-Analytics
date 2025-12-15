@@ -55,8 +55,9 @@ add_subdirectory("runner")
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
-# Using custom filtered version to exclude Firebase (MSVC compatibility issues)
-include(flutter/generated_plugins_filtered.cmake)
+# NOTE: When building with pubspec_desktop.yaml, generated_plugins.cmake
+# will NOT include Firebase plugins (they're excluded from that pubspec)
+include(flutter/generated_plugins.cmake)
 
 
 # === Installation ===

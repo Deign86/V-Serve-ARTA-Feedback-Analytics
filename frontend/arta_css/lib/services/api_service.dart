@@ -19,4 +19,19 @@ class ApiService {
       return false;
     }
   }
+
+  /// Unregister device token from backend (disable push notifications)
+  /// body: { userId }
+  static Future<bool> unregisterDeviceToken({required String userId}) async {
+    try {
+      final client = ApiClient();
+      final resp = await client.post('/push/unsubscribe', body: {
+        'userId': userId,
+      });
+      return resp.isSuccess;
+    } catch (e) {
+      if (kDebugMode) debugPrint('ApiService.unregisterDeviceToken error: $e');
+      return false;
+    }
+  }
 }

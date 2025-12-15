@@ -1,0 +1,70 @@
+# Windows/Desktop-specific pubspec - excludes Firebase packages
+# Firebase C++ SDK doesn't compile with MSVC, so we use this for desktop builds
+# Copy this to pubspec.yaml before Windows/Linux/macOS builds, then restore original
+name: arta_css
+description: "V-Serve ARTA Feedback Analytics - Client Satisfaction Survey System for the City Government of Valenzuela"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+  google_fonts: ^6.3.3
+  http: ^1.6.0
+  provider: ^6.1.5
+  fl_chart: ^1.1.1
+  # Firebase packages EXCLUDED for Windows - uses HTTP backend services instead
+  # firebase_core: ^3.13.1
+  # firebase_messaging: ^15.0.0
+  # firebase_messaging_web: ^3.0.0
+  shared_preferences: ^2.5.4
+  csv: ^6.0.0
+  path_provider: ^2.1.2
+  permission_handler: ^11.4.0
+  pdf: ^3.11.0
+  qr_flutter: ^4.1.0
+  printing: ^5.13.0
+  crypto: ^3.0.7
+  intl: ^0.20.2
+  local_notifier: ^0.1.6
+  windows_notification: ^1.3.0
+  device_info_plus: ^12.3.0
+  uuid: ^4.5.1
+  file_picker: ^8.1.7
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  window_manager: ^0.4.0
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/arta_icon.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/arta_icon.png"
+  windows:
+    generate: true
+    image_path: "assets/arta_icon.png"
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: "assets/arta_icon.png"
+
+flutter:
+  uses-material-design: true
+  assets:
+      - assets/
+      - assets/emojis/

@@ -43,8 +43,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       }
     } else {
-      // Disable locally
-      // TODO: call backend to unregister if desired
+      // Disable notifications - unregister from backend
+      final token = await NotificationService.getToken();
+      if (token != null) {
+        await ApiService.unregisterDeviceToken(userId: token);
+      }
     }
 
     final prefs = await SharedPreferences.getInstance();

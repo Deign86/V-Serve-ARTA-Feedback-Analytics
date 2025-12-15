@@ -48,19 +48,26 @@ import 'platform/url_strategy_stub.dart'
   if (dart.library.js_interop) 'platform/url_strategy_web.dart' as url_strategy;
 
 import 'config.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+
+// Conditional Firebase imports - stub for Windows/Linux/macOS, real for Web/Mobile
+import 'platform/firebase_stub.dart'
+  if (dart.library.js_interop) 'platform/firebase_real.dart'
+  if (dart.library.html) 'platform/firebase_real.dart' as firebase_core;
+import 'platform/firebase_messaging_stub.dart'
+  if (dart.library.js_interop) 'platform/firebase_messaging_real.dart'
+  if (dart.library.html) 'platform/firebase_messaging_real.dart' as firebase_messaging;
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase for messaging on supported platforms
+  // Initialize Firebase for messaging on supported platforms (Web/Mobile only)
+  // Desktop platforms (Windows/Linux/macOS) use HTTP backend services instead
   try {
     final options = DefaultFirebaseOptions.currentPlatform;
     if (options != null) {
-      await Firebase.initializeApp(
-        options: FirebaseOptions(
+      await firebase_core.Firebase.initializeApp(
+        options: firebase_core.FirebaseOptions(
           apiKey: options['apiKey'],
           appId: options['appId'],
           messagingSenderId: options['messagingSenderId'],
@@ -68,8 +75,8 @@ void main() async {
         ),
       );
 
-      // Register background handler for Android
-      FirebaseMessaging.onBackgroundMessage((RemoteMessage message) async {
+      // Register background handler for Android/Web
+      firebase_messaging.FirebaseMessaging.onBackgroundMessage((firebase_messaging.RemoteMessage message) async {
         if (kDebugMode) debugPrint('Background message received: ${message.messageId}');
       });
     }

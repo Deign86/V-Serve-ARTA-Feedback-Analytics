@@ -3,9 +3,51 @@
   "version": 2,
   "outputDirectory": "frontend/arta_css/build/web",
   "buildCommand": "git clone https://github.com/flutter/flutter.git --depth 1 -b stable flutter-sdk && export PATH=\"$PWD/flutter-sdk/bin:$PATH\" && flutter --version && cd frontend/arta_css && flutter pub get && flutter build web --release",
-  "installCommand": "echo 'Flutter will be downloaded during build'",
+  "installCommand": "cd backend && npm install && cd ..",
   "framework": null,
+  "functions": {
+    "backend/api/index.js": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/backend/api/index.js"
+    },
+    {
+      "source": "/auth/:path*",
+      "destination": "/backend/api/index.js"
+    },
+    {
+      "source": "/feedback/:path*",
+      "destination": "/backend/api/index.js"
+    },
+    {
+      "source": "/users/:path*",
+      "destination": "/backend/api/index.js"
+    },
+    {
+      "source": "/survey-config/:path*",
+      "destination": "/backend/api/index.js"
+    },
+    {
+      "source": "/audit/:path*",
+      "destination": "/backend/api/index.js"
+    },
+    {
+      "source": "/push/:path*",
+      "destination": "/backend/api/index.js"
+    },
+    {
+      "source": "/ping",
+      "destination": "/backend/api/index.js"
+    },
+    {
+      "source": "/health",
+      "destination": "/backend/api/index.js"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"

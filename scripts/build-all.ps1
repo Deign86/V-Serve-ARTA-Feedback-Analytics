@@ -456,12 +456,66 @@ function Build-WindowsApp {
     
     Push-Location $script:FrontendDir
     try {
+        # ====================================================================
+        # SWAP PUBSPEC FOR WINDOWS BUILD (excludes Firebase C++ plugins)
+        # Windows uses native notifications (windows_notification, local_notifier)
+        # instead of Firebase Cloud Messaging
+        # ====================================================================
+        $pubspecOriginal = Join-Path $script:FrontendDir "pubspec.yaml"
+        $pubspecDesktop = Join-Path $script:FrontendDir "pubspec_desktop.yaml"
+        $pubspecBackup = Join-Path $script:FrontendDir "pubspec_backup.yaml"
+        $pubspecSwapped = $false
+        
+        if (Test-Path $pubspecDesktop) {
+            Write-Log "Swapping pubspec.yaml with desktop version (uses native Windows notifications)..." -Level INFO
+            
+            # Backup original
+            Copy-Item -Path $pubspecOriginal -Destination $pubspecBackup -Force
+            
+            # Replace with desktop version
+            Copy-Item -Path $pubspecDesktop -Destination $pubspecOriginal -Force
+            $pubspecSwapped = $true
+            
+            # Clean Windows build directory to remove stale plugin registrations
+            $windowsBuildDir = Join-Path $script:FrontendDir "build\windows"
+            $windowsPluginsDir = Join-Path $script:FrontendDir "windows\flutter\ephemeral"
+            
+            if (Test-Path $windowsBuildDir) {
+                Write-Log "Cleaning Windows build directory..." -Level INFO
+                Remove-Item -Path $windowsBuildDir -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            if (Test-Path $windowsPluginsDir) {
+                Write-Log "Cleaning Windows plugin cache..." -Level INFO
+                Remove-Item -Path $windowsPluginsDir -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            
+            # Run pub get to regenerate plugin registrations without Firebase
+            Write-Log "Running flutter pub get to regenerate plugins (without Firebase)..." -Level INFO
+            & $script:FlutterCmd pub get
+        }
+        else {
+            Write-Log "Desktop pubspec not found at: $pubspecDesktop" -Level WARN
+            Write-Log "Windows build may fail if Firebase packages are present" -Level WARN
+        }
+        
         # Windows always builds with admin enabled (no USER_ONLY_MODE)
         Write-Log "Running: flutter build windows --release" -Level INFO
         
         $result = Invoke-CommandSafe -ScriptBlock {
             & $script:FlutterCmd build windows --release
         } -ErrorMessage "Windows build failed" -SuggestedFix "Ensure VS 2022 Build Tools are installed with C++ workload"
+        
+        # ====================================================================
+        # RESTORE ORIGINAL PUBSPEC
+        # ====================================================================
+        if ($pubspecSwapped -and (Test-Path $pubspecBackup)) {
+            Write-Log "Restoring original pubspec.yaml..." -Level INFO
+            Copy-Item -Path $pubspecBackup -Destination $pubspecOriginal -Force
+            Remove-Item $pubspecBackup -Force
+            
+            # Restore plugins for other builds
+            & $script:FlutterCmd pub get | Out-Null
+        }
         
         if (-not $result) {
             return $false

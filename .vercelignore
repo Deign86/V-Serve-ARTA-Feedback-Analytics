@@ -1,5 +1,5 @@
-# Ignore backend (if not deploying backend to Vercel)
-backend/
+# Backend is deployed as Vercel serverless functions
+# backend/  -- do not ignore
 
 # Ignore docs
 docs/
