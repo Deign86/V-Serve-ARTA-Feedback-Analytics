@@ -71,9 +71,9 @@ Future<bool> jsSubscribeAndSend(String baseUrl, String userId, String email, Str
   if (!kIsWeb) return false;
   try {
     final escapedBase = baseUrl.replaceAll("'", "\\'");
-    final escapedUser = (userId ?? '').replaceAll("'", "\\'");
-    final escapedEmail = (email ?? '').replaceAll("'", "\\'");
-    final escapedKey = (publicKey ?? '').replaceAll("'", "\\'");
+    final escapedUser = userId.replaceAll("'", "\\'");
+    final escapedEmail = email.replaceAll("'", "\\'");
+    final escapedKey = publicKey.replaceAll("'", "\\'");
 
     _jsEval('''(async () => {
       function urlBase64ToUint8Array(base64String) {
@@ -93,22 +93,22 @@ Future<bool> jsSubscribeAndSend(String baseUrl, String userId, String email, Str
         const existing = await reg.pushManager.getSubscription();
         if (existing) {
           try {
-            await fetch('${escapedBase}/push/subscribe', {
+            await fetch('$escapedBase/push/subscribe', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ userId: '${escapedUser}', email: '${escapedEmail}', subscription: existing.toJSON() })
+              body: JSON.stringify({ userId: '$escapedUser', email: '$escapedEmail', subscription: existing.toJSON() })
             });
             return;
           } catch (e) { console.error('post existing sub', e); }
         }
 
-        const applicationServerKey = urlBase64ToUint8Array('${escapedKey}');
+        const applicationServerKey = urlBase64ToUint8Array('$escapedKey');
         const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey });
         try {
-          await fetch('${escapedBase}/push/subscribe', {
+          await fetch('$escapedBase/push/subscribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: '${escapedUser}', email: '${escapedEmail}', subscription: sub.toJSON() })
+            body: JSON.stringify({ userId: '$escapedUser', email: '$escapedEmail', subscription: sub.toJSON() })
           });
         } catch (e) { console.error('post new sub', e); }
       } catch (err) {

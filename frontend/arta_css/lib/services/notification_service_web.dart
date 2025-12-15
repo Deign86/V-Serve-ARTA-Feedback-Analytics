@@ -2,9 +2,7 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
-import 'api_config.dart';
-import 'package:http/http.dart' as http;
+// No extra dependencies required here
 
 class NotificationService {
   static final FirebaseMessaging _fm = FirebaseMessaging.instance;
