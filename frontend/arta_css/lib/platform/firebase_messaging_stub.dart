@@ -1,5 +1,6 @@
 /// Stub implementation for FirebaseMessaging on unsupported platforms (Windows/Linux/macOS)
 /// This provides a no-op implementation so the code compiles without Firebase.
+library;
 
 class RemoteMessage {
   final String? messageId;

@@ -129,8 +129,4 @@ class AlertService extends ChangeNotifier {
   
   Future<void> deleteAlert(String alertId) async {}
   
-  @override
-  void dispose() {
-    super.dispose();
-  }
 }

@@ -100,7 +100,7 @@ class _SurveyQuestionEditorState extends State<SurveyQuestionEditor> {
             const SizedBox(height: 16),
             ...questionsService.ccQuestions.map(
               (q) => _CcQuestionCard(question: q, questionsService: questionsService),
-            ).toList(),
+            ),
           ],
         );
       case 'SQD':
@@ -119,7 +119,7 @@ class _SurveyQuestionEditorState extends State<SurveyQuestionEditor> {
                 question: entry.value,
                 questionsService: questionsService,
               ),
-            ).toList(),
+            ),
           ],
         );
       case 'Profile':

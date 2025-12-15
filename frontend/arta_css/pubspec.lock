@@ -806,7 +806,7 @@ packages:
     source: hosted
     version: "2.1.0"
   window_manager:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: window_manager
       sha256: "732896e1416297c63c9e3fb95aea72d0355f61390263982a47fd519169dc5059"

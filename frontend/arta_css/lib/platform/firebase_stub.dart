@@ -1,5 +1,6 @@
 /// Stub implementation for platforms that don't support Firebase (Windows/Linux/macOS)
 /// This file is used when compiling for desktop platforms.
+library;
 
 class FirebaseApp {
   final String name;

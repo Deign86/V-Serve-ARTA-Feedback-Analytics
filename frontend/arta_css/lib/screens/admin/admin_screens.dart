@@ -2797,18 +2797,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
       });
 
       if (resp.isSuccess) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Notification queued/sent'), backgroundColor: Colors.green),
         );
+        }
       } else {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed: ${resp.error ?? 'unknown'}'), backgroundColor: Colors.orange),
         );
+        }
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error sending: $e'), backgroundColor: Colors.red),
       );
+      }
     }
   }
   

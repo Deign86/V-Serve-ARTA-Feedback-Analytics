@@ -1,5 +1,6 @@
 /// Stub Firebase Messaging service for desktop platforms (Windows/Linux/macOS)
 /// Provides no-op implementations since desktop uses polling-based notifications.
+library;
 
 /// Request notification permission - always returns true on desktop (uses native system notifications)
 Future<bool> requestFirebaseMessagingPermission() async {
