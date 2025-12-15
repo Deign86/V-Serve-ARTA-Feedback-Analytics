@@ -7,7 +7,6 @@
   "framework": null,
   "functions": {
     "backend/api/index.js": {
-      "runtime": "nodejs20.x",
       "maxDuration": 30
     }
   },
