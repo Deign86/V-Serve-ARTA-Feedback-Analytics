@@ -2525,6 +2525,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    if (_pushNotificationsEnabled && _hasPermission)
+                      Center(
+                        child: ElevatedButton.icon(
+                          onPressed: _sendNotificationToAll,
+                          icon: const Icon(Icons.campaign),
+                          label: const Text('Send To All (Backend)'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                      ),
                   
                   const SizedBox(height: 16),
                   
@@ -2767,6 +2784,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _sendNotificationToAll() async {
+    try {
+      final client = ApiClient();
+      final resp = await client.post('/api/send-notification', body: {
+        'title': 'Admin Broadcast',
+        'body': 'This is a broadcast notification from admin UI.',
+        'platforms': ['web','android','windows'],
+      });
+
+      if (resp.isSuccess) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Notification queued/sent'), backgroundColor: Colors.green),
+        );
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: ${resp.error ?? 'unknown'}'), backgroundColor: Colors.orange),
+        );
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error sending: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
   
   Widget _buildSettingRow({
