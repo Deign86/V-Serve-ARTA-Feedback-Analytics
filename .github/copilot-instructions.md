@@ -149,6 +149,22 @@ Users persist in Firebase Auth — no re-seeding needed between deployments.
 - Feedback: `GET/POST/DELETE /feedback`
 - Config: `GET/PUT /survey-config`
 
+### Rate Limiting
+The API implements system-wide rate limiting via `express-rate-limit`:
+
+| Limiter | Routes | Limit | Window |
+|---------|--------|-------|--------|
+| Global | All routes | 1000 req | 15 min |
+| Burst | All routes | 50 req | 10 sec |
+| Auth | `/auth/login` | 10 req | 15 min |
+| Feedback | `/feedback` | 30 req | 15 min |
+| Users | `/users`, `/auth/users` | 50 req | 15 min |
+| Survey Config | `/survey-config`, `/survey-questions` | 30 req | 15 min |
+| Push | `/push/*` | 20 req | 15 min |
+| API | `/api/*` | 100 req | 15 min |
+
+Rate limit middleware: `backend/src/middleware/rateLimiter.js`
+
 ### Security notes
 - `backend/serviceAccountKey.json` is sensitive — never commit to public repos
 - `FIREBASE_API_KEY` needed in backend `.env` for auth
@@ -181,6 +197,10 @@ Users persist in Firebase Auth — no re-seeding needed between deployments.
 
 During recent debugging and builds the AI assistant made the following repository changes:
 
+- **Rate Limiting**: Added system-wide API rate limiting via `express-rate-limit`
+  - Created `backend/src/middleware/rateLimiter.js` with configurable limiters
+  - Integrated global, burst, and endpoint-specific rate limits in `backend/src/index.js`
+  - Protects against brute-force attacks, spam, and DDoS
 - Added `lib/config.dart` to centralize the compile-time `USER_ONLY_MODE` flag.
 - Updated `lib/main.dart` to import `lib/config.dart` and use `kUserOnlyMode` for routing security checks.
 - Refactored `lib/screens/user_side/landing_page.dart` and `lib/screens/role_based_login_screen.dart` to import `lib/config.dart` and remove duplicate local flag definitions. The landing page long-press admin entry and the login screen now respect `kUserOnlyMode`.

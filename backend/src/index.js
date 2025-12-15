@@ -14,6 +14,19 @@ try {
 
 const db = require('./firestore');
 
+// Import rate limiting middleware
+const {
+  globalLimiter,
+  burstLimiter,
+  authLimiter,
+  feedbackLimiter,
+  userManagementLimiter,
+  readLimiter,
+  writeLimiter,
+  pushLimiter,
+  surveyConfigLimiter,
+} = require('./middleware/rateLimiter');
+
 // Get Firebase Auth instance (firestore.js initializes the admin app)
 const auth = admin.auth();
 
@@ -75,6 +88,24 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
+// =============================================================================
+// RATE LIMITING - Applied system-wide
+// =============================================================================
+
+// Apply global rate limiters to all routes
+app.use(burstLimiter);   // Burst protection (50 req/10s)
+app.use(globalLimiter);  // Global limit (1000 req/15min)
+
+// Apply specific rate limiters to route groups
+app.use('/auth/login', authLimiter);           // Auth: 10 req/15min
+app.use('/feedback', feedbackLimiter);          // Feedback: 30 req/15min
+app.use('/users', userManagementLimiter);       // Users: 50 req/15min
+app.use('/auth/users', userManagementLimiter);  // User aliases: 50 req/15min
+app.use('/survey-config', surveyConfigLimiter); // Survey config: 30 req/15min
+app.use('/survey-questions', surveyConfigLimiter); // Survey questions: 30 req/15min
+app.use('/push', pushLimiter);                  // Push notifications: 20 req/15min
+app.use('/api', writeLimiter);                  // API endpoints: 100 req/15min
+
 // Collection names (matching existing Firestore structure)
 const COLLECTIONS = {
   FEEDBACKS: 'feedbacks',
@@ -115,7 +146,7 @@ if (webpush && VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 // =============================================================================
 
 app.get('/ping', (req, res) => {
-  res.json({ ok: true, time: new Date().toISOString(), version: '1.1.0' });
+  res.json({ ok: true, time: new Date().toISOString(), version: '1.2.0' });
 });
 
 app.get('/health', (req, res) => {
@@ -123,6 +154,11 @@ app.get('/health', (req, res) => {
     status: 'healthy', 
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
+    rateLimiting: {
+      enabled: true,
+      global: { windowMs: 900000, max: 1000 },
+      burst: { windowMs: 10000, max: 50 },
+    },
   });
 });
 
