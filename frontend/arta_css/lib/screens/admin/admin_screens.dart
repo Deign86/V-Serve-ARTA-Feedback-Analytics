@@ -241,91 +241,153 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
   }
 
   Widget _buildSectionCard({required String title, required List<Widget> children, bool isMandatory = false}) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 350;
+        final cardPadding = isNarrow ? 16.0 : 24.0;
+        
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.shade200),
+          ),
+          color: Colors.white,
+          child: Padding(
+            padding: EdgeInsets.all(cardPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Icon(isMandatory ? Icons.description_outlined : Icons.settings_suggest_outlined, color: brandRed, size: 20),
-                    const SizedBox(width: 12),
-                    Text(
-                      title,
-                      style: AdminTheme.headingSmall(
-                        color: Colors.black87,
+                isNarrow
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(isMandatory ? Icons.description_outlined : Icons.settings_suggest_outlined, color: brandRed, size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  title,
+                                  style: AdminTheme.headingSmall(
+                                    color: Colors.black87,
+                                  ).copyWith(fontSize: 14),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (isMandatory) ...[  
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'Mandatory',
+                                style: AdminTheme.bodyXS(
+                                  color: brandRed,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Icon(isMandatory ? Icons.description_outlined : Icons.settings_suggest_outlined, color: brandRed, size: 20),
+                                const SizedBox(width: 12),
+                                Flexible(
+                                  child: Text(
+                                    title,
+                                    style: AdminTheme.headingSmall(
+                                      color: Colors.black87,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (isMandatory)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'Mandatory',
+                                style: AdminTheme.bodyXS(
+                                  color: brandRed,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-                if (isMandatory)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      'Mandatory',
-                      style: AdminTheme.bodyXS(
-                        color: brandRed,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                SizedBox(height: isNarrow ? 16 : 24),
+                ...children,
               ],
             ),
-            const SizedBox(height: 24),
-            ...children,
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildToggleItem(String title, String subtitle, bool value, ValueChanged<bool> onChanged, {IconData? icon, Color? activeColor}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AdminTheme.bodyMedium(
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w600,
-                  ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 300;
+        
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AdminTheme.bodyMedium(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w600,
+                      ).copyWith(fontSize: isNarrow ? 13 : 14),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: AdminTheme.bodySmall(
+                        color: Colors.grey.shade600,
+                      ).copyWith(fontSize: isNarrow ? 11 : 12),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: isNarrow ? 3 : 2,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: AdminTheme.bodySmall(
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              Switch(
+                value: value,
+                onChanged: onChanged,
+                activeThumbColor: activeColor ?? Colors.green,
+              ),
+            ],
           ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeThumbColor: activeColor ?? Colors.green,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -1145,20 +1207,47 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Service Quality Dimensions (SQD) Breakdown', style: AdminTheme.headingMedium(color: Colors.black87)),
-                      TextButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(builder: (context) => const DetailedAnalyticsScreen(isStandalone: true)),
-                          );
-                        },
-                        icon: const Icon(Icons.arrow_forward, size: 16),
-                        label: const Text('View Detailed Analysis'),
-                      ),
-                    ],
+                  LayoutBuilder(
+                    builder: (context, headerConstraints) {
+                      final isNarrow = headerConstraints.maxWidth < 600;
+                      return isNarrow
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Service Quality Dimensions (SQD) Breakdown', style: AdminTheme.headingMedium(color: Colors.black87)),
+                                const SizedBox(height: 8),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton.icon(
+                                    onPressed: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(builder: (context) => const DetailedAnalyticsScreen(isStandalone: true)),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.arrow_forward, size: 16),
+                                    label: const Text('View Detailed Analysis'),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Flexible(
+                                  child: Text('Service Quality Dimensions (SQD) Breakdown', style: AdminTheme.headingMedium(color: Colors.black87)),
+                                ),
+                                TextButton.icon(
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(builder: (context) => const DetailedAnalyticsScreen(isStandalone: true)),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.arrow_forward, size: 16),
+                                  label: const Text('View Detailed Analysis'),
+                                ),
+                              ],
+                            );
+                    },
                   ),
                   const SizedBox(height: 24),
                   LayoutBuilder(

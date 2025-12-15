@@ -50,20 +50,20 @@
           resolve('recaptcha-not-loaded');
           return;
         }
-        grecaptcha.enterprise.ready(function() {
-          grecaptcha.enterprise.execute('6Le-DSssAAAAAH0ozh7fb6Y-uW7gBGdf1uB8X8Ip', {action: action})
-            .then(function(token) {
+        grecaptcha.enterprise.ready(function () {
+          grecaptcha.enterprise.execute('6Le-DSssAAAAAH0ozh7fb6Y-uW7gBGdf1uB8X8Ip', { action: action })
+            .then(function (token) {
               console.log('reCAPTCHA token generated for action:', action);
               resolve(token);
             })
-            .catch(function(error) {
+            .catch(function (error) {
               console.warn('reCAPTCHA error:', error);
               reject(error);
             });
         });
       });
     }
-    
+
     // Function to show/hide reCAPTCHA badge
     function showRecaptchaBadge() {
       var badge = document.querySelector('.grecaptcha-badge');
@@ -72,7 +72,7 @@
         badge.style.setProperty('opacity', '1', 'important');
       }
     }
-    
+
     function hideRecaptchaBadge() {
       var badge = document.querySelector('.grecaptcha-badge');
       if (badge) {
@@ -81,7 +81,7 @@
       }
     }
   </script>
-  
+
   <!-- reCAPTCHA badge styling - hidden by default, shown on login page -->
   <style>
     .grecaptcha-badge {
