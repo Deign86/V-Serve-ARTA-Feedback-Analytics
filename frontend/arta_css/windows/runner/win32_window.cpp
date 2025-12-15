@@ -2,6 +2,9 @@
 
 #include <dwmapi.h>
 #include <flutter_windows.h>
+#include <gdiplus.h>
+// Link with Gdiplus
+#pragma comment(lib, "gdiplus.lib")
 
 #include "resource.h"
 
@@ -264,7 +267,36 @@ void Win32Window::SetQuitOnClose(bool quit_on_close) {
 }
 
 bool Win32Window::OnCreate() {
-  // No-op; provided for subclasses.
+  // Try to load a high-resolution PNG icon from the application's assets
+  // and use it as the window icon. Fall back to resource icon if this fails.
+  if (window_handle_ != nullptr) {
+    wchar_t exe_path[MAX_PATH];
+    if (GetModuleFileNameW(nullptr, exe_path, MAX_PATH) > 0) {
+      std::wstring dir = exe_path;
+      auto pos = dir.find_last_of(L"\\/");
+      if (pos != std::wstring::npos) {
+        dir = dir.substr(0, pos);
+        std::wstring png_path = dir + L"\\data\\flutter_assets\\assets\\arta_icon.png";
+
+        Gdiplus::Bitmap* bmp = Gdiplus::Bitmap::FromFile(png_path.c_str());
+        if (bmp && bmp->GetLastStatus() == Gdiplus::Ok) {
+          HICON hicon = nullptr;
+          if (bmp->GetHICON(&hicon) == Gdiplus::Ok && hicon != nullptr) {
+            // Set large and small icons for the window
+            SendMessage(window_handle_, WM_SETICON, ICON_BIG, (LPARAM)hicon);
+            SendMessage(window_handle_, WM_SETICON, ICON_SMALL, (LPARAM)hicon);
+            // Also set class icon so shell & taskbar use it
+            SetClassLongPtr(window_handle_, GCLP_HICON, (LONG_PTR)hicon);
+            // Note: We intentionally do not destroy the HICON here because Windows
+            // associates the icon with the window; it will be destroyed on window destroy.
+          }
+        }
+        if (bmp) {
+          delete bmp;
+        }
+      }
+    }
+  }
   return true;
 }
 

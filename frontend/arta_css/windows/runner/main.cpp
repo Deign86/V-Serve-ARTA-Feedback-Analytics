@@ -1,6 +1,7 @@
 #include <flutter/dart_project.h>
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
+#include <gdiplus.h>
 
 #include "flutter_window.h"
 #include "utils.h"
@@ -16,6 +17,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // Initialize COM, so that it is available for use in the library and/or
   // plugins.
   ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+
+  // Initialize GDI+ for runtime image loading (used for high-resolution icons).
+  ULONG_PTR gdi_plus_token = 0;
+  Gdiplus::GdiplusStartupInput gdi_startup_input;
+  Gdiplus::GdiplusStartup(&gdi_plus_token, &gdi_startup_input, nullptr);
 
   // Ensure only a single instance of the application runs on Windows.
   // Use a named mutex in the Local namespace. If an instance already exists,
@@ -62,6 +68,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   if (single_instance_mutex != nullptr) {
     ::CloseHandle(single_instance_mutex);
     single_instance_mutex = nullptr;
+  }
+  if (gdi_plus_token) {
+    Gdiplus::GdiplusShutdown(gdi_plus_token);
   }
   return EXIT_SUCCESS;
 }
