@@ -14,6 +14,7 @@ import '../../services/qr_code_service.dart';
 import '../../services/audit_log_service_http.dart';
 import '../../services/auth_services_http.dart';
 import '../../services/push_notification_service_stub.dart';
+import '../../services/api_config.dart';
 // Native notifications: stub for web, IO implementation for native (handles mobile vs desktop internally)
 import '../../services/native_notification_service_stub.dart'
     if (dart.library.io) '../../services/native_notification_service_io.dart';
