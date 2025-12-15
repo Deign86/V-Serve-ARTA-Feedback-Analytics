@@ -444,12 +444,17 @@ class _SuggestionsScreenState extends State<SuggestionsScreen> {
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
-                : Text(
-                    isVeryNarrow ? 'SUBMIT' : 'SUBMIT SURVEY',
-                    style: GoogleFonts.montserrat(
-                      fontSize: isMobile ? (isVeryNarrow ? 11 : 12) : 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                : FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      isVeryNarrow ? 'SUBMIT' : 'SUBMIT SURVEY',
+                      style: GoogleFonts.montserrat(
+                        fontSize: isMobile ? (isVeryNarrow ? 11 : 12) : 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.visible,
                     ),
                   ),
           ),
@@ -626,6 +631,9 @@ class _ThankYouScreenState extends State<ThankYouScreen> with TickerProviderStat
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final safeAreaPadding = MediaQuery.of(context).padding;
+    
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -634,26 +642,35 @@ class _ThankYouScreenState extends State<ThankYouScreen> with TickerProviderStat
             child: Image.asset('assets/city_bg2.png', fit: BoxFit.cover),
           ),
           SafeArea(
-            child: Center(
-              child: Container(
-                width: isMobile ? double.infinity : 900,
-                constraints: BoxConstraints(
-                  maxHeight: isMobile ? double.infinity : 650,
-                ),
-                margin: EdgeInsets.symmetric(
-                  horizontal: isMobile ? 16 : 0,
-                  vertical: isMobile ? 20 : 0,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [const BoxShadow(color: Colors.black26, blurRadius: 20)],
-                ),
-                clipBehavior: Clip.antiAlias, 
-                child: isMobile
-                    ? _buildMobileLayout()
-                    : _buildDesktopLayout(),
-              ),
-            ),
+            child: isMobile
+                // Mobile: Fill the screen with scrollable content
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [const BoxShadow(color: Colors.black26, blurRadius: 20)],
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: _buildMobileLayout(),
+                    ),
+                  )
+                // Desktop: Centered card with max constraints
+                : Center(
+                    child: Container(
+                      width: 1100,
+                      constraints: BoxConstraints(
+                        maxHeight: 550,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [const BoxShadow(color: Colors.black26, blurRadius: 20)],
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: _buildDesktopLayout(),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -729,25 +746,24 @@ class _ThankYouScreenState extends State<ThankYouScreen> with TickerProviderStat
     return Container(
       width: double.infinity,
       height: isDesktopRightSide ? double.infinity : null,
-      color: const Color(0xFF1C1E97),
-      child: Stack(
-        children: [
-          // Background image that fills the entire container
-          Positioned.fill(
-            child: Image.asset(
-              'assets/thankyou-img.png',
-              fit: BoxFit.cover,
-            ),
-          ),
-          // Content overlay
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Spacer to push content down
-                if (isDesktopRightSide) const Spacer(),
+      decoration: const BoxDecoration(
+        // Use image as decoration to ensure full coverage without blue bleed
+        image: DecorationImage(
+          image: AssetImage('assets/thankyou-img.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: Container(
+        // Semi-transparent overlay for better text readability
+        color: const Color(0xFF1C1E97).withValues(alpha: 0.3),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        child: Column(
+          mainAxisSize: isDesktopRightSide ? MainAxisSize.max : MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Spacer to push content down (desktop only)
+            if (isDesktopRightSide) const Spacer(),
                 
                 // Animated checkmark
                 AnimatedBuilder(
@@ -843,10 +859,8 @@ class _ThankYouScreenState extends State<ThankYouScreen> with TickerProviderStat
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
+        );
+      }
 
   Widget _buildCommentForm() {
     return Column(
