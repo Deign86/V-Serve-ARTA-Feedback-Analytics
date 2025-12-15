@@ -77,7 +77,32 @@ const COLLECTIONS = {
   SURVEY_CONFIG: 'survey_config',
   SURVEY_QUESTIONS: 'survey_questions',
   ALERTS: 'alerts',
+  PUSH_SUBSCRIPTIONS: 'push_subscriptions',
 };
+
+// Web Push support (optional)
+let webpush = null;
+try {
+  webpush = require('web-push');
+} catch (e) {
+  console.log('web-push module not available; push endpoints will be disabled');
+}
+
+// VAPID keys should be set via environment variables in production
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || process.env.WEB_PUSH_PUBLIC || null;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || process.env.WEB_PUSH_PRIVATE || null;
+if (webpush && VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(
+      process.env.WEB_PUSH_SUBJECT || `mailto:${process.env.ADMIN_EMAIL || 'admin@example.com'}`,
+      VAPID_PUBLIC_KEY,
+      VAPID_PRIVATE_KEY
+    );
+    console.log('web-push configured with VAPID keys');
+  } catch (e) {
+    console.error('Failed to configure web-push VAPID keys:', e);
+  }
+}
 
 // =============================================================================
 // HEALTH CHECK
@@ -1108,6 +1133,259 @@ app.put('/survey-questions/suggestions', async (req, res) => {
   } catch (err) {
     console.error('Update suggestions config error:', err);
     res.status(500).json({ error: 'Failed to update suggestions config' });
+  }
+});
+
+// =============================================================================
+// PUSH / Web Push Endpoints
+// =============================================================================
+
+// Return VAPID public key for frontend to use when subscribing
+app.get('/push/vapidPublicKey', (req, res) => {
+  if (!webpush || !VAPID_PUBLIC_KEY) {
+    return res.status(503).json({ error: 'Push service not configured' });
+  }
+  res.json({ publicKey: VAPID_PUBLIC_KEY });
+});
+
+// Subscribe endpoint: save subscription object for a user
+app.post('/push/subscribe', async (req, res) => {
+  try {
+    if (!webpush) return res.status(503).json({ error: 'Push service not available' });
+    const { userId, email, subscription, fcmToken, platform } = req.body || {};
+
+    // If client is registering an FCM/native token
+    if (fcmToken) {
+      const id = userId || (email ? email.toLowerCase() : null) || db.collection(COLLECTIONS.PUSH_SUBSCRIPTIONS).doc().id;
+      await db.collection(COLLECTIONS.PUSH_SUBSCRIPTIONS).doc(id).set({
+        userId: userId || null,
+        email: email || null,
+        fcmToken,
+        platform: platform || 'mobile',
+        type: 'fcm',
+        enabled: true,
+        createdAt: new Date(),
+      }, { merge: true });
+
+      return res.json({ success: true, id });
+    }
+
+    // Otherwise expect a web Push subscription object
+    if (!subscription) return res.status(400).json({ error: 'Subscription object required' });
+
+    const id = userId || (email ? email.toLowerCase() : null) || db.collection(COLLECTIONS.PUSH_SUBSCRIPTIONS).doc().id;
+
+    await db.collection(COLLECTIONS.PUSH_SUBSCRIPTIONS).doc(id).set({
+      userId: userId || null,
+      email: email || null,
+      subscription,
+      type: 'web',
+      enabled: true,
+      createdAt: new Date(),
+    }, { merge: true });
+
+    res.json({ success: true, id });
+  } catch (err) {
+    console.error('Subscribe error:', err);
+    res.status(500).json({ error: 'Failed to save subscription' });
+  }
+});
+
+// Unsubscribe: disable/remove subscription for user
+app.post('/push/unsubscribe', async (req, res) => {
+  try {
+    const { userId } = req.body || {};
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const docRef = db.collection(COLLECTIONS.PUSH_SUBSCRIPTIONS).doc(userId);
+    const doc = await docRef.get();
+    if (!doc.exists) return res.json({ success: true });
+
+    await docRef.delete();
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Unsubscribe error:', err);
+    res.status(500).json({ error: 'Failed to unsubscribe' });
+  }
+});
+
+// Send push (used by admin UI or server-side alerts)
+app.post('/push/send', async (req, res) => {
+  try {
+    if (!webpush) return res.status(503).json({ error: 'Push service not available' });
+
+    const { title, body, targetUserId, payload } = req.body || {};
+    const message = {
+      title: title || 'V-Serve Alert',
+      body: body || '',
+      data: payload || {},
+    };
+
+    let targets = [];
+    if (targetUserId) {
+      const doc = await db.collection(COLLECTIONS.PUSH_SUBSCRIPTIONS).doc(targetUserId).get();
+      if (doc.exists && doc.data().subscription) targets.push(doc.data());
+    } else {
+      const snapshot = await db.collection(COLLECTIONS.PUSH_SUBSCRIPTIONS).where('enabled', '==', true).get();
+      snapshot.forEach(d => targets.push(d.data()));
+    }
+
+    const results = [];
+    for (const t of targets) {
+      try {
+        const sub = t.subscription;
+        const sent = await webpush.sendNotification(sub, JSON.stringify(message));
+        results.push({ id: t.userId || t.email || null, ok: true });
+      } catch (sendErr) {
+        console.error('Push send error for target:', t, sendErr);
+        results.push({ id: t.userId || t.email || null, ok: false, error: String(sendErr) });
+      }
+    }
+
+    res.json({ success: true, results });
+  } catch (err) {
+    console.error('Push send endpoint error:', err);
+    res.status(500).json({ error: 'Failed to send push' });
+  }
+});
+
+// Send via FCM (native mobile / desktop that use Firebase Cloud Messaging)
+app.post('/push/send-fcm', async (req, res) => {
+  try {
+    const { title, body, targetUserId, data } = req.body || {};
+    if (!admin || !admin.messaging) return res.status(503).json({ error: 'FCM not configured' });
+
+    let tokens = [];
+    if (targetUserId) {
+      const doc = await db.collection(COLLECTIONS.PUSH_SUBSCRIPTIONS).doc(targetUserId).get();
+      if (doc.exists && doc.data().fcmToken) tokens.push(doc.data().fcmToken);
+    } else {
+      const snapshot = await db.collection(COLLECTIONS.PUSH_SUBSCRIPTIONS).where('type', '==', 'fcm').where('enabled', '==', true).get();
+      snapshot.forEach(d => {
+        const s = d.data();
+        if (s.fcmToken) tokens.push(s.fcmToken);
+      });
+    }
+
+    if (tokens.length === 0) return res.json({ success: true, results: [], message: 'No fcm tokens available' });
+
+    // Build payload
+    const message = {
+      notification: {
+        title: title || 'V-Serve Alert',
+        body: body || '',
+      },
+      data: data || {},
+    };
+
+    // For multiple tokens use sendMulticast
+    const chunkSize = 500; // FCM limit
+    const results = [];
+    for (let i = 0; i < tokens.length; i += chunkSize) {
+      const batch = tokens.slice(i, i + chunkSize);
+      const resp = await admin.messaging().sendMulticast({ tokens: batch, ...message });
+      results.push({ successCount: resp.successCount, failureCount: resp.failureCount, responses: resp.responses });
+    }
+
+    res.json({ success: true, results });
+  } catch (err) {
+    console.error('FCM send error:', err);
+    res.status(500).json({ error: 'Failed to send FCM messages' });
+  }
+});
+
+// Register device token (unified for web/android/windows)
+app.post('/api/register-token', async (req, res) => {
+  try {
+    const { deviceId, platform, token } = req.body || {};
+    if (!deviceId || !platform || !token) return res.status(400).json({ error: 'deviceId, platform and token required' });
+
+    // Upsert by token or deviceId
+    const q = await db.collection(COLLECTIONS.PUSH_SUBSCRIPTIONS).where('token', '==', token).limit(1).get();
+    if (!q.empty) {
+      const doc = q.docs[0];
+      await doc.ref.update({ platform, lastSeen: new Date(), enabled: true });
+      return res.json({ success: true, id: doc.id });
+    }
+
+    // Store a new subscription
+    const docRef = await db.collection(COLLECTIONS.PUSH_SUBSCRIPTIONS).add({
+      deviceId,
+      platform,
+      token,
+      enabled: true,
+      createdAt: new Date(),
+      lastSeen: new Date(),
+    });
+
+    res.json({ success: true, id: docRef.id });
+  } catch (err) {
+    console.error('Register token error:', err);
+    res.status(500).json({ error: 'Failed to register token' });
+  }
+});
+
+// Unified send endpoint - queues for windows and sends via FCM for web/android
+app.post('/api/send-notification', async (req, res) => {
+  try {
+    const { title, body, platforms } = req.body || {};
+    const alert = {
+      title: title || 'V-Serve Alert',
+      body: body || '',
+      createdAt: new Date(),
+      platforms: platforms || ['web','android','windows'],
+    };
+
+    // Store alert for Windows clients to poll
+    await db.collection(COLLECTIONS.ALERTS).add(alert);
+
+    // Send FCM to web/android tokens
+    const fcmSnapshot = await db.collection(COLLECTIONS.PUSH_SUBSCRIPTIONS)
+      .where('platform', 'in', ['web','android'])
+      .where('enabled', '==', true)
+      .get();
+
+    const tokens = [];
+    fcmSnapshot.forEach(d => { const s = d.data(); if (s.token) tokens.push(s.token); });
+
+    const results = [];
+    if (tokens.length > 0 && admin && admin.messaging) {
+      const chunkSize = 500;
+      for (let i=0;i<tokens.length;i+=chunkSize) {
+        const batch = tokens.slice(i,i+chunkSize);
+        const message = {
+          notification: { title: alert.title, body: alert.body },
+          android: { priority: 'high' },
+          webpush: { headers: { Urgency: 'high' } },
+          tokens: batch,
+        };
+        const resp = await admin.messaging().sendMulticast(message);
+        results.push({ successCount: resp.successCount, failureCount: resp.failureCount });
+      }
+    }
+
+    res.json({ success: true, stored: true, fcmResults: results });
+  } catch (err) {
+    console.error('send-notification error:', err);
+    res.status(500).json({ error: 'Failed to send notification' });
+  }
+});
+
+// GET alerts for polling (Windows clients)
+app.get('/api/alerts', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit || '20', 10), 100);
+    const snapshot = await db.collection(COLLECTIONS.ALERTS).orderBy('createdAt', 'desc').limit(limit).get();
+    const items = snapshot.docs.map(d => ({
+      id: d.id,
+      title: d.data().title,
+      body: d.data().body,
+      createdAt: d.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+    }));
+    res.json({ success: true, count: items.length, items });
+  } catch (err) {
+    console.error('Get alerts error:', err);
+    res.status(500).json({ error: 'Failed to fetch alerts' });
   }
 });
 

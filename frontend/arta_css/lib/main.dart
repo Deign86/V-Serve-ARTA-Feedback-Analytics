@@ -28,6 +28,7 @@ import 'services/survey_config_service.dart';
 import 'services/survey_questions_service.dart';
 import 'services/survey_provider.dart';
 import 'services/unified_notification_service.dart';
+import 'services/notification_service.dart' as platform_notification;
 import 'services/bot_protection_service.dart';
 
 import 'screens/role_based_login_screen.dart';
@@ -47,10 +48,34 @@ import 'platform/url_strategy_stub.dart'
   if (dart.library.js_interop) 'platform/url_strategy_web.dart' as url_strategy;
 
 import 'config.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Initialize Firebase for messaging on supported platforms
+  try {
+    final options = DefaultFirebaseOptions.currentPlatform;
+    if (options != null) {
+      await Firebase.initializeApp(
+        options: FirebaseOptions(
+          apiKey: options['apiKey'],
+          appId: options['appId'],
+          messagingSenderId: options['messagingSenderId'],
+          projectId: options['projectId'],
+        ),
+      );
+
+      // Register background handler for Android
+      FirebaseMessaging.onBackgroundMessage((RemoteMessage message) async {
+        if (kDebugMode) debugPrint('Background message received: ${message.messageId}');
+      });
+    }
+  } catch (e) {
+    if (kDebugMode) debugPrint('Firebase init skipped or failed: $e');
+  }
   // Configure logging - disables all logs in production
   configureLogging();
   
@@ -121,6 +146,16 @@ void main() async {
   final unifiedNotificationService = UnifiedNotificationService.instance;
   unifiedNotificationService.initialize();
   if (kDebugMode) debugPrint('UnifiedNotificationService initialized');
+
+  // Initialize platform-specific notification service (persist Windows token, start polling)
+  try {
+    if (!kIsWeb) {
+      await platform_notification.NotificationService.init();
+      if (kDebugMode) debugPrint('Platform NotificationService initialized');
+    }
+  } catch (e) {
+    if (kDebugMode) debugPrint('Platform NotificationService init failed: $e');
+  }
 
   // Initialize bot protection service
   final botProtectionService = BotProtectionService.instance;

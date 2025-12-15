@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "seed:admins": "node scripts/seed_admin_users.js"
+    "seed:admins": "node scripts/seed_admin_users.js",
+    "generate:vapid": "node -e \"const webpush=require('web-push');console.log(JSON.stringify(webpush.generateVAPIDKeys()));\""
   },
   "author": "",
   "license": "MIT",
@@ -16,6 +17,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.0.0",
     "bcryptjs": "^2.4.3",
+    "web-push": "^3.5.0",
     "protobufjs": "^7.2.6"
   },
   "devDependencies": {
