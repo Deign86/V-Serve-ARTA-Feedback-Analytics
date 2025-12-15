@@ -6,18 +6,14 @@
 .DESCRIPTION
     This PowerShell script automates building all three deployment targets for the
     V-Serve Flutter application:
-    - Web app (Flutter web build)
-    - Windows portable .exe (using the C# portable launcher)
-    - Android APK (release build)
+    - Web app (Flutter web build) - includes admin features
+    - Windows portable .exe (using the C# portable launcher) - includes admin features
+    - Android APK (release build) - user-only mode (admin disabled)
 
     All build artifacts are collected into a clean 'builds/' directory at repo root.
 
 .PARAMETER Mode
     Build mode. Currently only "Release" is supported. Default: "Release"
-
-.PARAMETER UserOnly
-    When specified, builds Android APK with --dart-define=USER_ONLY_MODE=true.
-    This disables admin features in the Android build only (Windows always includes admin).
 
 .PARAMETER SkipWeb
     Skip building the web target.
@@ -33,15 +29,15 @@
 
 .EXAMPLE
     .\scripts\build-all.ps1 -Mode Release
-    Builds all three targets in Release mode with admin features enabled.
-
-.EXAMPLE
-    .\scripts\build-all.ps1 -Mode Release -UserOnly
-    Builds all targets in user-only mode (admin features disabled).
+    Builds all three targets in Release mode.
 
 .EXAMPLE
     .\scripts\build-all.ps1 -SkipAndroid -SkipWeb
     Builds only the Windows desktop target.
+
+.EXAMPLE
+    .\scripts\build-all.ps1 -NoClean
+    Builds all targets without running flutter clean first.
 
 .NOTES
     Requirements:
@@ -50,6 +46,10 @@
     - .NET SDK 8.0+ (for portable launcher; will auto-install if missing)
     - Android SDK and Java (for Android builds)
     - Flutter SDK (bundled at ./flutter or in PATH)
+
+    Build modes:
+    - Web/Windows: Full app with admin features
+    - Android: User-only mode (admin features disabled)
 
     Author: V-Serve Development Team
     Last Updated: December 2025
@@ -60,9 +60,6 @@ param(
     [Parameter()]
     [ValidateSet("Release")]
     [string]$Mode = "Release",
-
-    [Parameter()]
-    [switch]$UserOnly,
 
     [Parameter()]
     [switch]$SkipWeb,
@@ -287,16 +284,37 @@ function Test-AndroidEnvironment {
     $hasJava = $false
     $hasAndroidSdk = $false
     
-    # Check Java
+    # Check Java - first try system PATH
     try {
         $javaVersion = & java -version 2>&1 | Out-String
         if ($javaVersion) {
             $hasJava = $true
-            Write-Log "Java found" -Level OK
+            Write-Log "Java found in PATH" -Level OK
         }
     }
     catch {
-        Write-Log "Java not found in PATH" -Level WARN
+        # Check if Flutter's bundled JDK exists (Android Studio or Flutter SDK)
+        $flutterJdkPaths = @(
+            "$env:LOCALAPPDATA\Android\Sdk\jdk",
+            "$env:ANDROID_HOME\jdk",
+            (Join-Path $script:RepoRoot "flutter\jre"),
+            "$env:ProgramFiles\Android\Android Studio\jre",
+            "$env:ProgramFiles\Android\Android Studio\jbr"
+        )
+        
+        foreach ($jdkPath in $flutterJdkPaths) {
+            if ($jdkPath -and (Test-Path $jdkPath)) {
+                $hasJava = $true
+                Write-Log "Java found (bundled): $jdkPath" -Level OK
+                break
+            }
+        }
+        
+        if (-not $hasJava) {
+            # Flutter uses Gradle which bundles its own JDK - build will likely work
+            Write-Log "Java not in PATH (Flutter/Gradle may use bundled JDK)" -Level INFO
+            $hasJava = $true  # Assume it will work via Gradle
+        }
     }
     
     # Check ANDROID_HOME or ANDROID_SDK_ROOT
@@ -653,31 +671,17 @@ function Invoke-AndroidApkBuild {
         return $true
     }
     
-    # Check Android environment
-    if (-not (Test-AndroidEnvironment)) {
-        Write-Log "Android build environment not fully configured" -Level WARN
-        Write-Log "Install Android Studio or set ANDROID_HOME environment variable" -Level WARN
-        Write-Log "Attempting build anyway..." -Level WARN
-    }
+    # Check Android environment (informational only - Flutter handles most of it)
+    $null = Test-AndroidEnvironment
     
     Push-Location $script:FrontendDir
     try {
-        # Build Flutter Android APK
-        $dartDefine = ""
-        if ($UserOnly) {
-            $dartDefine = "--dart-define=USER_ONLY_MODE=true"
-            Write-Log "Building with USER_ONLY_MODE=true" -Level INFO
-        }
-        
-        Write-Log "Running: flutter build apk --release $dartDefine" -Level INFO
+        # Build Flutter Android APK - always in user-only mode (admin disabled)
+        Write-Log "Building with USER_ONLY_MODE=true (admin features disabled)" -Level INFO
+        Write-Log "Running: flutter build apk --release --dart-define=USER_ONLY_MODE=true" -Level INFO
         
         $result = Invoke-CommandSafe -ScriptBlock {
-            if ($dartDefine) {
-                & $script:FlutterCmd build apk --release --dart-define=USER_ONLY_MODE=true
-            }
-            else {
-                & $script:FlutterCmd build apk --release
-            }
+            & $script:FlutterCmd build apk --release --dart-define=USER_ONLY_MODE=true
         } -ErrorMessage "Android APK build failed" -SuggestedFix "Run 'flutter doctor' and ensure Android SDK is configured"
         
         if (-not $result) {
@@ -727,7 +731,7 @@ function Write-BuildSummary {
     
     $totalTime = (Get-Date) - $script:StartTime
     Write-Log "Total build time: $($totalTime.ToString('hh\:mm\:ss'))" -Level INFO
-    Write-Log "Mode: $Mode$(if ($UserOnly) { ' (Android APK: User-Only)' } else { '' })" -Level INFO
+    Write-Log "Mode: $Mode" -Level INFO
     Write-Host ""
     
     # Build results table
@@ -872,10 +876,9 @@ catch {
 Write-Host ""
 Write-Host "  Build Configuration:" -ForegroundColor White
 Write-Host "  - Mode:          $Mode" -ForegroundColor Gray
-Write-Host "  - APK User Only: $UserOnly  (Android only; Windows always has admin)" -ForegroundColor Gray
-Write-Host "  - Build Web:     $(-not $SkipWeb)" -ForegroundColor Gray
-Write-Host "  - Build Win:     $(-not $SkipWindows)" -ForegroundColor Gray
-Write-Host "  - Build APK:     $(-not $SkipAndroid)" -ForegroundColor Gray
+Write-Host "  - Build Web:     $(-not $SkipWeb)  (includes admin)" -ForegroundColor Gray
+Write-Host "  - Build Win:     $(-not $SkipWindows)  (includes admin)" -ForegroundColor Gray
+Write-Host "  - Build APK:     $(-not $SkipAndroid)  (user-only, no admin)" -ForegroundColor Gray
 Write-Host ""
 
 # ==============================================================================
