@@ -381,7 +381,7 @@ function Get-DotNetSdk {
 .SYNOPSIS
     Builds the Flutter web application.
 #>
-function Build-WebApp {
+function Invoke-WebAppBuild {
     Write-Log "Building Web Application" -Level SECTION
     
     if ($SkipWeb) {
@@ -437,7 +437,7 @@ function Build-WebApp {
 .SYNOPSIS
     Builds the Windows desktop application and portable launcher.
 #>
-function Build-WindowsApp {
+function Invoke-WindowsAppBuild {
     Write-Log "Building Windows Desktop Application" -Level SECTION
     
     if ($SkipWindows) {
@@ -502,7 +502,7 @@ function Build-WindowsApp {
         
         # Build portable launcher
         Write-Log "Building portable launcher..." -Level INFO
-        $portableResult = Build-PortableLauncher -ReleaseDir $releaseDir -OutputDir $windowsDest
+        $portableResult = Invoke-PortableLauncherBuild -ReleaseDir $releaseDir -OutputDir $windowsDest
         
         if ($portableResult) {
             $script:BuildResults.Windows.PortablePath = Join-Path $windowsDest "V-Serve-Portable.exe"
@@ -552,7 +552,7 @@ function Build-WindowsApp {
 .PARAMETER OutputDir
     Output directory for the portable exe.
 #>
-function Build-PortableLauncher {
+function Invoke-PortableLauncherBuild {
     param(
         [Parameter(Mandatory)]
         [string]$ReleaseDir,
@@ -644,7 +644,7 @@ function Build-PortableLauncher {
 .SYNOPSIS
     Builds the Android APK.
 #>
-function Build-AndroidApk {
+function Invoke-AndroidApkBuild {
     Write-Log "Building Android APK" -Level SECTION
     
     if ($SkipAndroid) {
@@ -921,9 +921,9 @@ finally {
 # STEP 3: BUILD TARGETS
 # ==============================================================================
 
-$null = Build-WebApp
-$null = Build-WindowsApp
-$null = Build-AndroidApk
+$null = Invoke-WebAppBuild
+$null = Invoke-WindowsAppBuild
+$null = Invoke-AndroidApkBuild
 
 # ==============================================================================
 # STEP 4: SUMMARY AND EXIT
