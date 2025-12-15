@@ -17,6 +17,26 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // plugins.
   ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
+  // Ensure only a single instance of the application runs on Windows.
+  // Use a named mutex in the Local namespace. If an instance already exists,
+  // find its window and bring it to the foreground, then exit.
+  HANDLE single_instance_mutex =
+      ::CreateMutexW(nullptr, FALSE, L"Local\\VServeSingleInstanceMutex");
+  if (single_instance_mutex != nullptr) {
+    if (::GetLastError() == ERROR_ALREADY_EXISTS) {
+      // Try to find the existing window by the window class name used
+      // by the Win32 runner and restore/foreground it.
+      HWND existing = ::FindWindowW(L"FLUTTER_RUNNER_WIN32_WINDOW", nullptr);
+      if (existing) {
+        if (::IsIconic(existing)) {
+          ::ShowWindow(existing, SW_RESTORE);
+        }
+        ::SetForegroundWindow(existing);
+      }
+      return EXIT_SUCCESS;
+    }
+  }
+
   flutter::DartProject project(L"data");
 
   std::vector<std::string> command_line_arguments =
@@ -39,5 +59,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   }
 
   ::CoUninitialize();
+  if (single_instance_mutex != nullptr) {
+    ::CloseHandle(single_instance_mutex);
+    single_instance_mutex = nullptr;
+  }
   return EXIT_SUCCESS;
 }
