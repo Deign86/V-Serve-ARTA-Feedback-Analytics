@@ -3,10 +3,10 @@
 <div align="center">
 ## 🧰 Portable Builds
 
-- **Windows Portable (single EXE):** A self-extracting single-file launcher (`V-Serve-portable.exe`) is produced in `tools/portable_launcher_cs` and can be placed in a user's `Downloads` folder for easy distribution. The launcher extracts the bundled app to a temporary folder and runs the contained `V-Serve.exe`.
-- **Windows ZIP (full release):** A ZIP of the full Windows release (`build/windows/x64/runner/Release`) is also produced for administrators who prefer the full folder layout.
-- **Android APK:** A release APK (user-only build available with `--dart-define=USER_ONLY_MODE=true`) is produced under `frontend/arta_css/build/app/outputs/flutter-apk/` when built.
-- **Web build:** The Flutter web build output is produced under `frontend/arta_css/build/web/` and can be hosted on any static web host or via Firebase Hosting/Vercel.
+- **Windows Portable (single EXE):** A self-extracting single-file launcher (`V-Serve-Portable.exe`) is produced in `builds/windows/` and can be placed in a user's `Downloads` folder for easy distribution. The launcher extracts the bundled app to a temporary folder and runs the contained `V-Serve.exe`.
+- **Windows ZIP (full release):** A ZIP of the full Windows release (`V-Serve-windows.zip`) is also produced for administrators who prefer the full folder layout.
+- **Android APK:** A release APK (`V-Serve.apk`) is always built in user-only mode (admin features disabled) and produced in `builds/android/`.
+- **Web build:** The Flutter web build output (with admin features) is produced in `builds/web/` and can be hosted on any static web host or via Firebase Hosting/Vercel.
 
 Notes:
 - The portable single-EXE uses a small launcher that extracts the application before launching. If you need a digitally-signed portable EXE or installer package (MSI/NSIS), sign the launcher binary and/or integrate a proper installer toolchain.
@@ -273,31 +273,39 @@ dart format lib/
 ```
 ---
 
-## 🔧 Recent Local Changes (summary)
+## 🔧 Recent Changes (December 2025)
 
-These changes were made during recent debugging and build work in this repository:
+- **Unified Build Script** (`scripts/build-all.ps1`):
+  - Builds all targets (Web, Windows, Android) in one command
+  - Android APK always builds in user-only mode (admin disabled)
+  - Windows/Web builds include full admin features
+  - Outputs to organized `builds/` directory with proper naming
+  - Auto-detects bundled Flutter SDK and Android Studio JDK
+  
+- **Platform Architecture**:
+  - Conditional imports for Firebase (stubs on desktop, real on web/mobile)
+  - Native Windows notifications via `local_notifier` package
+  - HTTP backend services for all platforms (Firebase-free architecture option)
 
-- Added `lib/config.dart` — centralizes the compile-time `USER_ONLY_MODE` flag.
-- Refactored `lib/main.dart`, `lib/screens/user_side/landing_page.dart`, and `lib/screens/role_based_login_screen.dart` to import `lib/config.dart` and use `kUserOnlyMode`.
-- Fixed a Dart syntax error in `lib/main.dart` (malformed `MultiProvider`) that caused release builds to fail.
-- Android: added `android/app/src/main/kotlin/com/vserve/arta/MainActivity.kt` and removed the old `com.example.arta_css` activity to fix ClassNotFound startup crashes; ensured `AndroidManifest.xml` references the correct activity.
-- Added UI guards to disable admin routes when building with `--dart-define=USER_ONLY_MODE=true` (landing long-press and login page now respect the flag).
-- Built artifacts (created locally): Android APK (`frontend/arta_css/build/app/outputs/flutter-apk/app-release.apk`) and Windows release exe (`frontend/arta_css/build/windows/x64/runner/Release/V-Serve.exe`). These generated build outputs were removed from the repo before committing to keep the repo clean.
+- **Code Quality**:
+  - All `flutter analyze` issues resolved (0 warnings)
+  - PowerShell script uses approved verbs (`Invoke-*`)
+  - Proper `@override` annotations and curly braces
 
-Build commands used:
+Build commands (manual):
 
 ```powershell
-# User-only Android APK
+# Using bundled Flutter SDK
+cd frontend/arta_css
+
+# Android APK (always user-only)
 ..\..\flutter\bin\flutter.bat build apk --release --dart-define=USER_ONLY_MODE=true
 
-# Windows release (admin enabled)
+# Windows release (includes admin)
 ..\..\flutter\bin\flutter.bat build windows --release
-```
 
-If you want the admin-disabled (user-only) Windows build, run:
-
-```powershell
-..\..\flutter\bin\flutter.bat build windows --release --dart-define=USER_ONLY_MODE=true
+# Web release (includes admin)
+..\..\flutter\bin\flutter.bat build web --release
 ```
 
 ---
@@ -306,19 +314,27 @@ If you want the admin-disabled (user-only) Windows build, run:
 
 The repository includes a comprehensive build script that builds all deployment targets (Web, Windows, Android) in one command.
 
+### Build Modes
+
+| Target | Admin Features | Notes |
+|--------|----------------|-------|
+| **Web** | ✅ Included | Full admin dashboard |
+| **Windows** | ✅ Included | Full admin dashboard |
+| **Android** | ❌ User-only | Admin features disabled |
+
 ### Usage
 
 ```powershell
-# From repository root, build all targets (admin-enabled)
-.\scripts\build-all.ps1 -Mode Release
-
-# Build all targets in user-only mode (admin features disabled)
-.\scripts\build-all.ps1 -Mode Release -UserOnly
+# From repository root, build all targets
+.\scripts\build-all.ps1
 
 # Build only specific targets
 .\scripts\build-all.ps1 -SkipAndroid               # Web + Windows only
 .\scripts\build-all.ps1 -SkipWindows -SkipWeb      # Android only
 .\scripts\build-all.ps1 -SkipAndroid -SkipWeb      # Windows only
+
+# Skip flutter clean (faster rebuilds)
+.\scripts\build-all.ps1 -NoClean
 ```
 
 ### Build Output Structure
@@ -327,19 +343,18 @@ After a successful build, artifacts are organized in the `builds/` directory:
 
 ```
 builds/
-├── web/                        # Flutter web build (full directory)
+├── web/                        # Flutter web build (includes admin)
 │   ├── index.html
 │   ├── main.dart.js
 │   ├── firebase-messaging-sw.js
 │   └── ...
-├── windows/
+├── windows/                    # Windows build (includes admin)
 │   ├── V-Serve.exe            # Windows executable + DLLs
 │   ├── V-Serve-Portable.exe   # Self-extracting single-file portable
 │   ├── V-Serve-windows.zip    # ZIP archive of full release
 │   └── data/                  # Flutter assets folder
 └── android/
-    ├── app-release.apk        # Release APK
-    └── V-Serve-release.apk    # Renamed copy
+    └── V-Serve.apk            # Release APK (user-only, no admin)
 ```
 
 ### Requirements
