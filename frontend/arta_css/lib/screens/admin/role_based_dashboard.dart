@@ -1468,7 +1468,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                             prefixIcon: const Icon(Icons.lock),
                             suffixIcon: IconButton(
-                              icon: Icon(obscurePassword ? Icons.visibility : Icons.visibility_off),
+                              icon: Icon(obscurePassword ? Icons.visibility_off : Icons.visibility),
                               onPressed: () => setState(() => obscurePassword = !obscurePassword),
                             ),
                           ),
@@ -1488,7 +1488,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
-                              icon: Icon(obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
+                              icon: Icon(obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
                               onPressed: () => setState(() => obscureConfirmPassword = !obscureConfirmPassword),
                             ),
                           ),

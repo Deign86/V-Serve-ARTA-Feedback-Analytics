@@ -1,6 +1,17 @@
 # V-Serve ARTA Feedback Analytics
 
 <div align="center">
+## 🧰 Portable Builds
+
+- **Windows Portable (single EXE):** A self-extracting single-file launcher (`V-Serve-portable.exe`) is produced in `tools/portable_launcher_cs` and can be placed in a user's `Downloads` folder for easy distribution. The launcher extracts the bundled app to a temporary folder and runs the contained `V-Serve.exe`.
+- **Windows ZIP (full release):** A ZIP of the full Windows release (`build/windows/x64/runner/Release`) is also produced for administrators who prefer the full folder layout.
+- **Android APK:** A release APK (user-only build available with `--dart-define=USER_ONLY_MODE=true`) is produced under `frontend/arta_css/build/app/outputs/flutter-apk/` when built.
+- **Web build:** The Flutter web build output is produced under `frontend/arta_css/build/web/` and can be hosted on any static web host or via Firebase Hosting/Vercel.
+
+Notes:
+- The portable single-EXE uses a small launcher that extracts the application before launching. If you need a digitally-signed portable EXE or installer package (MSI/NSIS), sign the launcher binary and/or integrate a proper installer toolchain.
+- If the portable icon appears small or not scaled on some systems, regenerate a multi-resolution `.ico` (16/32/48/256) and re-publish the launcher so Windows Explorer can pick the appropriate size.
+
 
 ![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
