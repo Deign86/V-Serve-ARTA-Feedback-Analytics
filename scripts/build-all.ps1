@@ -702,12 +702,8 @@ function Invoke-AndroidApkBuild {
             New-Item -ItemType Directory -Path $androidDest -Force | Out-Null
         }
         
-        $apkDest = Join-Path $androidDest "app-release.apk"
+        $apkDest = Join-Path $androidDest "V-Serve.apk"
         Copy-Artifacts -Source $apkSource -Destination $apkDest
-        
-        # Also copy with version name if desired
-        $versionedApk = Join-Path $androidDest "V-Serve-release.apk"
-        Copy-Item -Path $apkSource -Destination $versionedApk -Force
         
         $script:BuildResults.Android.Success = $true
         $script:BuildResults.Android.Path = $apkDest
