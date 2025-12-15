@@ -18,9 +18,11 @@ const db = require('./firestore');
 const auth = admin.auth();
 
 // Firebase Auth REST API configuration
-// Used to verify email/password credentials via HTTP (server-side)
-const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY || 'AIzaSyDz4QYoJfpGqPPzXHfGhj7jNFvPNZeZZEI';
-const FIREBASE_AUTH_URL = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`;
+// Use environment variable in production. Do not ship API keys in source.
+const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY || null;
+const FIREBASE_AUTH_URL = FIREBASE_API_KEY
+  ? `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`
+  : null;
 
 /**
  * Verify user credentials via Firebase Auth REST API
@@ -30,6 +32,10 @@ const FIREBASE_AUTH_URL = `https://identitytoolkit.googleapis.com/v1/accounts:si
  */
 async function verifyFirebaseCredentials(email, password) {
   try {
+    if (!FIREBASE_AUTH_URL) {
+      console.warn('FIREBASE_AUTH_URL not configured; skipping Firebase REST credential verification');
+      return null;
+    }
     const response = await fetch(FIREBASE_AUTH_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
