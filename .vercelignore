@@ -1,6 +1,3 @@
-# Ignore Flutter SDK - will be downloaded during build
-flutter/
-
 # Ignore backend (if not deploying backend to Vercel)
 backend/
 
