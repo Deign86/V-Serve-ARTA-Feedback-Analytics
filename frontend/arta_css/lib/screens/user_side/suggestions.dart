@@ -676,7 +676,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with TickerProviderStat
                 children: [
                   _buildCommentForm(),
                   const SizedBox(height: 40),
-                  _buildHomeButton(),
+                  Center(child: _buildHomeButton()),
                 ],
               ),
             ),
@@ -895,23 +895,22 @@ class _ThankYouScreenState extends State<ThankYouScreen> with TickerProviderStat
         ),
         const SizedBox(height: 16),
         
-        Align(
-          alignment: Alignment.centerRight,
+        Center(
           child: SizedBox(
-            width: 140,
-            height: 45,
+            width: 220,
+            height: 50,
             child: ElevatedButton(
               onPressed: (_isSubmittingComment || !_hasCommentText) ? null : _submitComment,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF003366),
                 disabledBackgroundColor: Colors.grey.shade400,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
               ),
               child: _isSubmittingComment 
                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                 : Text(
                     "Submit",
-                    style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 12),
+                    style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
                   ),
             ),
           ),
@@ -922,7 +921,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with TickerProviderStat
 
   Widget _buildHomeButton({double? width}) {
     return SizedBox(
-      width: width ?? double.infinity,
+      width: width ?? 220,
       height: 50,
       child: OutlinedButton(
         onPressed: _goHome,
