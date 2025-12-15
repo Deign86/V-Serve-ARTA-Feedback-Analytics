@@ -522,15 +522,35 @@ class _ArtaConfigurationScreenState extends State<ArtaConfigurationScreen> {
             const SizedBox(height: 24),
             const Divider(),
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Direct Link:', style: AdminTheme.bodySmall(color: Colors.grey.shade600)),
-                SelectableText(
-                  QrCodeService.surveyUrl.replaceFirst('https://', ''),
-                  style: AdminTheme.linkText(),
-                ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 300;
+                return isNarrow
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Direct Link:', style: AdminTheme.bodySmall(color: Colors.grey.shade600)),
+                          const SizedBox(height: 4),
+                          SelectableText(
+                            QrCodeService.surveyUrl.replaceFirst('https://', ''),
+                            style: AdminTheme.linkText().copyWith(fontSize: 11),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Direct Link:', style: AdminTheme.bodySmall(color: Colors.grey.shade600)),
+                          Flexible(
+                            child: SelectableText(
+                              QrCodeService.surveyUrl.replaceFirst('https://', ''),
+                              style: AdminTheme.linkText(),
+                              textAlign: TextAlign.end,
+                            ),
+                          ),
+                        ],
+                      );
+              },
             ),
             const SizedBox(height: 8),
             Row(
@@ -1277,12 +1297,15 @@ class _DetailedAnalyticsScreenState extends State<DetailedAnalyticsScreen> {
                   ),
                   const SizedBox(height: 16),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(Icons.info_outline, size: 16, color: brandBlue),
                       const SizedBox(width: 8),
-                      Text(
-                        'Score interpretation: 5 - Strongly Agree, 1 - Strongly Disagree. ARTA compliance requires detailed tracking of all 9 dimensions (SQD0-SQD8).',
-                        style: TextStyle(fontSize: 12, color: brandBlue),
+                      Expanded(
+                        child: Text(
+                          'Score interpretation: 5 - Strongly Agree, 1 - Strongly Disagree. ARTA compliance requires detailed tracking of all 9 dimensions (SQD0-SQD8).',
+                          style: TextStyle(fontSize: 12, color: brandBlue),
+                        ),
                       ),
                     ],
                   ),

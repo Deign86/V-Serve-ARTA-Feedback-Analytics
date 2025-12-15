@@ -1168,10 +1168,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   LayoutBuilder(
                     builder: (context, roleConstraints) {
                       final crossAxisCount = roleConstraints.maxWidth > 600 ? 2 : 1;
-                      // Calculate aspect ratio dynamically
+                      // Calculate aspect ratio dynamically - use larger height to prevent overflow
                       final cardWidth = (roleConstraints.maxWidth - (crossAxisCount - 1) * 16) / crossAxisCount;
-                      final targetHeight = 100.0;
-                      final aspectRatio = (cardWidth / targetHeight).clamp(2.0, 4.0);
+                      final targetHeight = 120.0; // Increased from 100 to prevent bottom overflow
+                      final aspectRatio = (cardWidth / targetHeight).clamp(1.5, 4.0);
                       
                       return GridView.count(
                         shrinkWrap: true,
@@ -1803,10 +1803,10 @@ class _DataExportsScreenState extends State<DataExportsScreen> {
               LayoutBuilder(
                 builder: (context, cardConstraints) {
                    final crossAxisCount = cardConstraints.maxWidth > 900 ? 3 : cardConstraints.maxWidth > 500 ? 2 : 1;
-                   // Calculate dynamic aspect ratio
+                   // Calculate dynamic aspect ratio - use larger height to prevent bottom overflow
                    final cardWidth = (cardConstraints.maxWidth - (crossAxisCount - 1) * 16) / crossAxisCount;
-                   final targetHeight = 180.0;
-                   final aspectRatio = (cardWidth / targetHeight).clamp(1.2, 2.5);
+                   final targetHeight = 220.0; // Increased from 180 to prevent bottom overflow
+                   final aspectRatio = (cardWidth / targetHeight).clamp(0.9, 2.0);
                    
                    return GridView.count(
                      shrinkWrap: true,

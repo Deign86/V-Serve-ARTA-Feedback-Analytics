@@ -30,33 +30,78 @@ class _SurveyQuestionEditorState extends State<SurveyQuestionEditor> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.edit_note, color: AdminTheme.brandBlue, size: 20),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Survey Content Editor',
-                      style: AdminTheme.headingSmall(color: Colors.black87),
-                    ),
-                  ],
-                ),
-                // Reset button
-                TextButton.icon(
-                  onPressed: () => _showResetConfirmation(context, questionsService),
-                  icon: Icon(Icons.restore, size: 16, color: Colors.orange.shade700),
-                  label: Text(
-                    'Reset to Defaults',
-                    style: AdminTheme.bodySmall(
-                      color: Colors.orange.shade700,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
+            // Header - responsive
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 450;
+                return isNarrow
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.edit_note, color: AdminTheme.brandBlue, size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Survey Content Editor',
+                                  style: AdminTheme.headingSmall(color: Colors.black87).copyWith(fontSize: 14),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: () => _showResetConfirmation(context, questionsService),
+                              icon: Icon(Icons.restore, size: 14, color: Colors.orange.shade700),
+                              label: Text(
+                                'Reset',
+                                style: AdminTheme.bodySmall(
+                                  color: Colors.orange.shade700,
+                                  fontWeight: FontWeight.w600,
+                                ).copyWith(fontSize: 12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.edit_note, color: AdminTheme.brandBlue, size: 20),
+                                const SizedBox(width: 12),
+                                Flexible(
+                                  child: Text(
+                                    'Survey Content Editor',
+                                    style: AdminTheme.headingSmall(color: Colors.black87),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Reset button
+                          TextButton.icon(
+                            onPressed: () => _showResetConfirmation(context, questionsService),
+                            icon: Icon(Icons.restore, size: 16, color: Colors.orange.shade700),
+                            label: Text(
+                              'Reset to Defaults',
+                              style: AdminTheme.bodySmall(
+                                color: Colors.orange.shade700,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+              },
             ),
             const SizedBox(height: 8),
             Text(
