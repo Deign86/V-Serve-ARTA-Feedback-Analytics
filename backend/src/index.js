@@ -6,7 +6,6 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs'); // Keep for legacy password verification
 const admin = require('firebase-admin');
-const cron = require('node-cron');
 
 // Load dotenv so PORT and other env vars can be set from .env
 try {
@@ -975,7 +974,10 @@ app.get('/audit-logs', async (req, res) => {
 /**
  * POST /audit-logs
  * Create an audit log entry
+ * Includes expiresAt field for Firestore TTL auto-deletion
  */
+const AUDIT_LOG_RETENTION_DAYS = parseInt(process.env.AUDIT_LOG_RETENTION_DAYS || '7', 10);
+
 app.post('/audit-logs', async (req, res) => {
   try {
     const logEntry = req.body;
@@ -984,90 +986,19 @@ app.post('/audit-logs', async (req, res) => {
       return res.status(400).json({ error: 'actionType and actionDescription are required' });
     }
 
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + AUDIT_LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+
     const docRef = await db.collection(COLLECTIONS.AUDIT_LOGS).add({
       ...logEntry,
-      timestamp: new Date(),
+      timestamp: now,
+      expiresAt: expiresAt,
     });
 
     res.status(201).json({ success: true, id: docRef.id });
   } catch (err) {
     console.error('Create audit log error:', err);
     res.status(500).json({ error: 'Failed to create audit log' });
-  }
-});
-
-/**
- * Audit log cleanup utilities
- * - Runs a daily cron job to remove logs older than AUDIT_LOG_RETENTION_DAYS (default 7)
- * - Provides an optional manual endpoint `POST /audit-logs/cleanup` protected by
- *   the `AUDIT_LOG_CLEANUP_KEY` environment variable.
- */
-const AUDIT_LOG_RETENTION_DAYS = parseInt(process.env.AUDIT_LOG_RETENTION_DAYS || '7', 10);
-const AUDIT_LOG_CLEANUP_KEY = process.env.AUDIT_LOG_CLEANUP_KEY || null;
-
-async function cleanupAuditLogs() {
-  const cutoff = new Date(Date.now() - AUDIT_LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
-  console.log(`Audit log cleanup: removing documents older than ${cutoff.toISOString()}`);
-
-  let totalDeleted = 0;
-  try {
-    while (true) {
-      const snapshot = await db.collection(COLLECTIONS.AUDIT_LOGS)
-        .where('timestamp', '<', cutoff)
-        .limit(500)
-        .get();
-
-      if (snapshot.empty) break;
-
-      const batch = db.batch();
-      snapshot.docs.forEach(doc => batch.delete(doc.ref));
-      await batch.commit();
-
-      totalDeleted += snapshot.size;
-      console.log(`Deleted ${snapshot.size} audit log documents`);
-
-      // If fewer than the batch size were returned, we're done
-      if (snapshot.size < 500) break;
-    }
-  } catch (err) {
-    console.error('Error during audit log cleanup:', err);
-    throw err;
-  }
-
-  console.log(`Audit log cleanup complete, total deleted: ${totalDeleted}`);
-  return totalDeleted;
-}
-
-// Schedule daily cleanup at 03:00 UTC (configurable by env var if needed)
-try {
-  cron.schedule(process.env.AUDIT_LOG_CLEANUP_CRON || '0 3 * * *', async () => {
-    try {
-      await cleanupAuditLogs();
-    } catch (e) {
-      console.error('Scheduled audit log cleanup failed:', e);
-    }
-  }, { timezone: 'UTC' });
-  console.log('Scheduled audit log cleanup job configured');
-} catch (e) {
-  console.error('Failed to schedule audit log cleanup:', e);
-}
-
-// Manual cleanup endpoint (protected by key)
-app.post('/audit-logs/cleanup', async (req, res) => {
-  const providedKey = req.get('x-admin-key') || req.query.key || null;
-  if (!AUDIT_LOG_CLEANUP_KEY) {
-    return res.status(403).json({ error: 'Cleanup key not configured' });
-  }
-  if (providedKey !== AUDIT_LOG_CLEANUP_KEY) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-
-  try {
-    const deleted = await cleanupAuditLogs();
-    res.json({ success: true, deleted });
-  } catch (err) {
-    console.error('Manual audit log cleanup failed:', err);
-    res.status(500).json({ error: 'Cleanup failed' });
   }
 });
 
