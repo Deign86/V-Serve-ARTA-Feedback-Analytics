@@ -631,8 +631,6 @@ class _ThankYouScreenState extends State<ThankYouScreen> with TickerProviderStat
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final safeAreaPadding = MediaQuery.of(context).padding;
     
     return Scaffold(
       backgroundColor: Colors.transparent,
