@@ -55,7 +55,7 @@ class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
   }
   
   /// Fetch logs from the centralized backend API
-  Future<void> _fetchLogsFromBackend({int limit = 500}) async {
+  Future<void> _fetchLogsFromBackend({int limit = 1000}) async {
     try {
       final queryParams = <String, String>{
         'limit': limit.toString(),
@@ -530,7 +530,7 @@ class AuditLogServiceHttp extends ChangeNotifier with CachingMixin {
   }
   
   /// Fetch logs from centralized backend
-  Future<void> fetchLogs({int limit = 500, bool forceRefresh = false}) async {
+  Future<void> fetchLogs({int limit = 1000, bool forceRefresh = false}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
